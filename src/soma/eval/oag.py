@@ -13,6 +13,7 @@ class OagReport:
     dataset_id: str
     split: str
     tuning_exposure: bool
+    oracle_mode: str
     oracle_answerable: int
     text_memory_correct: int
     answerability_gap: int
@@ -47,8 +48,25 @@ def _oracle_can_answer(item: object) -> bool:
     return bool(item.get("oracle_answerable", not item.get("unanswerable", False)))
 
 
+def _measured_oracle_ids(oracle_path: Path) -> set[int]:
+    """Items a raw-frame oracle actually answered correctly.
+
+    Answerability is *demonstrated* by a model that saw the pixels, not asserted
+    by a human-editable gold flag -- this is what decouples the OAG ceiling from
+    the gold-tampering risk that inflates the headline RAS.
+    """
+    return {int(row["i"]) for row in _read_jsonl(oracle_path) if row.get("oracle_correct") is True}
+
+
+def _resolve_oracle(dataset: dict[str, Any]) -> tuple[set[int], str]:
+    oracle_path = dataset.get("oracle_path")
+    if oracle_path:
+        return _measured_oracle_ids(Path(str(oracle_path))), "measured"
+    return _oracle_ids(Path(str(dataset["gold_path"]))), "annotated"
+
+
 def calculate(dataset: dict[str, Any]) -> OagReport:
-    oracle_ids = _oracle_ids(Path(str(dataset["gold_path"])))
+    oracle_ids, oracle_mode = _resolve_oracle(dataset)
     latest = {int(row["i"]): row for row in _read_jsonl(Path(str(dataset["score_path"])))}
     correct = sum(latest.get(item_id, {}).get("verdict") == "correct" for item_id in oracle_ids)
     missing = sum(item_id not in latest for item_id in oracle_ids)
@@ -63,6 +81,7 @@ def calculate(dataset: dict[str, Any]) -> OagReport:
         dataset_id=str(dataset["id"]),
         split=str(dataset["split"]),
         tuning_exposure=bool(dataset.get("tuning_exposure", True)),
+        oracle_mode=oracle_mode,
         oracle_answerable=len(oracle_ids),
         text_memory_correct=correct,
         answerability_gap=gap,
