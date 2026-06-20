@@ -91,3 +91,9 @@ archive/soma_hub_legacy/data/
 ## checkpoints) — written continuously by background processes; not source.
 ## The rest of ops/ (ROADMAP, NORTH_STAR, workorders) stays tracked.
 ops/cockpit/
+
+## iCloud/Finder conflict copies, e.g. "README 2.md", "Makefile 2". This repo
+## lives in an iCloud-synced ~/Documents, which generates these and can corrupt
+## .git — never let them be committed. (Proper fix: move the repo out of iCloud.)
+* [0-9].*
+* [0-9]
