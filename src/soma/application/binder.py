@@ -87,9 +87,31 @@ class Binder:
                 continue
             entity = self._entity_for(key, group)
             entities.append(entity)
+            presence = self._presence_binding(entity, group)
+            if presence is not None:
+                bindings.append(presence)
             self._bind_attributes(entity, group, bindings, refused)
 
         return BindResult(tuple(entities), tuple(bindings), tuple(refused))
+
+    def _presence_binding(self, entity: Entity, group: list[Observation]) -> Binding | None:
+        """Repeated independent sightings ARE a fact: the thing was present.
+
+        Without this, a sign read twice yields an entity but nothing usable --
+        the exact reason the legacy bound_memory was {bindings: [], usable: false}.
+        """
+        aggregate = _noisy_or(obs.confidence.value for obs in group)
+        if aggregate < self._min_confidence:
+            return None
+        return Binding(
+            binding_id=_stable_id(entity.entity_id, "present", entity.label),
+            subject_id=entity.entity_id,
+            predicate="present",
+            object_id=None,
+            object_text=entity.label,
+            confidence=Confidence(min(aggregate, 1.0)),
+            evidence=tuple(obs.provenance for obs in group),
+        )
 
     def _entity_for(self, key: str, group: list[Observation]) -> Entity:
         kind = Counter(obs.kind for obs in group).most_common(1)[0][0]

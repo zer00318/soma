@@ -87,6 +87,16 @@ def test_clear_winner_over_a_lone_competitor_still_binds() -> None:
     assert bound is not None and bound.object_text == "red"
 
 
+def test_repeated_attribute_free_sightings_bind_as_presence() -> None:
+    # A sign read twice carries no attribute, but its presence is a usable fact.
+    result = Binder().bind([_obs("no entry sign", 1000, 0.7), _obs("no entry sign", 2000, 0.7)])
+
+    presence = _binding(result, "present")
+    assert presence is not None
+    assert presence.object_text == "no entry sign"
+    assert len(presence.evidence) == 2
+
+
 def test_subject_spelling_variants_collapse_to_one_entity() -> None:
     result = Binder().bind(
         [_obs("Blue Bag", 1000, 0.7, color="blue"), _obs("blue   bag", 2000, 0.7, color="blue")]
