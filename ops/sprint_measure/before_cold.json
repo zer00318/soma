@@ -1,0 +1,23 @@
+{
+  "clip": "cold",
+  "state": "running",
+  "done": 3,
+  "total": 19,
+  "current_q": 4,
+  "current_question": "Did I have any accessories that were visible when I was in bed, and where were they?",
+  "correct": 3,
+  "wrong": 0,
+  "miss": 0,
+  "error": 0,
+  "needs_review": 0,
+  "hard_ras": 100.0,
+  "halluc_pct": 0.0,
+  "updated_epoch": 1781942872,
+  "answer_model": "gemma3:12b-it-qat",
+  "judge_model": "gemma3:27b-it-qat",
+  "models_independent": true,
+  "message": "answering locally, then grading independently",
+  "avg_s_per_q": 48.2,
+  "eta_s": 771,
+  "eta_human": "12m51s"
+}

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- TRACE cockpit supervisor. launchd owns the process lifecycle so the founder's window
+     is a SYSTEM INVARIANT, not a property of whoever last typed a command in a terminal.
+     RunAtLoad starts it at login (so a phone hitting the URL after a reboot sees a live
+     port before any terminal is opened); KeepAlive restarts it within ThrottleInterval on
+     ANY exit (crash, OOM-kill, ctrl-C, uncaught error). Install with
+     scripts/install_cockpit_agent.sh. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.trace.cockpit</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>/Users/zer00/Documents/VLM/scripts/ops_cockpit.py</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/zer00/Documents/VLM</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>StandardOutPath</key>
+  <string>/tmp/trace_cockpit.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/trace_cockpit.log</string>
+</dict>
+</plist>

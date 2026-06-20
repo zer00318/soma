@@ -1,0 +1,25 @@
+# Day-in-life (day_in_life_20260618, "Day in life.mp4" — 58.7s portrait montage, WITH AUDIO/SPEECH).
+# Founder's BLIND battery, ground-truth answered 2026-06-18 BEFORE seeing the memory.
+# The COLD anti-overfit test (ROADMAP Phase 4): a place/scene the system has NEVER seen,
+# scored with ZERO clip-specific tuning. A different distribution from the Garching walk:
+# indoor montage, social speech, a lecture screen, a game HUD, food, brands, self-attributes.
+# Verdicts (vs the founder's video+audio ground truth): correct | wrong | miss.
+people: Whose lectures was I listening to?
+text: Which example problem was I on?
+objects: What was the colour of my bedsheets and blanket?
+objects: Did I have any accessories that were visible when I was in bed, and where were they?
+objects: Do I wear eyewear or glasses?
+objects: What outfit was I wearing?
+objects: Was I wearing a watch?
+people: What is my name?
+people: What was the name of the person who checked my card, and what details do you know about her?
+fusion: How many calories were in the breakfast I ate, and what did I eat?
+people: Who were at the table opposite to me?
+fusion: What game was I playing, what was the highest speed I reached, and on what device was I playing?
+people: I said hi to someone — what was he wearing?
+fusion: Where can I buy the macbook skin, and what phone do I use?
+text: What university was I going to?
+places: Where did I leave my keys?
+text: When did the physics lecture conclude?
+objects: What was the logo on the mate I fist-bumped?
+objects: What was the model of the blue vehicle I saw?

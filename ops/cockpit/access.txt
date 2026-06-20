@@ -1,0 +1,4 @@
+TRACE cockpit — reachable URLs (regenerated every launch)
+On this Mac : http://localhost:8788
+On phone/LAN: http://192.168.50.76:8788   (phone must be on the same Wi-Fi as this Mac)
+generated   : 2026-06-20 11:35:56

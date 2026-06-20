@@ -1,0 +1,16 @@
+{"epoch": 1781778600, "clip": "cold", "ras": 15.8, "halluc_pct": 20.0, "correct": 4, "wrong": 1, "miss": 14, "total": 19, "note": "cold baseline (assembler was crashing -> mass refusal)"}
+{"epoch": 1781784000, "clip": "cold", "ras": 10.5, "halluc_pct": 37.5, "correct": 5, "wrong": 3, "miss": 11, "total": 19, "note": "brain fixed + speech wired; leash loosened TOO far -> 3 hallucinations"}
+{"epoch": 1781788619, "clip": "cold", "ras": 0.0, "halluc_pct": 50.0, "correct": 4, "wrong": 4, "miss": 11, "total": 19, "note": "tightened: uniqueness guard vs wrong-entity binding"}
+{"epoch": 1781795046, "clip": "cold", "ras": -10.5, "halluc_pct": 60.0, "correct": 4, "wrong": 6, "miss": 9, "total": 19}
+{"epoch": 1781892854, "clip": "cold", "ras": -10.5, "halluc_pct": 60.0, "correct": 4, "wrong": 6, "miss": 9, "total": 19}
+{"epoch": 1781903939, "clip": "cold", "ras": 10.5, "halluc_pct": 40.0, "correct": 6, "wrong": 4, "miss": 9, "total": 19}
+{"epoch": 1781905042, "clip": "walk", "ras": 12.0, "halluc_pct": 41.2, "correct": 10, "wrong": 7, "miss": 8, "total": 25}
+{"epoch": 1781948071, "clip": "cold", "ras": 52.9, "halluc_pct": 9.1, "correct": 10, "wrong": 1, "miss": 6, "total": 19}
+{"epoch": 1781955700, "clip": "other", "ras": 0.0, "halluc_pct": 0.0, "correct": 0, "wrong": 0, "miss": 0, "total": 1}
+{"epoch": 1781955718, "clip": "other", "ras": 0.0, "halluc_pct": 0.0, "correct": 0, "wrong": 0, "miss": 0, "total": 1}
+{"epoch": 1781955842, "clip": "other", "ras": 0.0, "halluc_pct": 0.0, "correct": 0, "wrong": 0, "miss": 0, "total": 1}
+{"epoch": 1781955973, "clip": "other", "ras": 0.0, "halluc_pct": 0.0, "correct": 0, "wrong": 0, "miss": 0, "total": 1}
+{"epoch": 1781956244, "clip": "other", "ras": 0.0, "halluc_pct": 0.0, "correct": 0, "wrong": 0, "miss": 0, "total": 1}
+{"epoch": 1781957501, "clip": "walk", "ras": 50.0, "halluc_pct": 12.5, "correct": 14, "wrong": 2, "miss": 8, "total": 25}
+{"epoch": 1781959145, "clip": "other", "ras": 0.0, "halluc_pct": 0.0, "correct": 0, "wrong": 0, "miss": 0, "total": 1}
+{"epoch": 1781959577, "clip": "other", "ras": 0.0, "halluc_pct": 0.0, "correct": 0, "wrong": 0, "miss": 0, "total": 1}

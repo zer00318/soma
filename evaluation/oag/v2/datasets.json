@@ -1,0 +1,33 @@
+{
+  "schema": "soma.oag-datasets.v2",
+  "frozen_at": "2026-06-20",
+  "oracle_rule": "A founder-reviewed gold answer from raw media is oracle-answerable unless explicitly marked unanswerable.",
+  "datasets": [
+    {
+      "id": "walk_outside_20260614",
+      "split": "tuning",
+      "tuning_exposure": true,
+      "gold_path": "evaluation/oag/v2/gold/walk_outside_20260614.json",
+      "sha256": "427a0cc96502c07116e639f8a20cc52a8552d034957cb9e9db90f9ef3b6e041d",
+      "score_path": "evaluation/oag/v2/scores/walk.post_vocab_removal.jsonl",
+      "score_sha256": "7f4ef127ebe0d7866ded2a911d155f9d7abe7a2f644f7acbe0dc636f52ba233e"
+    },
+    {
+      "id": "day_in_life_20260618",
+      "split": "validation_contaminated",
+      "tuning_exposure": true,
+      "gold_path": "evaluation/oag/v2/gold/day_in_life_20260618.json",
+      "sha256": "2d10476c2b302ba4c3696eabef3a115ef4a86f88ae8e2610945618cc54295b65",
+      "score_path": "evaluation/oag/v2/scores/day_in_life.partial_post_reset.jsonl",
+      "score_sha256": "2fb2fc739d151779582414051e34aa09ecf05fc5c0514250d90989bf6aac0ffe"
+    }
+  ],
+  "reserved_held_out": [
+    {
+      "id": "walk_office_jun11",
+      "raw_media": "data/walks/walk_office_jun11.mov",
+      "status": "reserved_not_scored",
+      "reason": "No frozen blind question set, oracle grades, or text-memory projection exists yet."
+    }
+  ]
+}

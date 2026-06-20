@@ -1,0 +1,177 @@
+{
+  "asked_at": "2026-06-13T21:50:50.732379+00:00",
+  "engine": "ask_home",
+  "source": "data/walks/home_capture_20260613/memory/kf_memory.json",
+  "answers": [
+    {
+      "category": "objects",
+      "question": "Is there a fan in the room, and where is it?",
+      "answer": "Yes, there's a black fan on the floor to the right of the window (at 40.7s and 41.8s). It has a metal or mesh front.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 10.5,
+      "verdict": "correct"
+    },
+    {
+      "category": "objects",
+      "question": "What is on the bed?",
+      "answer": "I saw a gray blanket and white pillows on the bed (at 109.7s). There was also a laptop partially covered by a blanket (at 108.6s).",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 4.5,
+      "verdict": "correct"
+    },
+    {
+      "category": "objects",
+      "question": "Is there a laptop, and where is it?",
+      "answer": "Yes, I saw a black device that was possibly a laptop on the bedside table (at 94.4s) and also on the bed (at 108.6s). It had a red light on it at one point (at 95.4s).",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 5.7,
+      "verdict": "correct"
+    },
+    {
+      "category": "objects",
+      "question": "Are there any headphones in the room?",
+      "answer": "I didn't see any headphones. The scenes only show clothes, a space heater, blinds, and a black object on the windowsill at 31.0s.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 4.4,
+      "verdict": "miss"
+    },
+    {
+      "category": "objects",
+      "question": "Is there a hair dryer?",
+      "answer": "I don't have that in my memory of your home — I didn't see it.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": "miss"
+    },
+    {
+      "category": "objects",
+      "question": "What is under the window?",
+      "answer": "At 3.3s, there was a pile of clothes including a black jacket, a pink shirt, and a white towel under the window.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 2.7,
+      "verdict": "miss"
+    },
+    {
+      "category": "text",
+      "question": "What brand is the chocolate-hazelnut spread on the desk?",
+      "answer": "The label reads \"Nutella\" at 89.1 seconds and \"Chio\" at 563.1 seconds, but I couldn't read any other brands.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 5.7,
+      "verdict": "correct"
+    },
+    {
+      "category": "text",
+      "question": "What does the tape packaging say?",
+      "answer": "The tape packaging says \"tesa FILM\". I saw this at 90.4s and 92.0s.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 4.9,
+      "verdict": "correct"
+    },
+    {
+      "category": "text",
+      "question": "What brand is on the yellow-labelled jars?",
+      "answer": "I saw \"SUPREME\" on a notebook next to the peanut butter jars at 86.8 seconds. The jars themselves didn't have any visible brands.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 5.2,
+      "verdict": "miss"
+    },
+    {
+      "category": "text",
+      "question": "What word is on the black notebook?",
+      "answer": "At 86.8 seconds, the word \"SUPREME\" was visible on the cover of the black notebook. It also appeared at 93.0 seconds.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 4.5,
+      "verdict": "correct"
+    },
+    {
+      "category": "text",
+      "question": "What chocolate bar is there?",
+      "answer": "The box of chocolate bars has a brown and yellow label, and the text \"Vollmilchschokolade\" and \"* SUPREME*\" are visible on it (at 89.1s). There's also another box with \"Vollmilchschokolade; SUPREME\" written on it (at 90.4s).",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 6.7,
+      "verdict": "correct"
+    },
+    {
+      "category": "text",
+      "question": "What care instructions were on a clothing tag?",
+      "answer": "I couldn't read any care instructions; there was text on a white rectangular tag at 12.0s, but I don’t know what it said. There was also a red and white tag at 12.0s, but I didn't see the text.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 5.9,
+      "verdict": "miss"
+    },
+    {
+      "category": "places",
+      "question": "What is on the windowsill?",
+      "answer": "At 3.3s, there was a pile of clothes including a black jacket, pink shirt, white towel, and blue clothing. At 51.6s and 53.1s, there was a black oscillating fan with a mesh grille on the windowsill.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 4.7,
+      "verdict": "correct"
+    },
+    {
+      "category": "places",
+      "question": "Describe the layout of the desk / charging area.",
+      "answer": "The desk is light-colored and situated near the bottom left corner of the room (at 654.6s). A white laptop with a black keyboard was connected to a white charging cable on the bed (at 112.3s).",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 5.6,
+      "verdict": "miss"
+    },
+    {
+      "category": "objects",
+      "question": "Is there a coffee machine in the room?",
+      "answer": "I didn't see a coffee machine. The scenes only show clothes, a space heater, and blinds on a window.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 2.6,
+      "verdict": "miss"
+    },
+    {
+      "category": "text",
+      "question": "What does the poster on the wall say?",
+      "answer": "I didn't see a poster on the wall.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 1.5,
+      "verdict": "miss"
+    },
+    {
+      "category": "objects",
+      "question": "Is there a dog or cat in the room?",
+      "answer": "I didn't see any dogs or cats in the scenes.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 1.9,
+      "verdict": "miss"
+    }
+  ]
+}
