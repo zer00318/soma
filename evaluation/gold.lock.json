@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "glob": "evaluation/ras/*.gold.json",
+  "frozen_at_ms": 1781962900152,
+  "note": "sprint-1 baseline freeze; decouples OAG ceiling from gold edits",
+  "entries": [
+    {
+      "path": "evaluation/ras/day_in_life_20260618.gold.json",
+      "sha256": "2d10476c2b302ba4c3696eabef3a115ef4a86f88ae8e2610945618cc54295b65",
+      "n_items": 19
+    },
+    {
+      "path": "evaluation/ras/walk_outside_20260614.gold.json",
+      "sha256": "427a0cc96502c07116e639f8a20cc52a8552d034957cb9e9db90f9ef3b6e041d",
+      "n_items": 25
+    }
+  ]
+}

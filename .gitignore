@@ -97,3 +97,6 @@ ops/cockpit/
 ## .git — never let them be committed. (Proper fix: move the repo out of iCloud.)
 * [0-9].*
 * [0-9]
+
+# build artifacts
+*.egg-info/
