@@ -16,4 +16,7 @@ run "pytest (unit)"      pytest -q
 run "gold integrity"     python -m soma.eval.gold_lock verify
 run "dead code"          vulture src --min-confidence 80
 
+tests=$(grep -rhoE "def test_\w+" tests/unit | wc -l | tr -d ' ')
+mkdir -p ops/cockpit
+printf '{"status": "GREEN", "tests": %s, "epoch": %s}\n' "$tests" "$(date +%s)" > ops/cockpit/gate.json
 echo "ALL GREEN"
