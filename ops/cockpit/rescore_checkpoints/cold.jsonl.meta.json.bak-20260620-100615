@@ -1,9 +1,0 @@
-{
-  "clip": "cold",
-  "fingerprint": "ce5ea40dbd59abebd05106bd614ddc42590d7a7ab335968353790e087c784cd5",
-  "model": "gemma3:12b-it-qat",
-  "questions": "/Users/zer00/Documents/VLM/evaluation/ras/day_in_life_20260618.txt",
-  "gold": "/Users/zer00/Documents/VLM/evaluation/ras/day_in_life_20260618.gold.json",
-  "memory": "/Users/zer00/Documents/VLM/data/walks/day_in_life_20260618/memory/world_memory.json",
-  "updated_epoch": 1781902987
-}
