@@ -1,0 +1,88 @@
+## OS / editor noise
+.DS_Store
+
+## Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+## JavaScript / Expo / Vite
+**/node_modules/
+**/.expo/
+**/dist/
+**/logs/
+
+## Build products
+build/
+**/.build/
+**/DerivedData/
+**/xcuserdata/
+*.xcuserstate
+
+## Runtime state and generated logs
+data/
+soma_logs/
+.soma_backlog/
+.soma_supervisor/
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+## Local external reference checkouts
+external/
+
+## Local model artifacts and helper binaries
+yolo11n.pt
+models/asr/
+tools/whisper-stream
+soma-native-fastvlm/FastVLM/model/
+soma-native-fastvlm/FastVLM App/Generated/BuildStamp.swift
+*.bin
+*.ggml
+*.gguf
+*.onnx
+*.pt
+*.safetensors
+
+## Coverage and ad hoc outputs
+.coverage
+coverage/
+
+## SOMA supervisor runtime state
+.ralph/
+.ralphrc
+.soma_supervisor/
+
+# large capture media (durable on disk, not in git)
+data/walks/**/*.mov
+data/walks/*.mov
+
+## PRIVACY INVARIANT: raw pixels/audio must never be committable, anywhere in the
+## tree. These extensions are blocked globally as defense-in-depth (the egress
+## guard + test enforce the same rule in code). Do NOT add negations for these.
+*.mov
+*.MOV
+*.mp4
+*.m4v
+*.mkv
+*.avi
+*.heic
+*.HEIC
+*.wav
+*.mp3
+*.aac
+*.caf
+*.m4a
+*.mlmodelc/
+*.mlpackage/
+## Note: still-image frames from capture live under data/ (ignored above);
+## .jpg/.png are NOT globally blocked so genuine UI assets stay trackable.
+
+## Local harness / IDE state (worktrees, launch config, local settings)
+.claude/
+
+## Archived corrupt object store (forensic only) + legacy dead-code data
+archive/git-corrupt-*/
+archive/soma_hub_legacy/data/
