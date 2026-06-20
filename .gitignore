@@ -86,3 +86,8 @@ data/walks/*.mov
 ## Archived corrupt object store (forensic only) + legacy dead-code data
 archive/git-corrupt-*/
 archive/soma_hub_legacy/data/
+
+## Cockpit runtime state (pids, locks, heartbeats, jsonl logs, rescore
+## checkpoints) — written continuously by background processes; not source.
+## The rest of ops/ (ROADMAP, NORTH_STAR, workorders) stays tracked.
+ops/cockpit/
