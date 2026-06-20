@@ -1,0 +1,48 @@
+{
+  "written_by": "Fable 5 lead \u2014 ALL-NIGHT offline perception pipeline build (the pivot). Phone records, Mac understands. Input ready: data/walks/walk_office_jun11.mov",
+  "tasks": [
+    {
+      "id": "P1-extract-frames",
+      "title": "Frame extractor: video -> sharp frames at 2fps",
+      "kind": "code",
+      "target_file": "scripts/walk_extract_frames.py",
+      "max_attempts": 3,
+      "verify": "/Users/zer00/Documents/VLM/.venv/bin/python scripts/walk_extract_frames.py --self-test",
+      "spec": "NEW standalone Python script. Imports: cv2, argparse, os, sys, json, tempfile, shutil (cv2 IS available in .venv). Purpose: turn a walk video into deduplicated sharp frames for offline perception. Functions: 1) frame_sharpness(gray_img) -> float: cv2.Laplacian(gray, cv2.CV_64F).var(). 2) extract(video_path, out_dir, fps=2.0, min_sharpness=40.0) -> list[dict]: cv2.VideoCapture; read source fps via CAP_PROP_FPS (default 30 if 0); step = max(1, int(src_fps/fps)); every step-th frame: grayscale, compute sharpness, skip if below min_sharpness; else save as out_dir/frame_<index:06d>_<t_seconds:.1f>s.jpg (JPEG quality 88); append {file, t, sharpness} to manifest; ALSO write out_dir/manifest.json at the end. Return manifest list. 3) CLI: --video (default '', NOT required \u2014 argparse must not error when only --self-test is passed; after parsing, if not self_test and not video: parser.error('--video required')), --out (default /tmp/walk_frames), --fps (default 2.0), --min-sharpness (default 40), --self-test. --self-test: synthesize a 60-frame 320x240 test video in a tempdir with cv2.VideoWriter mp4v: 30 frames of pure black (low sharpness) then 30 frames of random noise via numpy (np available with cv2; high sharpness); run extract at fps=5; assert manifest non-empty; assert all saved frames have sharpness>=min; assert no black frames survived (count < 8); print SELF-TEST PASS exit 0 else traceback exit 1."
+    },
+    {
+      "id": "P2-segment-frames",
+      "title": "FastSAM segment-everything over extracted frames",
+      "kind": "code",
+      "target_file": "scripts/walk_segment_frames.py",
+      "max_attempts": 3,
+      "verify": "/Users/zer00/Documents/VLM/.venv/bin/python scripts/walk_segment_frames.py --self-test",
+      "spec": "NEW standalone Python script. Imports: argparse, os, sys, json, cv2 (numpy via cv2). ultralytics imported LAZILY inside run_fastsam() only (so --self-test works without it). Purpose: segment everything in each frame, save object crops. Functions: 1) run_fastsam(frame_paths, model_name='FastSAM-s.pt', conf=0.4, iou=0.9) -> dict file->list of boxes: from ultralytics import FastSAM; model=FastSAM(model_name); for each frame path: results = model(path, device='mps', retina_masks=False, imgsz=1024, conf=conf, iou=iou); collect xyxy boxes from results[0].boxes (if any) as int lists. 2) filter_boxes(boxes, frame_w, frame_h, min_frac=0.0015, max_frac=0.6) -> boxes whose area fraction is within range, deduped by IoU>0.85 (keep larger). 3) save_crops(frame_path, boxes, out_dir, pad=0.06) -> list[dict]: for each box expand by pad fraction (clamped), crop with cv2, save out_dir/<framebase>_obj<k>.jpg, return [{crop, frame, box}]. 4) main: --frames-dir (default /tmp/walk_frames), --out (default /tmp/walk_crops), --limit-frames (default 0 = all): read manifest.json if present else glob *.jpg; run_fastsam in batches of 16 paths; filter + save; write /tmp/walk_crops/crops_manifest.json with all crop dicts; print totals. 5) --self-test (NO ultralytics): create temp 200x200 white image with a black 60x60 square; boxes=[[20,20,80,80],[21,21,81,81],[0,0,199,199],[2,2,4,4]]; filter_boxes -> assert the near-duplicate collapsed, the full-frame box removed (max_frac), the tiny box removed (min_frac), exactly 1 box remains; save_crops -> assert crop file exists and dimensions ~ box+pad; print SELF-TEST PASS exit 0."
+    },
+    {
+      "id": "P3-label-crops",
+      "title": "Open-vocab labeling of crops against the 914-word vocabulary",
+      "kind": "code",
+      "target_file": "scripts/walk_label_crops.py",
+      "max_attempts": 3,
+      "verify": "/Users/zer00/Documents/VLM/.venv/bin/python scripts/walk_label_crops.py --self-test",
+      "spec": "NEW standalone Python script. Imports: argparse, os, sys, json. torch/open_clip/PIL imported LAZILY inside build_labeler() only. Purpose: name every crop with the best vocab word + score. Functions: 1) load_vocab(path='ops/spatial_vocab.txt') -> list[str] (strip empties). 2) build_labeler(vocab, model_name='ViT-B-32', pretrained='laion2b_s34b_b79k') -> callable(batch_of_PIL_images) -> list[(word, score)]: import open_clip, torch; model, _, preprocess = open_clip.create_model_and_transforms(model_name, pretrained=pretrained); tokenizer=open_clip.get_tokenizer(model_name); device='mps' if torch.backends.mps.is_available() else 'cpu'; text feats for prompts 'a photo of a {w}' computed ONCE, normalized; returns closure that preprocesses images, encodes, normalizes, cosine vs text feats, returns best word+score per image. 3) label_all(crops_manifest, labeler, batch=32) -> list of crop dicts extended with {word, score}. 4) main: --crops (default /tmp/walk_crops/crops_manifest.json), --vocab, --out (default /tmp/walk_labels.json), --score-floor (default 0.0 = keep all, floor applied later): label everything, write JSON, print top-20 word histogram. 5) --self-test (NO torch): stub labeler = lambda imgs: [('mug', 0.31)]*len(imgs); fake manifest of 3 crop dicts with nonexistent paths BUT self-test must not open files \u2014 restructure label_all to take an image-loader callable (default PIL open) so self-test passes loader=lambda p: None; assert output has 3 entries all word=='mug'; assert json round-trips; print SELF-TEST PASS exit 0."
+    },
+    {
+      "id": "P4-build-inventory",
+      "title": "Cluster labeled crops into a deduplicated object inventory + HTML gallery",
+      "kind": "code",
+      "target_file": "scripts/walk_build_inventory.py",
+      "max_attempts": 3,
+      "verify": "/Users/zer00/Documents/VLM/.venv/bin/python scripts/walk_build_inventory.py --self-test",
+      "spec": "NEW standalone Python script, stdlib + json + html only (no cv2/torch). Purpose: turn per-crop labels into a human-checkable object inventory. Functions: 1) cluster(labels: list[dict], score_floor=0.22) -> dict word -> {count, best (highest-score crop dict), examples (up to 4 crop paths), score_max, score_mean}: drop entries below floor; group by word. 2) render_gallery(inventory, out_html, title) -> write a single self-contained HTML page: dark theme, one card per word sorted by count desc: word big, count, score_max, up to 4 <img src='file://...' style max 160px>. 3) render_summary(inventory) -> text: total distinct words, total instances, top 30 words with counts. 4) main: --labels (default /tmp/walk_labels.json), --out-html (default /tmp/walk_inventory.html), --out-json (default /tmp/walk_inventory.json), --score-floor: cluster, write both files + print summary. 5) --self-test: synth labels list: 5x ('mug', 0.3, crop paths c1..c5), 2x ('desk', 0.4), 1x ('mug', 0.1 \u2014 below floor); assert inventory['mug']['count']==5 (floored one dropped), desk count 2, gallery HTML written to tempdir and contains 'mug' and 'desk', summary string contains 'distinct'; print SELF-TEST PASS exit 0."
+    },
+    {
+      "id": "P5-pipeline-run",
+      "title": "RUN the full pipeline on the real office walk video (long, all-night ok)",
+      "kind": "gate",
+      "blocking": true,
+      "verify": "cd /Users/zer00/Documents/VLM && .venv/bin/pip install -q open_clip_torch 2>&1 | tail -1; .venv/bin/python scripts/walk_extract_frames.py --video data/walks/walk_office_jun11.mov --out /tmp/walk_frames --fps 2 && .venv/bin/python scripts/walk_segment_frames.py --frames-dir /tmp/walk_frames --out /tmp/walk_crops && .venv/bin/python scripts/walk_label_crops.py --crops /tmp/walk_crops/crops_manifest.json --out /tmp/walk_labels.json && .venv/bin/python scripts/walk_build_inventory.py --labels /tmp/walk_labels.json --out-html /tmp/walk_inventory.html --out-json /tmp/walk_inventory.json && python3 -c \"import json; inv=json.load(open('/tmp/walk_inventory.json')); assert len(inv)>=30, f'only {len(inv)} distinct words'; print('PIPELINE OK:', len(inv), 'distinct objects')\""
+    }
+  ]
+}

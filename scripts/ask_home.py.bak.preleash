@@ -1,0 +1,458 @@
+#!/usr/bin/env python3
+"""Ask your home a question. Route it to the memory layer that holds the answer
+(keyframe OCR+caption for reading/temporal, the deduplicated world inventory for
+counting), let gemma reason over the read text with its own world knowledge to
+produce a concrete, cited answer — while keeping the honest-refusal default.
+
+This is the product: capture -> a vision model reads and describes the world ->
+you ask anything, answered from the words it remembered, with the frame as proof.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import re
+import sys
+import urllib.request
+
+# build_temporal_index is created in the same task but ask_home must still load
+# and answer reading/counting questions if that file is absent or broken.
+try:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import build_temporal_index as _temporal
+except Exception:
+    _temporal = None
+
+STOP = set("the a an of in on at is are was were i my me you your it its to for and "
+           "with what where when who how do does did can could there here that this".split())
+
+
+# --------------------------------------------------------------------------- #
+# Memory loading: resolve BOTH file shapes, normalize OCR, locate the sibling.
+# --------------------------------------------------------------------------- #
+def load_memory_records(records):
+    """Normalize an already-parsed keyframe LIST in place and return it.
+
+    Always computes _ocr_txt from each record's ocr list (so pre-baked-description
+    items still expose their read text), and synthesizes description only when it
+    is absent. Empty/whitespace OCR fragments are dropped.
+    """
+    for m in records:
+        ocr = m.get("ocr") or []
+        if isinstance(ocr, list):
+            ocr_txt = "; ".join(x for x in ocr if x and str(x).strip())
+        else:
+            ocr_txt = str(ocr)
+        m["_ocr_txt"] = ocr_txt
+        if "description" not in m:
+            cap = m.get("caption", "")
+            m["description"] = (cap + (("  TEXT: " + ocr_txt) if ocr_txt else "")).strip()
+    return records
+
+
+def load_memory(path):
+    """Back-compat loader: read a keyframe JSON list from disk and normalize it."""
+    try:
+        parsed = json.load(open(path))
+    except Exception:
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return load_memory_records(parsed)
+
+
+def _resolve_memories(memory_path):
+    """Resolve memory_path (kf list OR world dict) to both layers + the kf path.
+
+    Returns {"kf": <list|None>, "world": <list|None>, "kf_path": <str|None>}.
+    Parses memory_path exactly once and auto-locates the sibling file so callers
+    can pass either world_memory.json or kf_memory.json and get the full picture.
+    """
+    try:
+        parsed = json.load(open(memory_path))
+    except Exception:
+        return {"kf": None, "world": None, "kf_path": None}
+
+    base = os.path.dirname(os.path.abspath(memory_path))
+
+    # WORLD file: {objects: [...]} — want kf sibling for reading/temporal.
+    if isinstance(parsed, dict) and isinstance(parsed.get("objects"), list):
+        world = parsed["objects"]
+        sib = os.path.join(base, "kf_memory.json")
+        if os.path.exists(sib):
+            kf = load_memory(sib)
+            kf_path = sib
+        else:
+            kf = None
+            kf_path = None
+        return {"kf": kf, "world": world, "kf_path": kf_path}
+
+    # KEYFRAME file: list — want world sibling for counting.
+    if isinstance(parsed, list):
+        kf = load_memory_records(parsed)
+        kf_path = os.path.abspath(memory_path)
+        world = None
+        sib = os.path.join(base, "world_memory.json")
+        if os.path.exists(sib):
+            try:
+                wparsed = json.load(open(sib))
+                if isinstance(wparsed, dict) and isinstance(wparsed.get("objects"), list):
+                    world = wparsed["objects"]
+            except Exception:
+                world = None
+        return {"kf": kf, "world": world, "kf_path": kf_path}
+
+    return {"kf": None, "world": None, "kf_path": None}
+
+
+# --------------------------------------------------------------------------- #
+# Retrieval: IDF-weighted overlap over caption + OCR, with numeric awareness.
+# --------------------------------------------------------------------------- #
+def _tokens(s):
+    return re.findall(r"[a-z0-9]+", (s or "").lower())
+
+
+def _idf(memory):
+    """Down-weight words that appear in many scenes (gemma boilerplate like
+    'description', 'visible', 'layout', ubiquitous 'wall'/'floor'). Tokens keep
+    digits so years/codes (e.g. 1845) stay discriminating."""
+    n = max(1, len(memory))
+    df = {}
+    for m in memory:
+        for w in set(_tokens(m.get("description", ""))):
+            df[w] = df.get(w, 0) + 1
+    return {w: math.log((n + 1) / (c + 1)) for w, c in df.items()}
+
+
+def retrieve(question, memory, k=4, idf=None, ocr_boost=1.0):
+    """Return up to k scenes ranked by IDF-weighted overlap over caption + OCR.
+
+    ocr_boost multiplies overlap that comes only from read text (OCR tokens not
+    already in the caption) — reading questions pass 2.0 to favor the layer that
+    holds their answer. Scenes with zero discriminating overlap are NOT returned
+    (no scenes[0] fallback — that empty result is the honest-refusal source).
+
+    Tie-breaker: when many scenes match a query token equally (e.g. a long "train
+    station platform" caption run all hit "station"), the answer for an identity/
+    place question lives in the scene that actually READ the signage. A small bonus
+    (capped well below one IDF unit, scaled by ocr_boost so it's active for reading
+    questions) nudges OCR-rich scenes ahead without overriding a genuine match.
+    """
+    qwords = {w for w in _tokens(question)
+              if (len(w) >= 3 or w.isdigit()) and w not in STOP}
+    idf = idf if idf is not None else _idf(memory)
+    scored = []
+    for m in memory:
+        # Fall back to description when caption is absent (self-test items).
+        cap_words = set(_tokens(m.get("caption", "") or m.get("description", "")))
+        ocr_words = set(_tokens(m.get("_ocr_txt", "")))
+        score = (sum(idf.get(w, 0.0) for w in (qwords & cap_words))
+                 + ocr_boost * sum(idf.get(w, 0.0)
+                                   for w in (qwords & (ocr_words - cap_words))))
+        if score > 0:
+            # Tiny OCR-richness tie-breaker: 0..0.25 * ocr_boost, saturating at
+            # ~10 read tokens. Far below idf of any real word, so it only orders
+            # otherwise-equal scenes toward the ones that read the most text.
+            ocr_rich = min(len(ocr_words), 10) / 40.0 * ocr_boost
+            scored.append((score, ocr_rich, m))
+    scored.sort(key=lambda x: (-x[0], -x[1]))
+    return [m for _, _, m in scored[:k]]
+
+
+# --------------------------------------------------------------------------- #
+# Question classification (first match wins, priority order matters).
+# --------------------------------------------------------------------------- #
+TEMPORAL_RE = re.compile(
+    r"\b(how long|how much time|duration|longer|before|after|first|then|next|"
+    r"order|sequence|while|during|earlier|later|at the (start|beginning|end)|"
+    r"when did)\b")
+
+COUNTING_RE = re.compile(
+    r"\b(how many|how much|number of|count|are there|were there|several|few)\b")
+
+# A reading question asks what something SAYS, or its answer lives in read text
+# (identity/place/translation/menus/screens). Kept broad on purpose.
+READING_RE = re.compile(
+    r"\b(say|says|said|read|reads|written|write|writing|label|brand|word|number|"
+    r"text|sign|poster|note|title|caption|print|translate|translated|translation|"
+    r"station|located|location|where am i|whose|name|called|molecule|menu|screen|"
+    r"display|displayed|show(s|ing)? on)\b")
+
+# Tight pattern for pure verbatim-quote questions (caption withheld, no interpret).
+VERBATIM_RE = re.compile(
+    r"\b(say|says|said|read|reads|written|verbatim|exact(ly)? (text|words)|"
+    r"word for word)\b")
+
+
+def is_reading_question(q):
+    return bool(READING_RE.search(q.lower()))
+
+
+def classify_question(q):
+    """Return one of 'temporal' | 'counting' | 'reading' | 'general'."""
+    ql = q.lower()
+    if TEMPORAL_RE.search(ql):
+        return "temporal"
+    if COUNTING_RE.search(ql):
+        return "counting"
+    if is_reading_question(q):
+        return "reading"
+    return "general"
+
+
+# --------------------------------------------------------------------------- #
+# Shared HTTP helper.
+# --------------------------------------------------------------------------- #
+def _ollama(prompt, model, host, timeout):
+    """POST one prompt to ollama /api/generate (temperature 0, no stream) and
+    return the response text. Raises on failure — callers handle the fallback."""
+    req = urllib.request.Request(
+        host.rstrip("/") + "/api/generate",
+        data=json.dumps({"model": model, "prompt": prompt, "stream": False,
+                         "options": {"temperature": 0}}).encode(),
+        headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8", "replace")).get("response", "").strip()
+
+
+# --------------------------------------------------------------------------- #
+# Prompt templates.
+# --------------------------------------------------------------------------- #
+READING_PROMPT = (
+    "You are the memory of someone's day, recalled from short scene notes. Each scene\n"
+    "lists TEXT READ (exact words/numbers seen on signs, screens, posters, labels) and\n"
+    "SEEN (what the scene looked like). Use the TEXT READ as ground truth. You may apply\n"
+    "general world knowledge to turn fragments into a concrete answer — for example, a\n"
+    "name plus life-dates next to an X-ray tube identifies the scientist; a German phrase\n"
+    "can be translated; a station sign names the place. State the concrete answer in 1-2\n"
+    "sentences, then cite the time(s) the supporting text was read, e.g. \"(read at 2.5s)\".\n"
+    "RULES:\n"
+    "- Ground every claim in TEXT READ or SEEN. Do not invent words, names, or numbers\n"
+    "  that are not supported by them.\n"
+    "- If the read text is too garbled or unrelated to answer, say:\n"
+    "  \"I don't have that in my memory — I didn't read enough to be sure.\" Do not guess.\n"
+    "\n"
+    "Scenes:\n%s\n\nQuestion: %s\nAnswer:")
+
+VERBATIM_PROMPT = (
+    "You are the memory of someone's day. Below is the EXACT text that was read off\n"
+    "things in the relevant scenes — nothing else. Answer using ONLY this read text:\n"
+    "quote the relevant words verbatim and give the time they were read. Do not translate,\n"
+    "interpret, or guess. If none of it answers the question, say you couldn't read it.\n"
+    "\n"
+    "Text read in the scenes:\n%s\n\nQuestion: %s\nAnswer:")
+
+GENERAL_PROMPT = (
+    "You are the memory of someone's home. Using ONLY these remembered scenes, answer in "
+    "1-2 plain sentences; mention the time in seconds if relevant. If the scenes don't "
+    "show the thing asked about, say you didn't see it. Never invent.\n\n"
+    "Remembered scenes:\n%s\n\nQuestion: %s\nAnswer:")
+
+TEMPORAL_PROMPT = (
+    "You are the memory of someone's day. Below is how their time broke down: how long\n"
+    "they spent on each subject, and the order of episodes. Answer the question in 1-2\n"
+    "plain sentences using ONLY these durations and this order. For \"how long\" give the\n"
+    "seconds; for \"which was longer\" compare the seconds; for order/sequence questions\n"
+    "give the chronological order. If the subject asked about is not listed, say you don't\n"
+    "have it. Never invent durations.\n"
+    "\n"
+    "%s\n\nQuestion: %s\nAnswer:")
+
+
+# --------------------------------------------------------------------------- #
+# Per-layer answerers.
+# --------------------------------------------------------------------------- #
+def answer_reading(question, scenes, model, host, timeout):
+    """Reading / identity / place / translation: fuse OCR (ground truth) with the
+    caption and gemma's world knowledge to produce a concrete cited answer.
+
+    Pure verbatim-quote questions withhold the caption so a recognised-by-sight
+    detail cannot leak in as if it were read.
+    """
+    verbatim = bool(VERBATIM_RE.search(question.lower()))
+    if verbatim:
+        ctx = "\n".join(
+            "[t=%ss] TEXT READ: %s" % (s.get("t"), s.get("_ocr_txt") or "(none)")
+            for s in scenes)
+        prompt = VERBATIM_PROMPT % (ctx, question)
+    else:
+        ctx = "\n".join(
+            "[t=%ss] TEXT READ: %s\n         SEEN: %s"
+            % (s.get("t"), s.get("_ocr_txt") or "(none)", s.get("caption", ""))
+            for s in scenes)
+        prompt = READING_PROMPT % (ctx, question)
+    try:
+        return _ollama(prompt, model, host, timeout)
+    except Exception:
+        s = scenes[0]
+        return "Around %ss I read: %s" % (s.get("t"), s.get("_ocr_txt") or "(nothing readable)")
+
+
+def _fmt_scene(s):
+    line = "- (at %ss) %s" % (s.get("t"), s.get("caption", s.get("description", "")))
+    ocr = s.get("_ocr_txt")
+    if ocr:
+        line += "\n    (text read here: %s)" % ocr
+    return line
+
+
+def answer_general(question, scenes, model, host, timeout):
+    """General non-reading question: answer from caption (with OCR appended)."""
+    ctx = "\n".join(_fmt_scene(s) for s in scenes)
+    prompt = GENERAL_PROMPT % (ctx, question)
+    try:
+        return _ollama(prompt, model, host, timeout)
+    except Exception:
+        s = scenes[0]
+        return "Around %ss: %s" % (s.get("t"), s.get("description"))
+
+
+def ask_world(question, objects, model, host, timeout=60):
+    """Answer from the ONE deduplicated room memory (the product has no photos to
+    show — it kept only this). No per-frame retrieval, no images returned."""
+    inv = "\n".join("- %s (count: %s) — %s%s"
+                    % (o.get("name"), o.get("count"),
+                       o.get("attributes") or "",
+                       ("; " + o["where"]) if o.get("where") else "")
+                    for o in objects)
+    prompt = (
+        "This is your complete memory of one room — the distinct objects in it, how many "
+        "of each, and their details. It is ALL you know; there are no photos. Answer the "
+        "question in 1-2 plain sentences using ONLY this memory. For 'how many' questions "
+        "give the count from the memory (do not add things up again). If it isn't in the "
+        "memory, say you don't have it. Never invent.\n\n"
+        "Memory of the room:\n%s\n\nQuestion: %s\nAnswer:" % (inv, question))
+    try:
+        return _ollama(prompt, model, host, timeout)
+    except Exception:
+        return "I couldn't reach my memory just now."
+
+
+def answer_counting(question, world_objects, model, host, timeout):
+    """Counting -> the deduplicated world inventory (already counted, no re-add)."""
+    return ask_world(question, world_objects, model, host, timeout)
+
+
+def answer_temporal(question, kf_path, scenes, model, host, timeout, k=4):
+    """Temporal -> durations from the episode index. Returns (answer, proof_scenes).
+
+    Degrades to a general best-effort over retrieved scenes if the index module
+    is missing/broken so a temporal question still answers and never crashes.
+    """
+    if _temporal is None or kf_path is None:
+        return (answer_general(question, scenes, model, host, timeout), scenes)
+
+    idx = _temporal.get_durations(kf_path)
+    episodes = idx.get("episodes", [])
+    by_label = idx.get("by_label", {})
+    total = idx.get("total_s", 0.0)
+    if not episodes:
+        return ("I don't have that in my memory — I didn't track the timing.", [])
+
+    lines = ["Total time: %.1fs" % total, "Time spent per subject:"]
+    for label, dur in sorted(by_label.items(), key=lambda x: -x[1]):
+        lines.append("- %s: %.1fs" % (label, dur))
+    lines.append("Episodes in order:")
+    for ep in episodes:
+        lines.append("- %s from %.1fs to %.1fs (%.1fs)"
+                     % (ep["label"], ep["start"], ep["end"], ep["duration"]))
+    ctx = "\n".join(lines)
+    prompt = TEMPORAL_PROMPT % (ctx, question)
+
+    # Proof frames: episodes the question names, else the longest episodes.
+    ql = question.lower()
+    named = [ep for ep in episodes if ep["label"] in ql]
+    chosen = named[:k] if named else sorted(episodes, key=lambda e: -e["duration"])[:k]
+    proof = [{"t": ep.get("t"),
+              "frame": ep["frames"][0] if ep.get("frames") else None}
+             for ep in chosen]
+
+    try:
+        ans = _ollama(prompt, model, host, timeout)
+    except Exception:
+        ans = ctx
+    return (ans, proof)
+
+
+# --------------------------------------------------------------------------- #
+# compose: thin back-compat dispatcher (reading vs general).
+# --------------------------------------------------------------------------- #
+def compose(question, scenes, model, host, timeout=60):
+    """Back-compat wrapper: dispatch a retrieved-scene answer to reading/general."""
+    if is_reading_question(question):
+        return answer_reading(question, scenes, model, host, timeout)
+    return answer_general(question, scenes, model, host, timeout)
+
+
+# --------------------------------------------------------------------------- #
+# Top-level routing.
+# --------------------------------------------------------------------------- #
+def ask(question, memory_path, model="gemma3:12b-it-qat",
+        host="http://127.0.0.1:11434", timeout=60, k=4):
+    mems = _resolve_memories(memory_path)
+    kf, world, kf_path = mems["kf"], mems["world"], mems["kf_path"]
+
+    if not kf and not world:
+        return {"answer": "I haven't built a memory of your home yet.", "scenes": []}
+
+    kind = classify_question(question)
+
+    # 1) counting -> world inventory (already deduplicated/counted)
+    if kind == "counting" and world:
+        return {"answer": answer_counting(question, world, model, host, timeout),
+                "scenes": []}
+
+    # 2) temporal -> duration index over keyframes
+    if kind == "temporal" and kf_path:
+        scenes = retrieve(question, kf, k=k, idf=_idf(kf)) if kf else []
+        ans, proof = answer_temporal(question, kf_path, scenes, model, host, timeout, k=k)
+        return {"answer": ans, "scenes": proof}
+
+    # 3) reading/identity/place AND general -> keyframe retrieval (OCR+caption)
+    if not kf:
+        # Only a world file present + a non-counting question we can't ground in
+        # frames: best-effort off the lossy world layer, no proof photos.
+        return {"answer": ask_world(question, world, model, host, timeout) if world
+                else "I don't have that in my memory of your home — I didn't see it.",
+                "scenes": []}
+
+    idf = _idf(kf)
+    reading = (kind == "reading")
+    scenes = retrieve(question, kf, k=k, idf=idf, ocr_boost=2.0 if reading else 1.0)
+    if not scenes:
+        return {"answer": "I don't have that in my memory of your home — I didn't see it.",
+                "scenes": []}
+    if reading:
+        answer = answer_reading(question, scenes, model, host, timeout)
+    else:
+        answer = answer_general(question, scenes, model, host, timeout)
+    return {"answer": answer, "scenes": scenes}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("question", nargs="*")
+    ap.add_argument("--memory", default="data/walks/home_capture_20260613/memory/memory_full.json")
+    ap.add_argument("--model", default="gemma3:12b-it-qat")
+    ap.add_argument("--self-test", action="store_true")
+    args = ap.parse_args()
+    if args.self_test:
+        mem = [{"t": 5, "frame": "a.jpg", "description": "a black table fan on the windowsill"},
+               {"t": 9, "frame": "b.jpg", "description": "a bed with a laptop on a tray"}]
+        load_memory_records(mem)
+        top = retrieve("where is my fan", mem)
+        assert top and "fan" in top[0]["description"], top
+        print("SELF-TEST PASS"); return 0
+    q = " ".join(args.question)
+    res = ask(q, args.memory, args.model)
+    print("Q:", q)
+    print("A:", res["answer"])
+    for s in res["scenes"]:
+        print("   proof: %ss  %s" % (s.get("t"), s.get("frame")))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

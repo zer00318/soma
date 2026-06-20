@@ -1,0 +1,647 @@
+{
+  "summary": {
+    "n": 19,
+    "correct": 4,
+    "A_missing_channel": 3,
+    "B_brain": 12,
+    "A_questions": [
+      {
+        "i": 17,
+        "q": "When did the physics lecture conclude?",
+        "expected_channel": "OCR (clock)"
+      },
+      {
+        "i": 18,
+        "q": "What was the logo on the mate I fist-bumped?",
+        "expected_channel": "caption/logo recognition"
+      },
+      {
+        "i": 19,
+        "q": "What was the model of the blue vehicle I saw?",
+        "expected_channel": "caption/vehicle recognition"
+      }
+    ],
+    "B_questions": [
+      {
+        "i": 1,
+        "q": "Whose lectures was I listening to?",
+        "found_in": {
+          "ryan maccombs": [
+            "kf",
+            "kf_memory",
+            "screen_memory"
+          ],
+          "maccombs": [
+            "kf",
+            "kf_memory",
+            "screen_memory"
+          ]
+        }
+      },
+      {
+        "i": 2,
+        "q": "Which example problem was I on?",
+        "found_in": {
+          "1.6": [
+            "asr",
+            "screen_memory",
+            "transcript.txt"
+          ],
+          "example 1.6": [
+            "screen_memory"
+          ]
+        }
+      },
+      {
+        "i": 3,
+        "q": "What was the colour of my bedsheets and blanket?",
+        "found_in": {
+          "black and white": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ],
+          "stripe": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ],
+          "striped": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ],
+          "gray": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ]
+        }
+      },
+      {
+        "i": 4,
+        "q": "Did I have any accessories that were visible when I was in bed, and where were they?",
+        "found_in": {
+          "bracelet": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ],
+          "wristband": [
+            "kf",
+            "kf_memory"
+          ],
+          "right hand": [
+            "kf",
+            "kf_memory"
+          ]
+        }
+      },
+      {
+        "i": 5,
+        "q": "Do I wear eyewear or glasses?",
+        "found_in": {
+          "glasses": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ]
+        }
+      },
+      {
+        "i": 6,
+        "q": "What outfit was I wearing?",
+        "found_in": {
+          "green t": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ],
+          "green shirt": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ],
+          "sweatpants": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ],
+          "white crocs": [
+            "kf",
+            "kf_memory"
+          ],
+          "crocs": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ]
+        }
+      },
+      {
+        "i": 8,
+        "q": "What is my name?",
+        "found_in": {
+          "joe": [
+            "asr",
+            "transcript.txt"
+          ]
+        }
+      },
+      {
+        "i": 10,
+        "q": "How many calories were in the breakfast I ate, and what did I eat?",
+        "found_in": {
+          "eggs": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ],
+          "scrambled": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ],
+          "potatoes": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ],
+          "ketchup": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ],
+          "500": [
+            "kf",
+            "kf_memory",
+            "screen_memory"
+          ],
+          "600": [
+            "kf",
+            "kf_memory"
+          ]
+        }
+      },
+      {
+        "i": 11,
+        "q": "Who were at the table opposite to me?",
+        "found_in": {
+          "white shirt": [
+            "kf",
+            "kf_memory"
+          ]
+        }
+      },
+      {
+        "i": 12,
+        "q": "What game was I playing, what was the highest speed I reached, and on what device was I playing?",
+        "found_in": {
+          "51": [
+            "asr",
+            "kf",
+            "kf_memory",
+            "screen_memory",
+            "transcript.txt"
+          ],
+          "xbox": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ]
+        }
+      },
+      {
+        "i": 13,
+        "q": "I said hi to someone — what was he wearing?",
+        "found_in": {
+          "green": [
+            "kf",
+            "kf_memory",
+            "world_memory"
+          ],
+          "black shorts": [
+            "kf",
+            "kf_memory"
+          ]
+        }
+      },
+      {
+        "i": 16,
+        "q": "Where did I leave my keys?",
+        "found_in": {
+          "table": [
+            "bound_memory",
+            "kf",
+            "kf_memory",
+            "screen_memory",
+            "world_memory"
+          ],
+          "black table": [
+            "kf",
+            "kf_memory"
+          ]
+        }
+      }
+    ]
+  },
+  "per_question": [
+    {
+      "i": 1,
+      "q": "Whose lectures was I listening to?",
+      "verdict": "miss",
+      "diagnosis": "(B) brain",
+      "expected_channel": "screen/OCR",
+      "cues_found_in": {
+        "ryan maccombs": [
+          "kf",
+          "kf_memory",
+          "screen_memory"
+        ],
+        "maccombs": [
+          "kf",
+          "kf_memory",
+          "screen_memory"
+        ]
+      },
+      "engine_answer": "I don't have that in my memory. The DOSSIER mentions \"lectures by Mr. Ryan Maccombs\" at t=2.5s and t=23.5s, but it does not state I was listening to them.",
+      "gold": "Old lectures by Mr. Ryan Maccombs (lecturer name shown on the lecture video/screen)."
+    },
+    {
+      "i": 2,
+      "q": "Which example problem was I on?",
+      "verdict": "miss",
+      "diagnosis": "(B) brain",
+      "expected_channel": "screen/OCR",
+      "cues_found_in": {
+        "1.6": [
+          "asr",
+          "screen_memory",
+          "transcript.txt"
+        ],
+        "example 1.6": [
+          "screen_memory"
+        ]
+      },
+      "engine_answer": "I don't have that in my memory.",
+      "gold": "Example 1.6 (physics example on the screen; content was about a field due to a charge, 'Z can be anything it wants')."
+    },
+    {
+      "i": 3,
+      "q": "What was the colour of my bedsheets and blanket?",
+      "verdict": "wrong",
+      "diagnosis": "(B) brain",
+      "expected_channel": "caption/VLM",
+      "cues_found_in": {
+        "black and white": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "stripe": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "striped": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "gray": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ]
+      },
+      "engine_answer": "The bedsheets were white with thin black stripes, and the blanket was dark gray or black. This is evident from the scene descriptions at t=3.5s (\"white with thi",
+      "gold": "Bedsheets: black-and-white stripe pattern (thick white stripes, thin black stripes). Blanket: light grey on the outside,"
+    },
+    {
+      "i": 4,
+      "q": "Did I have any accessories that were visible when I was in bed, and where were they?",
+      "verdict": "miss",
+      "diagnosis": "(B) brain",
+      "expected_channel": "caption/self-perception",
+      "cues_found_in": {
+        "bracelet": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "wristband": [
+          "kf",
+          "kf_memory"
+        ],
+        "right hand": [
+          "kf",
+          "kf_memory"
+        ]
+      },
+      "engine_answer": "I don't have that in my memory. The dossier mentions a rolling cart with a white towel, bottle, and small containers (scene at t=6.3s), but does not mention any",
+      "gold": "Yes — a band/bracelet on the RIGHT hand/wrist."
+    },
+    {
+      "i": 5,
+      "q": "Do I wear eyewear or glasses?",
+      "verdict": "wrong",
+      "diagnosis": "(B) brain",
+      "expected_channel": "caption/VLM",
+      "cues_found_in": {
+        "glasses": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ]
+      },
+      "engine_answer": "Yes, the person is wearing glasses. This is confirmed by multiple lines describing a woman with glasses behind a counter at the breakfast club and also by a sce",
+      "gold": "Maybe — a glasses holder/case was on the table while putting on the crocs (no glasses clearly worn)."
+    },
+    {
+      "i": 6,
+      "q": "What outfit was I wearing?",
+      "verdict": "miss",
+      "diagnosis": "(B) brain",
+      "expected_channel": "caption/self-perception",
+      "cues_found_in": {
+        "green t": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "green shirt": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "sweatpants": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "white crocs": [
+          "kf",
+          "kf_memory"
+        ],
+        "crocs": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ]
+      },
+      "engine_answer": "I don't have that in my memory. The dossier describes several outfits, including a green shirt and gray sweatpants (at t=11.3s), dark pants and white Crocs (at ",
+      "gold": "Green t-shirt, dark blue sweatpants, and white crocs."
+    },
+    {
+      "i": 7,
+      "q": "Was I wearing a watch?",
+      "verdict": "correct",
+      "diagnosis": "correct",
+      "expected_channel": "caption/self-perception",
+      "cues_found_in": {
+        "yes": [
+          "kf",
+          "kf_memory"
+        ],
+        "watch": [
+          "kf",
+          "kf_memory"
+        ]
+      },
+      "engine_answer": "Yes, multiple lines describe the person wearing a black watch on their left wrist. This is seen while packing up at t=38.0s, t=39.3s, t=39.7s, t=40.0s, and t=37",
+      "gold": "Yes — a watch with a dark blue band."
+    },
+    {
+      "i": 8,
+      "q": "What is my name?",
+      "verdict": "miss",
+      "diagnosis": "(B) brain",
+      "expected_channel": "ASR/speech",
+      "cues_found_in": {
+        "joe": [
+          "asr",
+          "transcript.txt"
+        ]
+      },
+      "engine_answer": "I don't have that in my memory.",
+      "gold": "Joe (April said it: 'Okay, Joe, see you')."
+    },
+    {
+      "i": 9,
+      "q": "What was the name of the person who checked my card, and what details do you know about her?",
+      "verdict": "correct",
+      "diagnosis": "correct",
+      "expected_channel": "caption + ASR (name)",
+      "cues_found_in": {
+        "pink": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "breakfast club": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "blonde": [
+          "kf",
+          "kf_memory"
+        ],
+        "blond": [
+          "kf",
+          "kf_memory"
+        ]
+      },
+      "engine_answer": "The woman behind the counter at \"BREAKFAST CLUB\" wore glasses and a name tag. She also had short blonde hair (read at 14.5s). I don't have the exact name on her",
+      "gold": "April. She wore a pink 'The Breakfast Club' t-shirt, black glasses/specs, is blonde, and may be right-handed."
+    },
+    {
+      "i": 10,
+      "q": "How many calories were in the breakfast I ate, and what did I eat?",
+      "verdict": "miss",
+      "diagnosis": "(B) brain",
+      "expected_channel": "VLM food reasoning",
+      "cues_found_in": {
+        "eggs": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "scrambled": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "potatoes": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "ketchup": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "500": [
+          "kf",
+          "kf_memory",
+          "screen_memory"
+        ],
+        "600": [
+          "kf",
+          "kf_memory"
+        ]
+      },
+      "engine_answer": "The dossier mentions a black plate with scrambled eggs and diced potatoes at t=18.0s, a black plate holding scrambled eggs and sausage at t=19.7s, and a black p",
+      "gold": "Scrambled eggs, diced breakfast potatoes/home fries, and ketchup; roughly 495-695 kcal total."
+    },
+    {
+      "i": 11,
+      "q": "Who were at the table opposite to me?",
+      "verdict": "wrong",
+      "diagnosis": "(B) brain",
+      "expected_channel": "caption/VLM",
+      "cues_found_in": {
+        "white shirt": [
+          "kf",
+          "kf_memory"
+        ]
+      },
+      "engine_answer": "There was a person holding a black mug with a green rim, and two salt and pepper shakers to their left. The scene also shows a hand reaching towards ketchup on ",
+      "gold": "Two women — one in a white t-shirt, the other in a white jacket / full-sleeve top."
+    },
+    {
+      "i": 12,
+      "q": "What game was I playing, what was the highest speed I reached, and on what device was I playing?",
+      "verdict": "miss",
+      "diagnosis": "(B) brain",
+      "expected_channel": "screen/HUD OCR + controller ID",
+      "cues_found_in": {
+        "51": [
+          "asr",
+          "kf",
+          "kf_memory",
+          "screen_memory",
+          "transcript.txt"
+        ],
+        "xbox": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ]
+      },
+      "engine_answer": "I don't have that in my memory.",
+      "gold": "Descenders; highest speed ~51 km/h; on Xbox (an Xbox controller was visible)."
+    },
+    {
+      "i": 13,
+      "q": "I said hi to someone — what was he wearing?",
+      "verdict": "wrong",
+      "diagnosis": "(B) brain",
+      "expected_channel": "caption + ASR (greeting)",
+      "cues_found_in": {
+        "green": [
+          "kf",
+          "kf_memory",
+          "world_memory"
+        ],
+        "black shorts": [
+          "kf",
+          "kf_memory"
+        ]
+      },
+      "engine_answer": "The person who responded to \"Good morning\" at t=13.5-14.1s and \"Have a good day\" at t=16.2-16.5s was wearing a bright pink t-shirt with the words \"BREAKFAST CLU",
+      "gold": "Greeting was 'Whatsup?'. He wore a green t-shirt and black shorts."
+    },
+    {
+      "i": 14,
+      "q": "Where can I buy the macbook skin, and what phone do I use?",
+      "verdict": "correct",
+      "diagnosis": "correct",
+      "expected_channel": "VLM + world knowledge",
+      "cues_found_in": {
+        "topographic": [
+          "kf",
+          "kf_memory"
+        ],
+        "map skin": [
+          "kf",
+          "kf_memory"
+        ]
+      },
+      "engine_answer": "The laptop has a topographic map skin (read at t=35.3s). The person uses a silver smartphone with a black case (read at t=3.3s).",
+      "gold": "The skin is a topographic/contour-line map design (closest dbrand match 'Area 51' but really a topographic-map skin). Ph"
+    },
+    {
+      "i": 15,
+      "q": "What university was I going to?",
+      "verdict": "correct",
+      "diagnosis": "correct",
+      "expected_channel": "OCR",
+      "cues_found_in": {
+        "michigan state": [
+          "kf",
+          "kf_memory"
+        ],
+        "chigan state": [
+          "kf",
+          "kf_memory"
+        ]
+      },
+      "engine_answer": "I don't have that in my memory. The signs read \"Michigan State University\" at t=43.5s and t=44.0s, but the question asks about a university I was going to, not ",
+      "gold": "Michigan State University (seen partially as 'chigan State' on a sign/logo)."
+    },
+    {
+      "i": 16,
+      "q": "Where did I leave my keys?",
+      "verdict": "miss",
+      "diagnosis": "(B) brain",
+      "expected_channel": "caption/VLM",
+      "cues_found_in": {
+        "table": [
+          "bound_memory",
+          "kf",
+          "kf_memory",
+          "screen_memory",
+          "world_memory"
+        ],
+        "black table": [
+          "kf",
+          "kf_memory"
+        ]
+      },
+      "engine_answer": "I don't have that in my memory. The dossier describes several locations where keys were present, including on a mouse pad, in a keychain, and in a drawer, but i",
+      "gold": "On the table that has a black tablecloth/cover (last seen there)."
+    },
+    {
+      "i": 17,
+      "q": "When did the physics lecture conclude?",
+      "verdict": "wrong",
+      "diagnosis": "(A) channel",
+      "expected_channel": "OCR (clock)",
+      "cues_found_in": {},
+      "engine_answer": "The physics lecture concluded at 12:36 PM, as indicated by the text \"PHYSICS LECTURE; 12:36 PM\" overlaid on several images (t=45.0s, t=45.7s).",
+      "gold": "At 13:30 (left the class around 13:32-13:36) — a clock/timestamp reading."
+    },
+    {
+      "i": 18,
+      "q": "What was the logo on the mate I fist-bumped?",
+      "verdict": "wrong",
+      "diagnosis": "(A) channel",
+      "expected_channel": "caption/logo recognition",
+      "cues_found_in": {},
+      "engine_answer": "The backpack had a white logo that read \"THE NORTH FACE.\" This was seen at t=39.0s.",
+      "gold": "Turks & Caicos Islands."
+    },
+    {
+      "i": 19,
+      "q": "What was the model of the blue vehicle I saw?",
+      "verdict": "miss",
+      "diagnosis": "(A) channel",
+      "expected_channel": "caption/vehicle recognition",
+      "cues_found_in": {},
+      "engine_answer": "I don't have that in my memory. The dossier describes a bicycle with a black frame and handlebars, but does not mention its model or color beyond \"black.\" It al",
+      "gold": "Most likely a Ford F-150 (blue pickup truck)."
+    }
+  ]
+}

@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Word World</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #050505; }
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: sans-serif;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        #offlineOverlay {
+            display: none;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: red;
+            color: white;
+            padding: 5px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="hud"></div>
+    <div id="offlineOverlay">hub offline</div>
+    <script src="https://unpkg.com/three@0.140.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.140.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        let scene, camera, renderer, controls;
+        let objects = [];
+        let hud = document.getElementById('hud');
+        let offlineOverlay = document.getElementById('offlineOverlay');
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let surfaceObjects = {};
+        let gridHelper;
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050505);
+
+            gridHelper = new THREE.GridHelper(20, 20, 0x223333, 0x223333);
+            gridHelper.position.y = -2.5;
+            scene.add(gridHelper);
+
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 1, 1).normalize();
+            scene.add(directionalLight);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(3.5, 2.2, 4.5);
+            camera.lookAt(0, -0.8, -1);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.target.set(0, -0.8, -1);
+
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('pointerdown', onPointerDown, false);
+
+            fetchWorld();
+        }
+
+        function fetchWorld() {
+            fetch('/api/world')
+                .then(response => response.json())
+                .then(data => {
+                    offlineOverlay.style.display = 'none';
+                    updateScene(data.objects || [], data.captured_at || 'n/a');
+                })
+                .catch(error => {
+                    offlineOverlay.style.display = 'block';
+                });
+        }
+
+        function updateScene(newObjects, capturedAt) {
+            // Dispose old objects
+            objects.forEach(obj => {
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) obj.material.dispose();
+                if (obj.texture) obj.texture.dispose();
+                if (obj.sprite) scene.remove(obj.sprite);
+                if (obj.line) scene.remove(obj.line);
+                if (obj.mesh) scene.remove(obj.mesh);
+            });
+            objects = [];
+            surfaceObjects = {};
+
+            // Process all objects
+            const surfaceKinds = ['desk','desk/table','table','table/desk','whiteboard','shelf','bed','counter','window','door'];
+            const surfaceObjs = [];
+            const wordObjs = [];
+
+            newObjects.forEach(objData => {
+                if (objData.phantom === true) return;
+                if (isRejected(objData)) return;
+                if (!isFinitePosition(objData)) return;
+                if (surfaceKinds.includes(objData.kind) || (objData.w && objData.w > 0.6 && objData.h && objData.h > 0.4)) {
+                    surfaceObjs.push(objData);
+                } else {
+                    wordObjs.push(objData);
+                }
+            });
+
+            // Create surface objects
+            surfaceObjs.forEach(objData => {
+                const isHorizontal = surfaceKinds.includes(objData.kind) || (objData.w && objData.w > 0.6 && objData.h && objData.h > 0.4);
+                let w = Math.max(0.8, objData.w || 0.8);
+                let h = Math.max(0.5, objData.h || 0.5);
+                let d = isHorizontal ? 0.04 : 0.04;
+                if (isHorizontal) {
+                    w = Math.max(0.8, objData.w || 0.8);
+                    h = 0.04;
+                    d = Math.max(0.5, objData.h || 0.5);
+                } else {
+                    w = Math.max(0.8, objData.w || 0.8);
+                    h = Math.max(0.5, objData.h || 0.5);
+                    d = 0.04;
+                }
+
+                const geometry = new THREE.BoxGeometry(w, h, d);
+                const material = new THREE.MeshLambertMaterial({
+                    color: 0x2a3f55,
+                    transparent: true,
+                    opacity: objectOpacity(objData, 0.45, 0.24)
+                });
+
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(objData.x, objData.y, objData.z);
+                scene.add(mesh);
+
+                // Create label sprite
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+
+                const label = objData.label;
+                context.font = 'bold 30px sans-serif';
+                const textWidth = context.measureText(label).width;
+                const padding = 8;
+                canvas.width = textWidth + 2 * padding;
+                canvas.height = 30 + 2 * padding;
+
+                context.font = 'bold 30px sans-serif';
+                context.fillStyle = isOffline(objData) ? 'rgba(10,10,14,0.42)' : 'rgba(10,10,14,0.72)';
+                context.beginPath();
+                context.roundRect(0, 0, canvas.width, canvas.height, 10);
+                context.fill();
+
+                context.fillStyle = objData.kind === 'object' ? '#ffffff' : '#9bd4ff';
+                context.textBaseline = 'middle';
+                context.fillText(label, padding, canvas.height / 2);
+
+                const texture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({
+                    map: texture,
+                    transparent: true,
+                    opacity: objectOpacity(objData, 1.0, 0.68)
+                });
+                const sprite = new THREE.Sprite(spriteMaterial);
+
+                const scale = Math.min(1.4, Math.max(0.3, 0.25 + 0.08 * Math.sqrt(objData.strength || 1)));
+                const aspect = canvas.width / canvas.height;
+                sprite.scale.set(scale * aspect, scale, 1);
+                sprite.position.set(objData.x, objData.y + 0.15, objData.z);
+
+                // Add vertical stem
+                const lineMaterial = new THREE.LineBasicMaterial({
+                    color: 0x334455,
+                    transparent: true,
+                    opacity: objectOpacity(objData, 0.5, 0.24),
+                    linewidth: 1
+                });
+                const lineGeometry = new THREE.BufferGeometry();
+                const points = [
+                    new THREE.Vector3(objData.x, objData.y, objData.z),
+                    new THREE.Vector3(objData.x, -2.5, objData.z)
+                ];
+                lineGeometry.setFromPoints(points);
+                const line = new THREE.Line(lineGeometry, lineMaterial);
+
+                scene.add(line);
+
+                objects.push({
+                    id: objData.id,
+                    mesh: mesh,
+                    sprite: sprite,
+                    line: line,
+                    texture: texture,
+                    label: label,
+                    strength: objData.strength || 1,
+                    x: objData.x,
+                    y: objData.y,
+                    z: objData.z,
+                    w: objData.w || 0,
+                    h: objData.h || 0,
+                    support_plane: objData.support_plane,
+                    kind: objData.kind,
+                    verified: objData.verified,
+                    source: objData.source || '',
+                    trust: objData.trust || 'trusted',
+                    name_source: objData.name_source || ''
+                });
+
+                surfaceObjects[objData.id] = {
+                    x: objData.x,
+                    y: objData.y,
+                    z: objData.z,
+                    w: objData.w || 0,
+                    h: objData.h || 0,
+                    support_plane: objData.support_plane,
+                    kind: objData.kind
+                };
+            });
+
+            // Create word objects
+            wordObjs.forEach(objData => {
+                const footprint = objData.footprint;
+                let hasFootprint = Array.isArray(footprint) && footprint.length >= 3;
+                if (hasFootprint) {
+                    try {
+                        for (let i = 0; i < footprint.length; i++) {
+                            if (!Array.isArray(footprint[i]) || footprint[i].length < 2 ||
+                                isNaN(footprint[i][0]) || isNaN(footprint[i][1])) {
+                                hasFootprint = false;
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        hasFootprint = false;
+                    }
+                }
+
+                let mesh;
+                if (hasFootprint) {
+                    const heightM = Math.max(0.04, Math.min(objData.heightM || 0.05, 1.2));
+                    const shape = new THREE.Shape();
+                    const firstPoint = footprint[0];
+                    shape.moveTo(firstPoint[0], firstPoint[1]);
+                    for (let i = 1; i < footprint.length; i++) {
+                        shape.lineTo(footprint[i][0], footprint[i][1]);
+                    }
+                    shape.closePath();
+
+                    const geometry = new THREE.ExtrudeGeometry(shape, { depth: heightM, bevelEnabled: false });
+                    const material = new THREE.MeshLambertMaterial({
+                        color: objData.verified === true ? 0x2f7d4f : 0x3b5b7d,
+                        transparent: true,
+                        opacity: objectOpacity(objData, 0.5, 0.28)
+                    });
+
+                    mesh = new THREE.Mesh(geometry, material);
+                    mesh.position.set(objData.x, objData.y + heightM / 2, objData.z);
+
+                    // Rotate to make extrusion vertical (+y)
+                    mesh.rotation.x = -Math.PI / 2;
+
+                    scene.add(mesh);
+
+                    // Create label sprite
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+
+                    const label = objData.label;
+                    context.font = 'bold 30px sans-serif';
+                    const textWidth = context.measureText(label).width;
+                    const padding = 8;
+                    canvas.width = textWidth + 2 * padding;
+                    canvas.height = 30 + 2 * padding;
+
+                    context.font = 'bold 30px sans-serif';
+                    context.fillStyle = isOffline(objData) ? 'rgba(10,10,14,0.42)' : 'rgba(10,10,14,0.72)';
+                    context.beginPath();
+                    context.roundRect(0, 0, canvas.width, canvas.height, 10);
+                    context.fill();
+
+                    if (objData.verified === true) {
+                        context.strokeStyle = '#00ff00';
+                        context.lineWidth = 1;
+                        context.beginPath();
+                        context.moveTo(padding, canvas.height - 5);
+                        context.lineTo(canvas.width - padding, canvas.height - 5);
+                        context.stroke();
+                    }
+
+                    context.fillStyle = objData.kind === 'object' ? '#ffffff' : '#9bd4ff';
+                    context.textBaseline = 'middle';
+                    context.fillText(label, padding, canvas.height / 2);
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const spriteMaterial = new THREE.SpriteMaterial({
+                        map: texture,
+                        transparent: true,
+                        opacity: objectOpacity(objData, 1.0, 0.68)
+                    });
+                    const sprite = new THREE.Sprite(spriteMaterial);
+
+                    // Calculate scale to fit within footprint bounding size
+                    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+                    for (let i = 0; i < footprint.length; i++) {
+                        minX = Math.min(minX, footprint[i][0]);
+                        maxX = Math.max(maxX, footprint[i][0]);
+                        minZ = Math.min(minZ, footprint[i][1]);
+                        maxZ = Math.max(maxZ, footprint[i][1]);
+                    }
+                    const width = maxX - minX;
+                    const depth = maxZ - minZ;
+
+                    const scale = Math.min(1.6, Math.max(0.25, Math.min(width, depth) * 0.3));
+                    const aspect = canvas.width / canvas.height;
+                    sprite.scale.set(scale * aspect, scale, 1);
+                    sprite.position.set(objData.x, objData.y + heightM + 0.12, objData.z);
+
+                    objects.push({
+                        id: objData.id,
+                        mesh: mesh,
+                        sprite: sprite,
+                        texture: texture,
+                        label: label,
+                        strength: objData.strength || 1,
+                        x: objData.x,
+                        y: objData.y,
+                        z: objData.z,
+                        support_plane: objData.support_plane,
+                        kind: objData.kind,
+                        verified: objData.verified,
+                        source: objData.source || '',
+                        trust: objData.trust || 'trusted',
+                        name_source: objData.name_source || '',
+                        hasFootprint: true
+                    });
+
+                    scene.add(sprite);
+                } else {
+                    // Fallback to v2 sprite
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+
+                    const label = objData.label;
+                    const strength = objData.strength || 1;
+                    const kindColor = objData.kind === 'object' ? '#ffffff' : '#9bd4ff';
+
+                    context.font = 'bold 30px sans-serif';
+                    const textWidth = context.measureText(label).width;
+                    const padding = 8;
+                    canvas.width = textWidth + 2 * padding;
+                    canvas.height = 30 + 2 * padding;
+
+                    context.font = 'bold 30px sans-serif';
+                    context.fillStyle = isOffline(objData) ? 'rgba(10,10,14,0.42)' : 'rgba(10,10,14,0.72)';
+                    context.beginPath();
+                    context.roundRect(0, 0, canvas.width, canvas.height, 10);
+                    context.fill();
+
+                    if (objData.verified === true) {
+                        context.strokeStyle = '#00ff00';
+                        context.lineWidth = 1;
+                        context.beginPath();
+                        context.moveTo(padding, canvas.height - 5);
+                        context.lineTo(canvas.width - padding, canvas.height - 5);
+                        context.stroke();
+                    }
+
+                    context.fillStyle = kindColor;
+                    context.textBaseline = 'middle';
+                    context.fillText(label, padding, canvas.height / 2);
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const material = new THREE.SpriteMaterial({
+                        map: texture,
+                        transparent: true,
+                        opacity: objectOpacity(objData, 1.0, 0.68)
+                    });
+                    const sprite = new THREE.Sprite(material);
+
+                    const scale = Math.min(1.4, Math.max(0.3, 0.25 + 0.08 * Math.sqrt(strength)));
+                    const aspect = canvas.width / canvas.height;
+                    sprite.scale.set(scale * aspect, scale, 1);
+                    sprite.position.set(objData.x, objData.y, objData.z);
+
+                    // Add vertical stem
+                    const lineMaterial = new THREE.LineBasicMaterial({
+                        color: 0x334455,
+                        transparent: true,
+                        opacity: objectOpacity(objData, 0.5, 0.24),
+                        linewidth: 1
+                    });
+                    const lineGeometry = new THREE.BufferGeometry();
+                    const points = [
+                        new THREE.Vector3(objData.x, objData.y, objData.z),
+                        new THREE.Vector3(objData.x, -2.5, objData.z)
+                    ];
+                    lineGeometry.setFromPoints(points);
+                    const line = new THREE.Line(lineGeometry, lineMaterial);
+
+                    scene.add(line);
+
+                    objects.push({
+                        id: objData.id,
+                        sprite: sprite,
+                        line: line,
+                        material: material,
+                        texture: texture,
+                        label: label,
+                        strength: strength,
+                        x: objData.x,
+                        y: objData.y,
+                        z: objData.z,
+                        support_plane: objData.support_plane,
+                        kind: objData.kind,
+                        verified: objData.verified,
+                        source: objData.source || '',
+                        trust: objData.trust || 'trusted',
+                        name_source: objData.name_source || '',
+                        hasFootprint: false
+                    });
+
+                    scene.add(sprite);
+                }
+
+                // Handle resting
+                if (objData.support_plane && surfaceObjects[objData.support_plane]) {
+                    const surface = surfaceObjects[objData.support_plane];
+                    if (!hasFootprint) {
+                        // Only remove stem if it's not a floating object with footprint
+                        const obj = objects.find(o => o.id === objData.id);
+                        if (obj && obj.line) {
+                            scene.remove(obj.line);
+                        }
+                    }
+                }
+            });
+
+            const rendered = surfaceObjs.length + wordObjs.length;
+            const offlineRendered = [...surfaceObjs, ...wordObjs].filter(isOffline).length;
+            const rejectedSkipped = newObjects.filter(isRejected).length;
+            hud.textContent = `Captured at: ${capturedAt} · rendered ${rendered} trusted positioned objects (${offlineRendered} offline inferred, ${rejectedSkipped} rejected hidden)`;
+        }
+
+        function isOffline(objData) {
+            return objData && objData.source === 'offline';
+        }
+
+        function trustValue(objData) {
+            return String((objData && objData.trust) || 'trusted').toLowerCase();
+        }
+
+        function isRejected(objData) {
+            return trustValue(objData) === 'rejected';
+        }
+
+        function objectOpacity(objData, normal, offline) {
+            if (isRejected(objData)) return 0;
+            if (isOffline(objData)) return offline;
+            return trustValue(objData) === 'trusted' ? normal : Math.min(normal, 0.35);
+        }
+
+        function isFinitePosition(objData) {
+            return objData && Number.isFinite(Number(objData.x)) && Number.isFinite(Number(objData.y)) && Number.isFinite(Number(objData.z));
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onPointerDown(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects(objects.map(o => o.mesh || o.sprite));
+
+            if (intersects.length > 0) {
+                const object = intersects[0].object;
+                let objData = objects.find(o => o.mesh === object || o.sprite === object);
+                if (!objData) return;
+
+                const info = `${objData.label} (${objData.kind}${objData.source === 'offline' ? ', offline inferred' : ''}, ${objData.trust || 'trusted'}${objData.name_source ? ', ' + objData.name_source : ''})`;
+                hud.textContent = info;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>

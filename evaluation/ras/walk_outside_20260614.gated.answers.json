@@ -1,0 +1,257 @@
+{
+  "asked_at": "2026-06-14T13:54:37.788476+00:00",
+  "engine": "ask_home",
+  "source": "data/walks/walk_outside_20260614/memory/world_memory.json",
+  "answers": [
+    {
+      "category": "other",
+      "question": "Was there a child crying or yelling?",
+      "answer": "I didn't capture clear speech — NO CLEAR SPEECH DETECTED (audio is near-silent ambient, mean ~-47dB; the phone likely captured wind/handling noise, not narration). So I can't tell you what was said or heard.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": "miss"
+    },
+    {
+      "category": "text",
+      "question": "What did the german sign translate to?",
+      "answer": "The German sign translates to \"Access - Engine Room; Entry only permitted to authorized personnel\" and \"Lift machine room.\" (read at 58.5s)",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 26.3,
+      "verdict": "correct"
+    },
+    {
+      "category": "text",
+      "question": "Were there two or three signs on the door stopping me?",
+      "answer": "There was one warning sign and one button on the door. I do not have information about any other signs.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 12.7,
+      "verdict": "miss"
+    },
+    {
+      "category": "text",
+      "question": "Whose name was on the X-Ray thing?",
+      "answer": "Wilhelm Conrad Röntgen's name was on the X-ray thing (read at 64.0s). He is associated with the discovery of electromagnetic radiation and received the Nobel Prize for Physics.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 7.3,
+      "verdict": "correct"
+    },
+    {
+      "category": "objects",
+      "question": "What was the color of the X-Ray thing?",
+      "answer": "The X-ray images were shades of blue and white, or grayscale. I saw them at 63.5s, 64.0s, 65.5s, and 68.0s.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 32.4,
+      "verdict": "correct"
+    },
+    {
+      "category": "places",
+      "question": "Where am I currently located?",
+      "answer": "I am at a train station platform. There is a large blue sign with \"Mr. Meilmer\" written in cursive above the tracks. (read at 39.0s)",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 33.6,
+      "verdict": "miss"
+    },
+    {
+      "category": "events",
+      "question": "How much time did I spend on the laptop compared to seeing the posters?",
+      "answer": "I spent 15.0 seconds on the laptop and 4.0 seconds looking at the posters. The laptop duration was longer than the poster duration.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 19.4,
+      "verdict": "wrong"
+    },
+    {
+      "category": "places",
+      "question": "Which side is Max Planck Campus compared to my position when I was viewing the laptop?",
+      "answer": "I remember what I saw and read, but not directions relative to where you were standing — I don't track left/right or which side of you things were on.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": "miss"
+    },
+    {
+      "category": "objects",
+      "question": "Other than the X-Ray and some organic compound poster, there was another blue poster — what is it?",
+      "answer": "The billboard is light blue and features an X-ray image of a hand. (read at 64.0s)",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 32.4,
+      "verdict": "wrong"
+    },
+    {
+      "category": "text",
+      "question": "Whose name was on this blue poster?",
+      "answer": "The name on the blue poster was \"WILHELM CONRAD RÖNTGEN\". (read at 64.0s)",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 51.7,
+      "verdict": "wrong"
+    },
+    {
+      "category": "places",
+      "question": "Where is the lift located compared to me when I was viewing the laptop?",
+      "answer": "I remember what I saw and read, but not directions relative to where you were standing — I don't track left/right or which side of you things were on.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": "miss"
+    },
+    {
+      "category": "places",
+      "question": "Was the station crowded?",
+      "answer": "I don't have that in my memory — I didn't read enough to be sure.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 33.5,
+      "verdict": "miss"
+    },
+    {
+      "category": "text",
+      "question": "What was the molecule?",
+      "answer": "I don't have that in my memory of your home — I didn't see it.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": "miss"
+    },
+    {
+      "category": "text",
+      "question": "Who was named on the poster of the molecule?",
+      "answer": "I don't have that in my memory — I didn't read enough to be sure.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 48.7,
+      "verdict": "miss"
+    },
+    {
+      "category": "text",
+      "question": "What years were mentioned on each poster?",
+      "answer": "The yellow poster mentions the years \"1898 - 1970\" (read at 46.0s). The blue informational sign mentions the years \"1845 - 1923\" (read at 69.5s and 72.0s).",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 49.0,
+      "verdict": "correct"
+    },
+    {
+      "category": "objects",
+      "question": "How many posters in total did you see?",
+      "answer": "There is one poster in the room. It has a light blue background and an X-ray image of a hand with a ring on the finger.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 22.7,
+      "verdict": "wrong"
+    },
+    {
+      "category": "objects",
+      "question": "Was my bag zip open or closed?",
+      "answer": "I saw your white backpack on a metal cart at 30.5 seconds, but I didn't see if the zipper was open or closed.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 24.6,
+      "verdict": "miss"
+    },
+    {
+      "category": "objects",
+      "question": "What was the colour of the bag?",
+      "answer": "I saw a gray plastic bag and a black textured surface. I didn't see any other bags.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 3,
+      "latency_s": 11.6,
+      "verdict": "wrong"
+    },
+    {
+      "category": "objects",
+      "question": "Is my iPhone connected to my laptop?",
+      "answer": "I didn't see an iPhone in any of these scenes. The laptop was always connected to a power source, but not another device.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 12.2,
+      "verdict": "miss"
+    },
+    {
+      "category": "places",
+      "question": "Was there a train in the station or was it empty?",
+      "answer": "The platform appeared to be empty, with no visible passengers or train. (read at 78.5s)",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 32.3,
+      "verdict": "correct"
+    },
+    {
+      "category": "other",
+      "question": "What words were said during the whole video?",
+      "answer": "I didn't capture clear speech — NO CLEAR SPEECH DETECTED (audio is near-silent ambient, mean ~-47dB; the phone likely captured wind/handling noise, not narration). So I can't tell you what was said or heard.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": "miss"
+    },
+    {
+      "category": "text",
+      "question": "Which chat was actively asking for input in the Claude chat?",
+      "answer": "At 18.5 seconds, a hand interacted with a chat or collaboration tool on the laptop. The text read \"But he phonk ba the newt stant from esy end; in at try Garcher You need to as; -tost chat, then let’s get into the real strategy.\"",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 41.1,
+      "verdict": "miss"
+    },
+    {
+      "category": "objects",
+      "question": "What was the color of the input notification of the Claude chat?",
+      "answer": "I didn't see the color of any input notifications. The screens displayed dark themes and white text.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 11.0,
+      "verdict": "miss"
+    },
+    {
+      "category": "text",
+      "question": "What prompt was written but not sent?",
+      "answer": "I couldn't read it.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 5.7,
+      "verdict": "miss"
+    },
+    {
+      "category": "text",
+      "question": "What was there on the yellow poster? Explain me the concept.",
+      "answer": "The yellow poster featured a sun and arrows, and included the name \"ROBERT SAUER\" with the years \"1898 - 1970.\" (read at 46.0s) I don't have that in my memory — I didn't read enough to be sure about the concept.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 4,
+      "latency_s": 21.9,
+      "verdict": "correct"
+    }
+  ]
+}

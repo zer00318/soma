@@ -1,0 +1,11 @@
+{
+  "done": 25,
+  "total": 25,
+  "current_q": null,
+  "correct": 13,
+  "wrong": 7,
+  "miss": 5,
+  "hard_ras": 24.0,
+  "halluc_pct": 35.0,
+  "updated_epoch": 1781772073
+}

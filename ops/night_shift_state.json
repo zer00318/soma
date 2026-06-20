@@ -1,0 +1,24 @@
+{
+  "tasks": {
+    "P1-extract-frames": {
+      "status": "done",
+      "finished": "2026-06-13T00:22:27.290953"
+    },
+    "P2-segment-frames": {
+      "status": "done",
+      "finished": "2026-06-13T00:23:07.715657"
+    },
+    "P3-label-crops": {
+      "status": "done",
+      "finished": "2026-06-13T00:23:31.085159"
+    },
+    "P4-build-inventory": {
+      "status": "done",
+      "finished": "2026-06-13T00:24:00.495868"
+    },
+    "P5-pipeline-run": {
+      "status": "failed",
+      "finished": "2026-06-13T00:24:01.332174"
+    }
+  }
+}

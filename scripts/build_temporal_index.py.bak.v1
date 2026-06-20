@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+"""Temporal index over a watch-the-walk keyframe memory.
+
+Reads a kf_memory.json (a LIST of records, each {t, frame, caption, ocr}),
+groups CONSECUTIVE records into EPISODES by a coarse subject label + time gaps,
+and exposes get_durations(kf_path) so ask_home can answer "how long" / "which
+was longer" / "what order" questions with real seconds — no model calls, pure
+stdlib, deterministic and hand-inspectable.
+
+CLI:  python3 scripts/build_temporal_index.py <kf_memory.json>
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+
+# Ordered subject vocabulary — FIRST match in the (lowercased) caption wins.
+# Hand-picked so the lead can eyeball the labels against the walk.
+SUBJECT_VOCAB = [
+    "laptop", "screen", "poster", "sign", "molecule", "building", "cart",
+    "door", "tree", "path", "floor", "x-ray", "x ray", "ray", "tube",
+    "computer", "monitor", "wall",
+]
+
+STOP = set(
+    "the a an of in on at is are was were it its to for and with this that".split()
+)
+
+# Median inter-frame gap in the real walk (t steps ~0.5s). Used so a lone-frame
+# episode gets a non-zero duration instead of 0.
+_LONE_FRAME_S = 0.5
+
+
+def _label_for(caption):
+    """Coarse subject label from a caption: first vocab term that appears as a
+    substring, else the first >=4-char non-stopword token, else 'scene'."""
+    cap = (caption or "").lower()
+    for term in SUBJECT_VOCAB:
+        if term in cap:
+            return term
+    for tok in cap.split():
+        tok = tok.strip(".,;:!?()[]\"'")
+        if len(tok) >= 4 and tok not in STOP:
+            return tok
+    return "scene"
+
+
+def _ocr_join(rec):
+    """Join a record's ocr list into one string, dropping empties. Robust to a
+    missing or non-list ocr field."""
+    ocr = rec.get("ocr") or []
+    if not isinstance(ocr, list):
+        ocr = [ocr]
+    return "; ".join(str(x) for x in ocr if x and str(x).strip())
+
+
+def get_durations(kf_path, max_gap=3.0, min_episode=1.0):
+    """Group consecutive keyframes into episodes by visual/text subject and
+    return episodes with durations. Pure-stdlib; no model calls.
+
+    Returns:
+        {"total_s": float,
+         "episodes": [ {"label": str, "start": float, "end": float,
+                        "duration": float, "frames": [str], "t": float,
+                        "sample_ocr": str} ... ],
+         "by_label": { label: total_duration_float } }
+
+    min_episode is reserved (no episode is dropped — the lead wants honesty).
+    """
+    try:
+        with open(kf_path) as f:
+            records = json.load(f)
+        if not isinstance(records, list):
+            return {"total_s": 0.0, "episodes": [], "by_label": {}}
+    except Exception:
+        return {"total_s": 0.0, "episodes": [], "by_label": {}}
+
+    if not records:
+        return {"total_s": 0.0, "episodes": [], "by_label": {}}
+
+    # Sort by t (coerce to float; records without a usable t sink to 0).
+    def _t(rec):
+        try:
+            return float(rec.get("t"))
+        except (TypeError, ValueError):
+            return 0.0
+
+    records = sorted(records, key=_t)
+
+    episodes = []
+    cur = None
+    for rec in records:
+        t = _t(rec)
+        label = _label_for(rec.get("caption"))
+        new_ep = (
+            cur is None
+            or label != cur["label"]
+            or (t - cur["end"]) > max_gap
+        )
+        if new_ep:
+            if cur is not None:
+                episodes.append(cur)
+            cur = {
+                "label": label,
+                "start": t,
+                "end": t,
+                "frames": [rec.get("frame")],
+                "sample_ocr": _ocr_join(rec),
+                "t": t,
+            }
+        else:
+            cur["end"] = t
+            cur["frames"].append(rec.get("frame"))
+            if not cur["sample_ocr"]:
+                cur["sample_ocr"] = _ocr_join(rec)
+    if cur is not None:
+        episodes.append(cur)
+
+    for ep in episodes:
+        dur = ep["end"] - ep["start"]
+        ep["duration"] = dur if dur > 0 else _LONE_FRAME_S
+
+    by_label = {}
+    for ep in episodes:
+        by_label[ep["label"]] = by_label.get(ep["label"], 0.0) + ep["duration"]
+
+    total_s = _t(records[-1]) - _t(records[0])
+
+    return {"total_s": total_s, "episodes": episodes, "by_label": by_label}
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Temporal episode index over a kf_memory.json")
+    ap.add_argument("memory", nargs="?", help="path to kf_memory.json (positional)")
+    ap.add_argument("--memory", dest="memory_flag", default=None,
+                    help="alternate way to pass the kf_memory.json path")
+    ap.add_argument("--max-gap", type=float, default=3.0,
+                    help="seconds gap that starts a new episode (default 3.0)")
+    args = ap.parse_args()
+
+    kf_path = args.memory or args.memory_flag
+    if not kf_path:
+        ap.error("provide a kf_memory.json path (positional or --memory)")
+
+    idx = get_durations(kf_path, max_gap=args.max_gap)
+    print("total_s: %.1f" % idx["total_s"])
+    for ep in sorted(idx["episodes"], key=lambda e: e["start"]):
+        ocr = (ep["sample_ocr"] or "")[:60]
+        print("%s  %.1fs-%.1fs  (%.1fs)  [%d]  ocr: %s"
+              % (ep["label"], ep["start"], ep["end"], ep["duration"],
+                 len(ep["frames"]), ocr))
+    print()
+    print("by_label (desc):")
+    for label, total in sorted(idx["by_label"].items(), key=lambda x: -x[1]):
+        print("  %s: %.1fs" % (label, total))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

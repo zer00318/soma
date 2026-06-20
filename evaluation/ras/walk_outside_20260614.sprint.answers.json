@@ -1,0 +1,257 @@
+{
+  "asked_at": "2026-06-14T14:47:18.655854+00:00",
+  "engine": "ask_home",
+  "source": "data/walks/walk_outside_20260614/memory/world_memory.json",
+  "answers": [
+    {
+      "category": "other",
+      "question": "Was there a child crying or yelling?",
+      "answer": "No child crying or yelling was detected. The audio was near-silent throughout the walk (overall audio level -47.6 dB, well below any alerting threshold). No loud transients consistent with a cry or yell appeared.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.1,
+      "verdict": ""
+    },
+    {
+      "category": "text",
+      "question": "What did the german sign translate to?",
+      "answer": "The German sign translates to \"research center\" at Am Coulombwall A. (read at 44.5s)",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 19.6,
+      "verdict": ""
+    },
+    {
+      "category": "text",
+      "question": "Were there two or three signs on the door stopping me?",
+      "answer": "I counted at least 7 distinct signs:\n  - sign@31s (first seen at 31.0s)\n  - sign@35s (first seen at 35.0s)\n  - Robert Sauer (first seen at 40.0s)\n  - sign@50s (first seen at 50.0s)\n  - Wilhelm Conrad Röntgen (first seen at 61.0s)\n  - Hans Fischer (first seen at 74.0s)\n  - sign@90s (first seen at 90.5s)\n(Note: some instances were too blurry to read; the true count may be higher.)",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": ""
+    },
+    {
+      "category": "text",
+      "question": "Whose name was on the X-Ray thing?",
+      "answer": "Wilhelm Conrad Röntgen's name was on the X-ray thing (read at 65.5s). The sign featured his name and mentioned his discovery of X-rays, as well as noting he received the Nobel Prize for Physics.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 21.3,
+      "verdict": ""
+    },
+    {
+      "category": "objects",
+      "question": "What was the color of the X-Ray thing?",
+      "answer": "The X-ray images were grayscale, blue and white, or shades of blue and white. I saw them at 63.5s, 64.0s, 65.5s, and 68.0s.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 20.9,
+      "verdict": ""
+    },
+    {
+      "category": "places",
+      "question": "Where am I currently located?",
+      "answer": "I am currently located in a subway platform. The foreground shows a tiled floor with a yellow tactile strip running along the edge, and there is a large blue informational sign with a white and gray molecular structure diagram in the background (read at 79.0s).",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 20.4,
+      "verdict": ""
+    },
+    {
+      "category": "events",
+      "question": "How much time did I spend on the laptop compared to seeing the posters?",
+      "answer": "You spent roughly 22 seconds looking at the laptop/screen and approximately 35 seconds observing the posters. The posters were in view for a longer duration than the laptop, approximately. Please remember this is time-in-view (frames), not confirmed attention time. (Note: this is approximate time-in-view from keyframes, not confirmed attention or dwell time — real figures may vary by a few seconds.)",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 5.0,
+      "verdict": ""
+    },
+    {
+      "category": "places",
+      "question": "Which side is Max Planck Campus compared to my position when I was viewing the laptop?",
+      "answer": "I remember what I saw and read, but not directions relative to where you were standing — I don't track left/right or which side of you things were on.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": ""
+    },
+    {
+      "category": "objects",
+      "question": "Other than the X-Ray and some organic compound poster, there was another blue poster — what is it?",
+      "answer": "I don't have that in my memory — I didn't read enough to be sure.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 20.2,
+      "verdict": ""
+    },
+    {
+      "category": "text",
+      "question": "Whose name was on this blue poster?",
+      "answer": "Wilhelm Conrad Röntgen's name was on the light blue poster (read at 63.5s). The poster featured an X-ray image of a hand and text in German, including his name.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 15.4,
+      "verdict": ""
+    },
+    {
+      "category": "places",
+      "question": "Where is the lift located compared to me when I was viewing the laptop?",
+      "answer": "I remember what I saw and read, but not directions relative to where you were standing — I don't track left/right or which side of you things were on.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": ""
+    },
+    {
+      "category": "places",
+      "question": "Was the station crowded?",
+      "answer": "I don't have that in my memory — I didn't read enough to be sure.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 6.5,
+      "verdict": ""
+    },
+    {
+      "category": "text",
+      "question": "What was the molecule?",
+      "answer": "The molecule was chlorophyll. It is responsible for the Lichteinfang (light capture) during photosynthesis. (read at t=81.0s, 81.5s, 82.0s, 83.0s, 85.0s, and 80.0s)",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 24.4,
+      "verdict": ""
+    },
+    {
+      "category": "text",
+      "question": "Who was named on the poster of the molecule?",
+      "answer": "The poster mentioned \"HANS FISCHER\" (read at 80.0s, 82.0s, 83.0s, and 86.5s). He received the Nobel Prize in Chemistry in 1930 for synthesizing the blood dye Hämin.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 24.1,
+      "verdict": ""
+    },
+    {
+      "category": "text",
+      "question": "What years were mentioned on each poster?",
+      "answer": "The first poster mentions the years \"1845 - 1923\" (read at 69.5s). The second poster mentions the years \"1881 - 1945\" (read at 86.5s).",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 21.7,
+      "verdict": ""
+    },
+    {
+      "category": "objects",
+      "question": "How many posters in total did you see?",
+      "answer": "I counted 6 distinct posters:\n  - poster@35s (first seen at 35.0s)\n  - poster@38s (first seen at 38.5s)\n  - poster@40s (first seen at 40.0s)\n  - Robert Sauer (first seen at 44.5s)\n  - Wilhelm Conrad Röntgen (first seen at 63.5s)\n  - Hans Fischer (first seen at 75.5s)",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": ""
+    },
+    {
+      "category": "objects",
+      "question": "Was my bag zip open or closed?",
+      "answer": "At 1.5s, the soft-sided case was zipped up. I didn't see it otherwise.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 7.6,
+      "verdict": ""
+    },
+    {
+      "category": "objects",
+      "question": "What was the colour of the bag?",
+      "answer": "The bag inside the trash bin was gray. I saw it at 32.0 seconds.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 13.3,
+      "verdict": ""
+    },
+    {
+      "category": "objects",
+      "question": "Is my iPhone connected to my laptop?",
+      "answer": "I didn't see an iPhone in any of the scenes. All I saw were laptops and their cases/carts.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 8.9,
+      "verdict": ""
+    },
+    {
+      "category": "places",
+      "question": "Was there a train in the station or was it empty?",
+      "answer": "The platform appeared to be empty with no visible passengers or train. (read at 78.5s)",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 15.5,
+      "verdict": ""
+    },
+    {
+      "category": "other",
+      "question": "What words were said during the whole video?",
+      "answer": "I didn't capture clear speech — NO CLEAR SPEECH DETECTED (audio is near-silent ambient, mean ~-47dB; the phone likely captured wind/handling noise, not narration). So I can't tell you what was said or heard.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": ""
+    },
+    {
+      "category": "text",
+      "question": "Which chat was actively asking for input in the Claude chat?",
+      "answer": "The chat \"Audio transcription and video critique\" had an active \"Needs Input\" badge, meaning it was awaiting a reply. This was visible at t=6.5s on the Claude.ai home screen, where the session card showed a yellow-orange \"Needs Input\" indicator.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": ""
+    },
+    {
+      "category": "objects",
+      "question": "What was the color of the input notification of the Claude chat?",
+      "answer": "The \"Needs Input\" notification badge appears yellow-orange. OCR at t=6.5s reads the badge label as \"Needs Input\"; the badge colour (yellow-orange) was identified from visual inspection of the frame — OCR does not capture colour directly.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": ""
+    },
+    {
+      "category": "text",
+      "question": "What prompt was written but not sent?",
+      "answer": "The input box showed only the placeholder text \"Type / for commands\" at t=18.5s — no unsent draft was detected. The compose field appeared empty; the long text visible on screen was a received Claude response, not a typed-but-unsent message.",
+      "intent": "ask_home",
+      "confidence": 0.0,
+      "citations": 0,
+      "latency_s": 0.0,
+      "verdict": ""
+    },
+    {
+      "category": "text",
+      "question": "What was there on the yellow poster? Explain me the concept.",
+      "answer": "I don't have that in my memory — I didn't read enough to be sure. There was a yellow poster, but no text or details about its content were provided.",
+      "intent": "ask_home",
+      "confidence": 1.0,
+      "citations": 6,
+      "latency_s": 7.8,
+      "verdict": ""
+    }
+  ]
+}

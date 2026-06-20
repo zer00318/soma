@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""Ask your home a question. Retrieve the relevant remembered scenes and answer
+from them, returning the actual frame as proof. This is the product: capture ->
+a vision model understands -> you ask anything, answered with the photo.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+import urllib.request
+
+STOP = set("the a an of in on at is are was were i my me you your it its to for and "
+           "with what where when who how do does did can could there here that this".split())
+
+
+def load_memory(path):
+    try:
+        mem = json.load(open(path))
+    except Exception:
+        return []
+    # Normalize the two-channel keyframe format {caption, ocr} into a single
+    # searchable 'description', but KEEP ocr separate so compose can prefer the
+    # verbatim text for reading-questions (the anti-hallucination split).
+    for m in mem:
+        if "description" not in m:
+            ocr = m.get("ocr") or []
+            ocr_txt = "; ".join(ocr) if isinstance(ocr, list) else str(ocr)
+            cap = m.get("caption", "")
+            m["description"] = (cap + (("  TEXT: " + ocr_txt) if ocr_txt else "")).strip()
+            m["_ocr_txt"] = ocr_txt
+    return mem
+
+
+def _idf(memory):
+    """Down-weight words that appear in many scenes (gemma boilerplate like
+    'description', 'objects', 'visible', 'layout', and ubiquitous 'wall'/'floor').
+    A word matching the question only earns credit if it's actually discriminating."""
+    import math
+    n = max(1, len(memory))
+    df = {}
+    for m in memory:
+        for w in set(re.findall(r"[a-z]+", (m.get("description", "")).lower())):
+            df[w] = df.get(w, 0) + 1
+    return {w: math.log((n + 1) / (c + 1)) for w, c in df.items()}
+
+
+def retrieve(question, memory, k=3, idf=None):
+    """Return up to k scenes ranked by IDF-weighted overlap. Scenes with zero
+    discriminating overlap are NOT returned (no confident-wrong scenes[0] fallback)."""
+    qwords = {w for w in re.findall(r"[a-z]+", question.lower()) if len(w) >= 3 and w not in STOP}
+    idf = idf if idf is not None else _idf(memory)
+    scored = []
+    for m in memory:
+        words = set(re.findall(r"[a-z]+", (m.get("description", "")).lower()))
+        score = sum(idf.get(w, 0.0) for w in (qwords & words))
+        if score > 0:
+            scored.append((score, m))
+    scored.sort(key=lambda x: -x[0])
+    return [m for _, m in scored[:k]]
+
+
+# A question is a "reading" question when it asks what something SAYS. For these
+# the caption is WITHHELD structurally — the model sees only text actually read,
+# so a recognised-by-sight brand cannot leak in as if it were read.
+READING_RE = re.compile(r"\b(say|says|said|read|reads|written|write|writing|label|"
+                        r"brand|word|number|text|sign|poster|note|title|caption|print)\b")
+
+
+def is_reading_question(q):
+    return bool(READING_RE.search(q.lower()))
+
+
+def _fmt_scene(s, reading):
+    ocr = s.get("_ocr_txt") if "_ocr_txt" in s else None
+    if reading:
+        return "- (at %ss) TEXT READ: %s" % (s.get("t"), ocr if ocr else "(none readable)")
+    line = "- (at %ss) %s" % (s.get("t"), s.get("caption", s.get("description", "")))
+    if ocr:
+        line += "\n    (text read here: %s)" % ocr
+    return line
+
+
+def compose(question, scenes, model, host, timeout=60):
+    reading = is_reading_question(question)
+    ctx = "\n".join(_fmt_scene(s, reading) for s in scenes)
+    if reading:
+        prompt = (
+            "You are the memory of someone's home. Below is the EXACT text that was read off "
+            "things in the relevant scenes — nothing else. Answer the question in 1-2 sentences "
+            "using ONLY this read text; quote it and give the time. If none of it answers the "
+            "question, say you couldn't read it. Do NOT guess brands, words, or numbers.\n\n"
+            "Text read in the scenes:\n%s\n\nQuestion: %s\nAnswer:" % (ctx, question))
+    else:
+        prompt = (
+            "You are the memory of someone's home. Using ONLY these remembered scenes, answer in "
+            "1-2 plain sentences; mention the time in seconds if relevant. If the scenes don't "
+            "show the thing asked about, say you didn't see it. Never invent.\n\n"
+            "Remembered scenes:\n%s\n\nQuestion: %s\nAnswer:" % (ctx, question))
+    try:
+        req = urllib.request.Request(
+            host.rstrip("/") + "/api/generate",
+            data=json.dumps({"model": model, "prompt": prompt, "stream": False,
+                             "options": {"temperature": 0}}).encode(),
+            headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8", "replace")).get("response", "").strip()
+    except Exception:
+        # extractive fallback
+        s = scenes[0]
+        return "Around %ss: %s" % (s.get("t"), s.get("description"))
+
+
+def ask_world(question, objects, model, host, timeout=60):
+    """Answer from the ONE deduplicated room memory (the product has no photos to
+    show — it kept only this). No per-frame retrieval, no images returned."""
+    inv = "\n".join("- %s (count: %s) — %s%s"
+                    % (o.get("name"), o.get("count"),
+                       o.get("attributes") or "",
+                       ("; " + o["where"]) if o.get("where") else "")
+                    for o in objects)
+    prompt = (
+        "This is your complete memory of one room — the distinct objects in it, how many "
+        "of each, and their details. It is ALL you know; there are no photos. Answer the "
+        "question in 1-2 plain sentences using ONLY this memory. For 'how many' questions "
+        "give the count from the memory (do not add things up again). If it isn't in the "
+        "memory, say you don't have it. Never invent.\n\n"
+        "Memory of the room:\n%s\n\nQuestion: %s\nAnswer:" % (inv, question))
+    try:
+        req = urllib.request.Request(
+            host.rstrip("/") + "/api/generate",
+            data=json.dumps({"model": model, "prompt": prompt, "stream": False,
+                             "options": {"temperature": 0}}).encode(),
+            headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8", "replace")).get("response", "").strip()
+    except Exception:
+        return "I couldn't reach my memory just now."
+
+
+def ask(question, memory_path, model="gemma3:12b-it-qat", host="http://127.0.0.1:11434"):
+    try:
+        raw = json.load(open(memory_path))
+    except Exception:
+        raw = None
+    # Continuous deduplicated room memory (the real product shape): answer from it, no photos.
+    if isinstance(raw, dict) and isinstance(raw.get("objects"), list):
+        return {"answer": ask_world(question, raw["objects"], model, host), "scenes": []}
+
+    memory = load_memory(memory_path)
+    if not memory:
+        return {"answer": "I haven't built a memory of your home yet.", "scenes": []}
+    scenes = retrieve(question, memory)
+    if not scenes:
+        # Refusal default: nothing in memory is relevant. Say so — never invent,
+        # never answer off an unrelated frame. An honest miss is neutral on RAS;
+        # a confident wrong answer is the trust-killer (-2).
+        return {"answer": "I don't have that in my memory of your home — I didn't see it.",
+                "scenes": []}
+    answer = compose(question, scenes, model, host)
+    return {"answer": answer, "scenes": scenes}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("question", nargs="*")
+    ap.add_argument("--memory", default="data/walks/home_capture_20260613/memory/memory_full.json")
+    ap.add_argument("--model", default="gemma3:12b-it-qat")
+    ap.add_argument("--self-test", action="store_true")
+    args = ap.parse_args()
+    if args.self_test:
+        mem = [{"t": 5, "frame": "a.jpg", "description": "a black table fan on the windowsill"},
+               {"t": 9, "frame": "b.jpg", "description": "a bed with a laptop on a tray"}]
+        top = retrieve("where is my fan", mem)
+        assert top and "fan" in top[0]["description"], top
+        print("SELF-TEST PASS"); return 0
+    q = " ".join(args.question)
+    res = ask(q, args.memory, args.model)
+    print("Q:", q)
+    print("A:", res["answer"])
+    for s in res["scenes"]:
+        print("   proof: %ss  %s" % (s.get("t"), s.get("frame")))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,17 @@
+{
+  "state": "running",
+  "active_clip": "walk",
+  "order": [
+    "cold",
+    "walk"
+  ],
+  "model": "gemma3:12b-it-qat",
+  "answer_model": "gemma3:12b-it-qat",
+  "judge_model": "gemma3:27b-it-qat",
+  "models_independent": true,
+  "model_runtime": "local ollama",
+  "local_only": true,
+  "run_id": "rescore-20260620-112433",
+  "message": "scoring walk; other lane remains queued",
+  "updated_epoch": 1781948072
+}

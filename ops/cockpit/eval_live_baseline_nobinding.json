@@ -1,0 +1,14 @@
+{
+  "done": 19,
+  "total": 19,
+  "current_q": null,
+  "correct": 4,
+  "wrong": 6,
+  "miss": 9,
+  "hard_ras": -10.5,
+  "halluc_pct": 60.0,
+  "updated_epoch": 1781892854,
+  "avg_s_per_q": 49.0,
+  "eta_s": 0,
+  "eta_human": "finishing"
+}
