@@ -1,0 +1,338 @@
+{
+  "summary": {
+    "frames": 16,
+    "questions_total": 28,
+    "questions_valid": 28,
+    "mode": "strict",
+    "pixel_ceiling": 1.0,
+    "answerable_from_text": 0.393,
+    "hallucination_rate": 0.421,
+    "refusal_rate": 0.321,
+    "counts": {
+      "correct": 11,
+      "wrong": 8,
+      "refused": 9
+    },
+    "models": {
+      "derive": "gemma3:12b-it-qat",
+      "oracle": "gemma3:12b-it-qat",
+      "judge": "gemma3:12b-it-qat"
+    },
+    "frames_dir": "data/walks/walk_outside_20260614/work/run_frames",
+    "elapsed_s": 66.2,
+    "kill_gate": {
+      "answerable_from_text>=0.40": false,
+      "hallucination_rate<0.10": false
+    }
+  },
+  "rows": [
+    {
+      "frame": "frame_000000_0.0s.jpg",
+      "question": "What color is the laptop case?",
+      "gold": "Black",
+      "derived_text": "SCENE: A laptop sits atop a shopping cart in an indoor setting.\nOBJECTS: laptop, shopping cart, keyboard, screen, black case, metal frame, floor\nTEXT: NONE\nPEOPLE: NONE",
+      "text_answer": "black case",
+      "pixel_answer": "The laptop case appears to be black.",
+      "verdict_text": "WRONG",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_000510_17.0s.jpg",
+      "question": "What is written in the top left corner of the screen?",
+      "gold": "Welcome back, Satomi",
+      "derived_text": "SCENE: A person's hand types on a laptop keyboard.\nOBJECTS: laptop, keyboard, screen, hand, sleeve, bag, dark surface\nTEXT: Welcome back, Satoli, Application, Search Help, Audio Transcriptions and other services market research & digital marketing supporting worldwide doctors between 70-85 yrs old version 1.19.36, Learn Story\nPEOPLE: 1, typing",
+      "text_answer": "Welcome back, Satoli, Application, Search Help",
+      "pixel_answer": "The top left corner of the screen displays \"Welcome back, Satomi\".",
+      "verdict_text": "WRONG",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_000690_23.0s.jpg",
+      "question": "What color is the keyboard?",
+      "gold": "black",
+      "derived_text": "SCENE: A laptop sits open on a dark surface with a hand hovering over the keyboard.\nOBJECTS: laptop, keyboard, screen, tiles, wall, sink, faucet, hand, countertop\nTEXT: NONE\nPEOPLE: One, appears to be typing",
+      "text_answer": "NOT IN MEMORY",
+      "pixel_answer": "The keyboard appears to be black.",
+      "verdict_text": "REFUSED",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_000855_28.5s.jpg",
+      "question": "What color is the laptop?",
+      "gold": "silver",
+      "derived_text": "SCENE: A laptop sits open on a metal shopping cart.\nOBJECTS: laptop, shopping cart, keyboard, screen, case, wires, carpet\nTEXT: NONE\nPEOPLE: NONE",
+      "text_answer": "NOT IN MEMORY",
+      "pixel_answer": "The laptop appears to be silver or gray.",
+      "verdict_text": "REFUSED",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_000855_28.5s.jpg",
+      "question": "What material appears to be used for the shopping cart's frame?",
+      "gold": "metal",
+      "derived_text": "SCENE: A laptop sits open on a metal shopping cart.\nOBJECTS: laptop, shopping cart, keyboard, screen, case, wires, carpet\nTEXT: NONE\nPEOPLE: NONE",
+      "text_answer": "metal",
+      "pixel_answer": "The shopping cart's frame appears to be made of metal, likely steel or aluminum.",
+      "verdict_text": "CORRECT",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_000855_28.5s.jpg",
+      "question": "How many visible tabs are open on the laptop screen?",
+      "gold": "6",
+      "derived_text": "SCENE: A laptop sits open on a metal shopping cart.\nOBJECTS: laptop, shopping cart, keyboard, screen, case, wires, carpet\nTEXT: NONE\nPEOPLE: NONE",
+      "text_answer": "NOT IN MEMORY",
+      "pixel_answer": "There appear to be six visible tabs open on the laptop screen.",
+      "verdict_text": "REFUSED",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_001035_34.5s.jpg",
+      "question": "What color is the sign on the left wall?",
+      "gold": "yellow",
+      "derived_text": "SCENE: The camera is pointed at a platform edge with a yellow sign.\nOBJECTS: platform, tiles, wall, sign, railing, floor\nTEXT: NONE\nPEOPLE: NONE",
+      "text_answer": "yellow",
+      "pixel_answer": "The sign on the left wall is yellow.",
+      "verdict_text": "CORRECT",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_001035_34.5s.jpg",
+      "question": "What color is the line marking the edge of the platform?",
+      "gold": "yellow",
+      "derived_text": "SCENE: The camera is pointed at a platform edge with a yellow sign.\nOBJECTS: platform, tiles, wall, sign, railing, floor\nTEXT: NONE\nPEOPLE: NONE",
+      "text_answer": "yellow",
+      "pixel_answer": "The line marking the edge of the platform is yellow.",
+      "verdict_text": "CORRECT",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_001200_40.0s.jpg",
+      "question": "What is the color of the large panel?",
+      "gold": "blue",
+      "derived_text": "SCENE: A sign is mounted above a set of train tracks.\nOBJECTS: sign, train tracks, gravel, metal rail, wall\nTEXT: W. Kieninger\nPEOPLE: NONE",
+      "text_answer": "NOT IN MEMORY",
+      "pixel_answer": "The large panel appears to be a light blue or turquoise color.",
+      "verdict_text": "REFUSED",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_001200_40.0s.jpg",
+      "question": "What type of infrastructure is visible at the bottom of the image?",
+      "gold": "railway tracks",
+      "derived_text": "SCENE: A sign is mounted above a set of train tracks.\nOBJECTS: sign, train tracks, gravel, metal rail, wall\nTEXT: W. Kieninger\nPEOPLE: NONE",
+      "text_answer": "train tracks",
+      "pixel_answer": "The image shows a section of railway tracks.",
+      "verdict_text": "CORRECT",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_001380_46.0s.jpg",
+      "question": "What is the name of the research center shown on the sign?",
+      "gold": "Forschungszentrum",
+      "derived_text": "SCENE: A sign is mounted above a painting in an indoor space.\nOBJECTS: sign, painting, wall, metal frame, door\nTEXT: Forschungszentrum, Am Coulombwall, BUS, alther-Meißner-Str., Boltzmannstr., ROBERT SAUER, 1890 - 1970\nPEOPLE: NONE",
+      "text_answer": "Forschungszentrum",
+      "pixel_answer": "The sign indicates the research center is called \"Forschungszentrum.\"",
+      "verdict_text": "CORRECT",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_001380_46.0s.jpg",
+      "question": "What years are listed next to 'Robert Sauer' on the lower plaque?",
+      "gold": "1899 - 1970",
+      "derived_text": "SCENE: A sign is mounted above a painting in an indoor space.\nOBJECTS: sign, painting, wall, metal frame, door\nTEXT: Forschungszentrum, Am Coulombwall, BUS, alther-Meißner-Str., Boltzmannstr., ROBERT SAUER, 1890 - 1970\nPEOPLE: NONE",
+      "text_answer": "1890 - 1970",
+      "pixel_answer": "The years 1899-1970 are listed next to \"Robert Sauer\" on the lower plaque.",
+      "verdict_text": "WRONG",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_001560_52.0s.jpg",
+      "question": "What color are the floor tiles?",
+      "gold": "Gray",
+      "derived_text": "SCENE: The camera is in a gray tiled hallway.\nOBJECTS: wall, floor, door, sign, ceiling, grate, light fixture\nTEXT: NONE\nPEOPLE: NONE",
+      "text_answer": "gray",
+      "pixel_answer": "The floor tiles appear to be a light gray or beige color.",
+      "verdict_text": "CORRECT",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_001725_57.5s.jpg",
+      "question": "What color is the sign indicating an exit?",
+      "gold": "green",
+      "derived_text": "SCENE: A stainless steel door is next to a sign with an exit symbol.\nOBJECTS: wall, door, sign, arrow, figure, handle\nTEXT: NONE\nPEOPLE: NONE",
+      "text_answer": "NOT IN MEMORY",
+      "pixel_answer": "The exit sign is green.",
+      "verdict_text": "REFUSED",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_001725_57.5s.jpg",
+      "question": "What material appears to cover the wall where the sign and door are located?",
+      "gold": "stone/granite",
+      "derived_text": "SCENE: A stainless steel door is next to a sign with an exit symbol.\nOBJECTS: wall, door, sign, arrow, figure, handle\nTEXT: NONE\nPEOPLE: NONE",
+      "text_answer": "stainless steel",
+      "pixel_answer": "The wall is covered with a gray stone or tile material.",
+      "verdict_text": "WRONG",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_001905_63.5s.jpg",
+      "question": "What is the name on the sign?",
+      "gold": "WILHELM CONRAD RÖNTGEN",
+      "derived_text": "SCENE: A sign displaying an X-ray image is mounted on a wall next to train tracks.\nOBJECTS: sign, x-ray image, hand, wall, light fixture, train tracks, metal rail, concrete block\nTEXT: WILHELM CONRAD RÖNTGEN, Für die Entdeckung der nach ihm benannten elektronischen Strahlen für Physik Röntgenstrahlen sind die Grundlage Technik in der Astrophysik eröffnen sie neue Einblicke\nPEOPLE: NONE",
+      "text_answer": "WILHELM CONRAD RÖNTGEN",
+      "pixel_answer": "The sign displays the name \"Wilhelm Conrad Röntgen.\"",
+      "verdict_text": "CORRECT",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_001905_63.5s.jpg",
+      "question": "What color is the background of the image displayed on the panel?",
+      "gold": "blue",
+      "derived_text": "SCENE: A sign displaying an X-ray image is mounted on a wall next to train tracks.\nOBJECTS: sign, x-ray image, hand, wall, light fixture, train tracks, metal rail, concrete block\nTEXT: WILHELM CONRAD RÖNTGEN, Für die Entdeckung der nach ihm benannten elektronischen Strahlen für Physik Röntgenstrahlen sind die Grundlage Technik in der Astrophysik eröffnen sie neue Einblicke\nPEOPLE: NONE",
+      "text_answer": "NOT IN MEMORY",
+      "pixel_answer": "The background of the image displayed on the panel appears to be light blue or turquoise.",
+      "verdict_text": "REFUSED",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_001905_63.5s.jpg",
+      "question": "What object is depicted in the image on the panel?",
+      "gold": "hand",
+      "derived_text": "SCENE: A sign displaying an X-ray image is mounted on a wall next to train tracks.\nOBJECTS: sign, x-ray image, hand, wall, light fixture, train tracks, metal rail, concrete block\nTEXT: WILHELM CONRAD RÖNTGEN, Für die Entdeckung der nach ihm benannten elektronischen Strahlen für Physik Röntgenstrahlen sind die Grundlage Technik in der Astrophysik eröffnen sie neue Einblicke\nPEOPLE: NONE",
+      "text_answer": "x-ray image",
+      "pixel_answer": "The image on the panel depicts a hand X-ray.",
+      "verdict_text": "WRONG",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_002070_69.0s.jpg",
+      "question": "What is the predominant color of the wall behind the sign?",
+      "gold": "Blue",
+      "derived_text": "SCENE: A plaque commemorating Röntgen is mounted on a wall next to a metal railing.\nOBJECTS: plaque, wall, railing, metal bars, screws, concrete, light fixture\nTEXT: RÖNTGEN, 1845 - 1923\nPEOPLE: NONE",
+      "text_answer": "NOT IN MEMORY",
+      "pixel_answer": "The predominant color of the wall behind the sign is blue.",
+      "verdict_text": "REFUSED",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_002250_75.0s.jpg",
+      "question": "What color is the background of the artwork?",
+      "gold": "blue",
+      "derived_text": "SCENE: A wall mural depicting a scientific apparatus is visible next to train tracks.\nOBJECTS: wall, mural, train tracks, rocks, metal rail, ceiling, light fixture, sign\nTEXT: W.L. Röntgen\nPEOPLE: NONE",
+      "text_answer": "NOT IN MEMORY",
+      "pixel_answer": "The background of the artwork appears to be a light blue or turquoise color.",
+      "verdict_text": "REFUSED",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_002250_75.0s.jpg",
+      "question": "What name appears in cursive at the bottom of the image?",
+      "gold": "Wilhelm Röntgen",
+      "derived_text": "SCENE: A wall mural depicting a scientific apparatus is visible next to train tracks.\nOBJECTS: wall, mural, train tracks, rocks, metal rail, ceiling, light fixture, sign\nTEXT: W.L. Röntgen\nPEOPLE: NONE",
+      "text_answer": "W.L. Röntgen",
+      "pixel_answer": "The name \"Wilhelm Röntgen\" appears in cursive at the bottom of the image.",
+      "verdict_text": "CORRECT",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_002250_75.0s.jpg",
+      "question": "What object, resembling a scientific apparatus, is depicted on the artwork?",
+      "gold": "a tube",
+      "derived_text": "SCENE: A wall mural depicting a scientific apparatus is visible next to train tracks.\nOBJECTS: wall, mural, train tracks, rocks, metal rail, ceiling, light fixture, sign\nTEXT: W.L. Röntgen\nPEOPLE: NONE",
+      "text_answer": "mural",
+      "pixel_answer": "The artwork depicts an X-ray tube, likely referencing Wilhelm Röntgen's discovery of X-rays.",
+      "verdict_text": "WRONG",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_002415_80.5s.jpg",
+      "question": "What is the name written below the chemical structure?",
+      "gold": "Hans Fischer",
+      "derived_text": "SCENE: A sign depicting a chemical structure is mounted on a wall next to train tracks.\nOBJECTS: wall, sign, train tracks, gravel, train, metal beams, bolts, wires\nTEXT: HANS FISCHER, CH3, C6H12O6, 1887\nPEOPLE: NONE",
+      "text_answer": "HANS FISCHER",
+      "pixel_answer": "The name written below the chemical structure is Hans Fischer.",
+      "verdict_text": "CORRECT",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_002415_80.5s.jpg",
+      "question": "What year is displayed on the sign?",
+      "gold": "1887",
+      "derived_text": "SCENE: A sign depicting a chemical structure is mounted on a wall next to train tracks.\nOBJECTS: wall, sign, train tracks, gravel, train, metal beams, bolts, wires\nTEXT: HANS FISCHER, CH3, C6H12O6, 1887\nPEOPLE: NONE",
+      "text_answer": "1887",
+      "pixel_answer": "The sign displays the year 1887.",
+      "verdict_text": "CORRECT",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_002415_80.5s.jpg",
+      "question": "What color are the tracks of the train?",
+      "gold": "Gray",
+      "derived_text": "SCENE: A sign depicting a chemical structure is mounted on a wall next to train tracks.\nOBJECTS: wall, sign, train tracks, gravel, train, metal beams, bolts, wires\nTEXT: HANS FISCHER, CH3, C6H12O6, 1887\nPEOPLE: NONE",
+      "text_answer": "NOT IN MEMORY",
+      "pixel_answer": "The tracks of the train are gray.",
+      "verdict_text": "REFUSED",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_002595_86.5s.jpg",
+      "question": "What is the color of the large panel with the chemical structure?",
+      "gold": "blue",
+      "derived_text": "SCENE: A tiled wall with a chemical structure is visible above train tracks.\nOBJECTS: tiles, wall, train tracks, gravel, metal rail, chemical structure, glass panel\nTEXT: 1881 - 1945 Nobelpreis für Chemie. Stofffarbstoffe Chlorophyll these.\nPEOPLE: NONE",
+      "text_answer": "glass panel",
+      "pixel_answer": "The large panel with the chemical structure is blue.",
+      "verdict_text": "WRONG",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_002595_86.5s.jpg",
+      "question": "What years are displayed on the plaque next to the chemical structure?",
+      "gold": "1881 - 1945",
+      "derived_text": "SCENE: A tiled wall with a chemical structure is visible above train tracks.\nOBJECTS: tiles, wall, train tracks, gravel, metal rail, chemical structure, glass panel\nTEXT: 1881 - 1945 Nobelpreis für Chemie. Stofffarbstoffe Chlorophyll these.\nPEOPLE: NONE",
+      "text_answer": "1881 - 1945",
+      "pixel_answer": "The plaque displays the years 1881 - 1945.",
+      "verdict_text": "CORRECT",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    },
+    {
+      "frame": "frame_002595_86.5s.jpg",
+      "question": "What type of structure is depicted on the blue panel?",
+      "gold": "chemical",
+      "derived_text": "SCENE: A tiled wall with a chemical structure is visible above train tracks.\nOBJECTS: tiles, wall, train tracks, gravel, metal rail, chemical structure, glass panel\nTEXT: 1881 - 1945 Nobelpreis für Chemie. Stofffarbstoffe Chlorophyll these.\nPEOPLE: NONE",
+      "text_answer": "chemical structure",
+      "pixel_answer": "The blue panel depicts a chemical structure, specifically chlorophyll.",
+      "verdict_text": "WRONG",
+      "verdict_pixel": "CORRECT",
+      "valid": true
+    }
+  ]
+}

@@ -60,6 +60,15 @@ ANSWER_FROM_TEXT_PROMPT = (
     "Question: {q}"
 )
 
+STRICT_ANSWER_FROM_TEXT_PROMPT = (
+    "You are Trace's memory. The original image was DISCARDED; you have ONLY this derived "
+    "text record of the moment:\n---\n{derived}\n---\n"
+    "Answer by copying the exact relevant words from the text above. If the text does not "
+    "directly contain the answer, output EXACTLY: NOT IN MEMORY. Do NOT paraphrase, infer, "
+    "complete names, or add anything not literally in the text.\n"
+    "Question: {q}"
+)
+
 ANSWER_FROM_PIXEL_PROMPT = "Answer this question about the image concisely and factually, in one short sentence.\nQuestion: {q}"
 
 JUDGE_PROMPT = (
@@ -131,6 +140,30 @@ def sample_frames(frames_dir: Path, n: int) -> list[Path]:
     return [frames[int(i * step)] for i in range(n)]
 
 
+def summarize_and_write(rows: list[dict], frames_count: int, args, t_start: float) -> None:
+    valid = [r for r in rows if r["valid"]]
+    nvalid = len(valid)
+    correct = sum(r["verdict_text"] == "CORRECT" for r in valid)
+    wrong = sum(r["verdict_text"] == "WRONG" for r in valid)
+    refused = sum(r["verdict_text"] == "REFUSED" for r in valid)
+    answered = correct + wrong
+    summary = {
+        "frames": frames_count, "questions_total": len(rows), "questions_valid": nvalid,
+        "mode": "strict" if args.strict else "default",
+        "pixel_ceiling": round(nvalid / len(rows), 3) if rows else 0.0,
+        "answerable_from_text": round(correct / nvalid, 3) if nvalid else 0.0,
+        "hallucination_rate": round(wrong / answered, 3) if answered else 0.0,
+        "refusal_rate": round(refused / nvalid, 3) if nvalid else 0.0,
+        "counts": {"correct": correct, "wrong": wrong, "refused": refused},
+        "models": {"derive": args.derive_model, "oracle": args.oracle_model, "judge": args.judge_model},
+        "frames_dir": args.frames_dir, "elapsed_s": round(time.time() - t_start, 1),
+        "kill_gate": {"answerable_from_text>=0.40": (correct / nvalid if nvalid else 0) >= 0.40,
+                      "hallucination_rate<0.10": (wrong / answered if answered else 1) < 0.10},
+    }
+    Path(args.out).write_text(json.dumps({"summary": summary, "rows": rows}, ensure_ascii=False, indent=2))
+    print(json.dumps(summary, indent=2))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--frames-dir", default="data/walks/walk_outside_20260614/work/run_frames")
@@ -141,7 +174,24 @@ def main() -> int:
     ap.add_argument("--judge-model", default="gemma3:12b-it-qat")
     ap.add_argument("--host", default="http://127.0.0.1:11434")
     ap.add_argument("--out", default="evaluation/ras/posthoc_ablation.json")
+    ap.add_argument("--strict", action="store_true", help="strict extract-or-refuse answer prompt")
+    ap.add_argument("--replay", default="", help="reuse questions+derived-text from an existing results json (isolates the answer step)")
     args = ap.parse_args()
+
+    if args.replay:
+        src = json.load(open(args.replay))
+        t_start = time.time()
+        rows = []
+        for r in src["rows"]:
+            if not r.get("valid"):
+                continue
+            atmpl = STRICT_ANSWER_FROM_TEXT_PROMPT if args.strict else ANSWER_FROM_TEXT_PROMPT
+            text_ans = ollama(args.derive_model, atmpl.format(derived=r["derived_text"], q=r["question"]), None, args.host)
+            v_text = judge(args.judge_model, r["gold"], text_ans, args.host)
+            rows.append({**r, "text_answer": text_ans, "verdict_text": v_text})
+            print(f"  replayed {len(rows)} ({time.time()-t_start:.0f}s)", file=sys.stderr, flush=True)
+        summarize_and_write(rows, src["summary"].get("frames", 0), args, t_start)
+        return 0
 
     frames = sample_frames(Path(args.frames_dir), args.n)
     rows: list[dict] = []
@@ -151,7 +201,8 @@ def main() -> int:
         derived = ollama(args.derive_model, PERCEIVE_PROMPT, [img], args.host)
         qs = parse_qjson(ollama(args.oracle_model, QGEN_PROMPT.format(k=args.k), [img], args.host), args.k)
         for q in qs:
-            text_ans = ollama(args.derive_model, ANSWER_FROM_TEXT_PROMPT.format(derived=derived, q=q["q"]), None, args.host)
+            atmpl = STRICT_ANSWER_FROM_TEXT_PROMPT if args.strict else ANSWER_FROM_TEXT_PROMPT
+            text_ans = ollama(args.derive_model, atmpl.format(derived=derived, q=q["q"]), None, args.host)
             pixel_ans = ollama(args.oracle_model, ANSWER_FROM_PIXEL_PROMPT.format(q=q["q"]), [img], args.host)
             v_text = judge(args.judge_model, q["gold"], text_ans, args.host)
             v_pixel = judge(args.judge_model, q["gold"], pixel_ans, args.host)
@@ -163,27 +214,7 @@ def main() -> int:
             })
         print(f"  frame {fi+1}/{len(frames)} {fp.name}: {len(qs)} q  ({time.time()-t_start:.0f}s)", file=sys.stderr, flush=True)
 
-    valid = [r for r in rows if r["valid"]]
-    nvalid = len(valid)
-    correct = sum(r["verdict_text"] == "CORRECT" for r in valid)
-    wrong = sum(r["verdict_text"] == "WRONG" for r in valid)
-    refused = sum(r["verdict_text"] == "REFUSED" for r in valid)
-    answered = correct + wrong
-    summary = {
-        "frames": len(frames), "questions_total": len(rows), "questions_valid": nvalid,
-        "pixel_ceiling": round(nvalid / len(rows), 3) if rows else 0.0,
-        "answerable_from_text": round(correct / nvalid, 3) if nvalid else 0.0,
-        "hallucination_rate": round(wrong / answered, 3) if answered else 0.0,
-        "refusal_rate": round(refused / nvalid, 3) if nvalid else 0.0,
-        "counts": {"correct": correct, "wrong": wrong, "refused": refused},
-        "models": {"derive": args.derive_model, "oracle": args.oracle_model, "judge": args.judge_model},
-        "frames_dir": args.frames_dir, "elapsed_s": round(time.time() - t_start, 1),
-        "kill_gate": {"answerable_from_text>=0.40": (correct / nvalid if nvalid else 0) >= 0.40,
-                      "hallucination_rate<0.10": (wrong / answered if answered else 1) < 0.10},
-    }
-    out = {"summary": summary, "rows": rows}
-    Path(args.out).write_text(json.dumps(out, ensure_ascii=False, indent=2))
-    print(json.dumps(summary, indent=2))
+    summarize_and_write(rows, len(frames), args, t_start)
     return 0
 
 
