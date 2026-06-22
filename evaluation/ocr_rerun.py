@@ -26,7 +26,7 @@ HOST = "http://127.0.0.1:11434"
 PERCEIVE = (
     "You are a person's first-person camera walking through the world. Report ONLY "
     "what is actually visible in THIS frame — never guess or carry over. Output exactly:\n"
-    "SCENE: <one short sentence>\nOBJECTS: <comma-separated concrete things you actually see>\n"
+    "SCENE: <one short sentence>\nOBJECTS: <comma-separated things you see, EACH PREFIXED WITH ITS MAIN COLOR, e.g. 'blue backpack, grey wall, silver laptop'>\n"
     "TEXT: <any on-screen/sign text copied verbatim, or NONE>\n"
     "PEOPLE: <count and what they appear to be doing, or NONE>"
 )
@@ -56,6 +56,8 @@ def oll(prompt, images=None):
 
 def merge_text(vlm, ocr_lines):
     ocr = " | ".join(s.strip() for s in ocr_lines if s.strip())
+    if len(ocr) > 240:  # dense-UI screen dump: cap so the answer model can't parrot junk
+        ocr = ocr[:240]
     line = f"TEXT: {ocr}" if ocr else "TEXT: NONE"
     out, rep = [], False
     for ln in vlm.splitlines():
@@ -103,4 +105,4 @@ print(f"answerable_from_text: {cor/n:.3f}   hallucination: {wr/ans_n if ans_n el
 print("baseline (crude pipeline) was: answerable 0.167, ~26 refused, ~11 wrong")
 json.dump({"summary": dict(c), "answerable": round(cor/n, 3),
            "hallucination": round(wr/ans_n, 3) if ans_n else 0, "rows": out},
-          open("evaluation/ras/ocr_rerun_foundergold.json", "w"), indent=2, ensure_ascii=False)
+          open("evaluation/ras/ocr_rerun_v2_foundergold.json", "w"), indent=2, ensure_ascii=False)

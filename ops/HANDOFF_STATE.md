@@ -33,13 +33,24 @@ hard-gated. See `memory/trace-phase1-verdict.md`, `memory/trace-capture-fidelity
 - Gold tooling: `evaluation/make_gold_review.py` → `evaluation/gold_review.html` (founder confirmed
   human gold for all 48 walk questions; saved at `/tmp/founder_gold.json`, also committed below).
 
-## THE NEXT ACTION (running now — read its result first on resume)
-`evaluation/ocr_rerun.py` — re-derives the 16 walk frames with **Vision OCR + native-res VLM** and
-re-scores the 48 questions against the founder gold. Output → `evaluation/ras/ocr_rerun_foundergold.json`.
-**Decision rule (pre-registered):**
-- If "answerable" jumps well above 17% AND the OCR-class wrong answers vanish → conviction confirmed;
-  next build = harden the multi-channel capture (society of specialists) + on-phone answer path.
-- If it stays ~flat even with the best eyes → tell the founder plainly it's a toy; narrow or stop.
+## DECISION (2026-06-22, after 3 capture cycles vs founder gold) — THE PIVOT
+CORRECT progression: crude 8/48 → +Vision-OCR 10/48 → +color-aware/OCR-cap 17/48 (35% answerable,
+57% hallucination). Files: `evaluation/ras/{posthoc_foundergold, ocr_rerun_foundergold, ocr_rerun_v2_foundergold}.json`.
+**Decisive pattern:** self-calibrating channels (OCR = reads-or-stays-silent) give HONEST recall;
+always-emitting channels (VLM caption/color) manufacture lies — pushing the color channel up doubled
+CORRECT (8→17) but kept hallucination ~57% (guessed blue→green/white, accepted false premises). Wrong
+trade for a product whose only moat is honesty.
+**CALL (made): NARROW to "a memory for everything you READ"** — signs, plaques, screens, documents,
+slides, badges, cards — built on OCR (refuses instead of fabricating; failures are fail-safe garble/
+refuse, not confident lies). KILL broad "ask anything about the scene" until confidence-calibrated
+visual channels exist (harder, later). This is also where the founder's most resonant use cases live.
+
+## NEXT (the narrow product's bar)
+Make TEXT-recall clear **60% correct / <10% wrong** on the text-question subset (today 7/15=47%; failures
+= OCR truncation + dense-UI dumps, both fixable). Levers: OCR tuning (truncation/orientation), a dense-UI
+"summarize screen" mode, confidence gating (state a fact only when its channel is confident). Build the
+text-recall capture+recall loop; delegate mechanical coding to Codex, inference local. Do NOT re-chase
+broad scene-QA.
 
 ## KILL-GATE (from Phase-1 verdict)
 Held-out answerable ≥40% at <10% hallucination on founder-confirmed gold, AND privacy architecturally
