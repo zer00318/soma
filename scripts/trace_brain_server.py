@@ -48,6 +48,14 @@ OLLAMA_HOST = os.environ.get("TRACE_OLLAMA_HOST", "http://127.0.0.1:11434")
 CAPTURES = ROOT / "data" / "phone_captures"
 SECRETS = ROOT / ".secrets" / "frontier.env"
 
+# P0 honesty: secure-by-default. Bind to loopback unless explicitly opened;
+# require a shared token when one is set; no wildcard CORS; frontier OFF unless
+# the operator explicitly enables it (so "stays on device" is the default truth).
+BIND = os.environ.get("TRACE_BIND", "127.0.0.1")
+ALLOW_ORIGIN = os.environ.get("TRACE_ALLOW_ORIGIN", f"http://127.0.0.1:{PORT}")
+TRACE_TOKEN = os.environ.get("TRACE_TOKEN", "")
+FRONTIER_ENABLED = os.environ.get("TRACE_FRONTIER_ENABLED", "0") == "1"
+
 _SAFE = re.compile(r"[^a-zA-Z0-9_-]")
 
 # Rolling in-memory store for the phone's LIVE perception stream. The native app
@@ -226,7 +234,7 @@ def _frontier_answer(question: str, kf: list[dict[str, Any]]) -> dict[str, Any]:
 def _ask(payload: dict[str, Any]) -> dict[str, Any]:
     moment = str(payload.get("moment_id") or "")
     question = str(payload.get("question") or "").strip()
-    allow_frontier = bool(payload.get("allow_frontier", False))
+    allow_frontier = bool(payload.get("allow_frontier", False)) and FRONTIER_ENABLED
     if payload.get("records"):  # ingest-then-ask in one shot
         _write_memory(moment, payload["records"])
     mdir = _moment_dir(moment)
@@ -323,11 +331,17 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_a: Any) -> None:
         return
 
+    def _authed(self) -> bool:
+        # Auth disabled when no token configured (local dev); set TRACE_TOKEN to enforce.
+        if not TRACE_TOKEN:
+            return True
+        return self.headers.get("X-TRACE-Token", "") == TRACE_TOKEN
+
     def _json(self, code: int, obj: dict[str, Any]) -> None:
         body = json.dumps(obj).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", ALLOW_ORIGIN)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -335,13 +349,16 @@ class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
         self.send_header("Content-Type", ctype)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", ALLOW_ORIGIN)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
     def do_GET(self) -> None:
         u = urlparse(self.path)
+        if u.path in ("/proof", "/timeline") and not self._authed():
+            self._json(401, {"error": "unauthorized"})
+            return
         if u.path == "/health":
             self._json(200, {"ok": True, "model": MODEL, "frontier": _frontier_available() or None})
         elif u.path == "/proof":
@@ -356,6 +373,9 @@ class Handler(BaseHTTPRequestHandler):
             self._json(404, {"error": "not found"})
 
     def do_POST(self) -> None:
+        if not self._authed():
+            self._json(401, {"error": "unauthorized"})
+            return
         length = int(self.headers.get("Content-Length", "0") or "0")
         raw = self.rfile.read(length) if length else b"{}"
         try:
@@ -380,9 +400,10 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> int:
     CAPTURES.mkdir(parents=True, exist_ok=True)
-    httpd = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
-    fr = _frontier_available() or "off"
-    print(f"TRACE brain live on http://0.0.0.0:{PORT}  model={MODEL}  frontier={fr}", flush=True)
+    httpd = ThreadingHTTPServer((BIND, PORT), Handler)
+    fr = (_frontier_available() if FRONTIER_ENABLED else "off (set TRACE_FRONTIER_ENABLED=1)") or "off"
+    auth = "token-required" if TRACE_TOKEN else "OPEN (set TRACE_TOKEN to lock)"
+    print(f"TRACE brain live on http://{BIND}:{PORT}  model={MODEL}  frontier={fr}  auth={auth}", flush=True)
     httpd.serve_forever()
     return 0
 
