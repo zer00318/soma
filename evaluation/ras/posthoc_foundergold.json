@@ -1,0 +1,338 @@
+[
+  {
+    "id": 0,
+    "q": "What color is the laptop case?",
+    "gold": "dark grey",
+    "ans": "The laptop case is black.",
+    "v": "WRONG"
+  },
+  {
+    "id": 1,
+    "q": "What type of shopping cart is visible in the image?",
+    "gold": "there is no shopping cart",
+    "ans": "NOT IN MEMORY.",
+    "v": "CORRECT"
+  },
+  {
+    "id": 2,
+    "q": "What appears to be displayed on the laptop screen?",
+    "gold": "Claude application, specifically claude code",
+    "ans": "NOT IN MEMORY.",
+    "v": "REFUSED"
+  },
+  {
+    "id": 3,
+    "q": "What is the color of the keyboard?",
+    "gold": "black",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 4,
+    "q": "What month and year are displayed in the top right corner of the screen?",
+    "gold": "Jun 14 there is no year but it likely must be 2026 based on the other data on when it was captured as this was a live feed of the person operating the laptop",
+    "ans": "NOT IN MEMORY.",
+    "v": "REFUSED"
+  },
+  {
+    "id": 5,
+    "q": "What is visible on the laptop's screen to the left of the main window?",
+    "gold": "recent claude code chats",
+    "ans": "NOT IN MEMORY.",
+    "v": "REFUSED"
+  },
+  {
+    "id": 6,
+    "q": "What color is the keyboard?",
+    "gold": "black",
+    "ans": "The keyboard is silver.",
+    "v": "WRONG"
+  },
+  {
+    "id": 7,
+    "q": "What is written in the top left corner of the screen?",
+    "gold": "At the extreme top left is the apple logo, followed to it's right by Claude, file, edit etc. Inside the claude app that's opened, there is Chat, Cowork that's greyed out and the Code part is currently highlighted then below these you have new session, routines, customise etc. On the main screen you have \"Welcome, Satoshi\"",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 8,
+    "q": "How many keys are visible on the keyboard?",
+    "gold": "78 keys and power button",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 9,
+    "q": "What color is the keyboard?",
+    "gold": "Black",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 10,
+    "q": "What is written in the top left corner of the screen?",
+    "gold": "At the extreme top left is the apple logo, followed to it's right by Claude, file, edit etc. Inside the claude app that's opened, there is Chat, Cowork that's greyed out and the Code part is currently highlighted then below these you have new session, routines, customise etc. On the main screen you have \"Welcome, Satoshi\"",
+    "ans": "Welcome back, Satoli, Application.",
+    "v": "WRONG"
+  },
+  {
+    "id": 11,
+    "q": "How many keys are visible on the right side of the keyboard?",
+    "gold": "Where does right side begin? 78 keys and power button is total number of keys",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 12,
+    "q": "What color is the keyboard?",
+    "gold": "black",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 13,
+    "q": "How many keys are visible on the bottom row of the keyboard?",
+    "gold": "11",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 14,
+    "q": "What is written above the sink?",
+    "gold": "There is no sink",
+    "ans": "NOT IN MEMORY.",
+    "v": "CORRECT"
+  },
+  {
+    "id": 15,
+    "q": "What color is the laptop?",
+    "gold": "dark grey",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 16,
+    "q": "What material appears to be used for the shopping cart's frame?",
+    "gold": "there is no shopping cart, it's a bench in the Garching Forschunszentrum u bahn station.",
+    "ans": "The shopping cart’s frame appears to be metal.",
+    "v": "WRONG"
+  },
+  {
+    "id": 17,
+    "q": "How many visible tabs are open on the laptop screen?",
+    "gold": "Claude application is open, there are no additional tabs visible",
+    "ans": "NOT IN MEMORY.",
+    "v": "REFUSED"
+  },
+  {
+    "id": 18,
+    "q": "What color is the sign on the left wall?",
+    "gold": "yellow",
+    "ans": "The sign is yellow.",
+    "v": "CORRECT"
+  },
+  {
+    "id": 19,
+    "q": "How many vertical metal bars are visible along the right wall?",
+    "gold": "3",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 20,
+    "q": "What color is the line marking the edge of the platform?",
+    "gold": "black and yellow",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 21,
+    "q": "What is the color of the large panel?",
+    "gold": "blue",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 22,
+    "q": "What name is written on the panel in cursive?",
+    "gold": "W. Meißner",
+    "ans": "W. Kieninger is written on the sign.",
+    "v": "WRONG"
+  },
+  {
+    "id": 23,
+    "q": "What type of infrastructure is visible at the bottom of the image?",
+    "gold": "railway tracks and platform",
+    "ans": "Train tracks are visible at the bottom of the image.",
+    "v": "CORRECT"
+  },
+  {
+    "id": 24,
+    "q": "What is the name of the research center shown on the sign?",
+    "gold": "In this frame there is no research center shown but in other frames, it would be Max Planck Campus",
+    "ans": "Forschungszentrum is the name of the research center shown on the sign.",
+    "v": "WRONG"
+  },
+  {
+    "id": 25,
+    "q": "According to the sign, what street is accessible via bus from this location?",
+    "gold": "Boltzmannstr.",
+    "ans": "According to the sign, BUS is accessible via bus from this location.",
+    "v": "WRONG"
+  },
+  {
+    "id": 26,
+    "q": "What years are listed next to 'Robert Sauer' on the lower plaque?",
+    "gold": "1898 - 1970",
+    "ans": "1890 - 1970 are listed next to 'Robert Sauer'.",
+    "v": "WRONG"
+  },
+  {
+    "id": 27,
+    "q": "What color is the wall to the right of the door?",
+    "gold": "grey",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 28,
+    "q": "What symbol appears above the door?",
+    "gold": "A person walking",
+    "ans": "NOT IN MEMORY.",
+    "v": "REFUSED"
+  },
+  {
+    "id": 29,
+    "q": "What color are the floor tiles?",
+    "gold": "Gray",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 30,
+    "q": "What color is the sign indicating an exit?",
+    "gold": "green",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 31,
+    "q": "What material appears to cover the wall where the sign and door are located?",
+    "gold": "stone/granite",
+    "ans": "Stainless steel covers the wall.",
+    "v": "WRONG"
+  },
+  {
+    "id": 32,
+    "q": "What is the primary color of the door?",
+    "gold": "silver",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 33,
+    "q": "What is the name on the sign?",
+    "gold": "WILHELM CONRAD RÖNTGEN",
+    "ans": "Wilhelm Conrad Röntgen is the name on the sign.",
+    "v": "CORRECT"
+  },
+  {
+    "id": 34,
+    "q": "What color is the background of the image displayed on the panel?",
+    "gold": "blue",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 35,
+    "q": "What object is depicted in the image on the panel?",
+    "gold": "x-ray of fingers with a ring",
+    "ans": "An x-ray image is depicted in the image on the panel.",
+    "v": "WRONG"
+  },
+  {
+    "id": 36,
+    "q": "What years does the sign indicate Röntgen lived?",
+    "gold": "1845 - 1923",
+    "ans": "Röntgen lived from 1845 to 1923.",
+    "v": "CORRECT"
+  },
+  {
+    "id": 37,
+    "q": "What is the predominant color of the wall behind the sign?",
+    "gold": "grey",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 38,
+    "q": "What object is visible at the very bottom of the image?",
+    "gold": "Metal railing of the railway track",
+    "ans": "NOT IN MEMORY.",
+    "v": "REFUSED"
+  },
+  {
+    "id": 39,
+    "q": "What color is the background of the artwork?",
+    "gold": "blue",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 40,
+    "q": "What name appears in cursive at the bottom of the image?",
+    "gold": "W.C Röntgen",
+    "ans": "W.L. Röntgen appears in cursive at the bottom of the image.",
+    "v": "CORRECT"
+  },
+  {
+    "id": 41,
+    "q": "What object, resembling a scientific apparatus, is depicted on the artwork?",
+    "gold": "Crookes tube (or an early X-ray tube)",
+    "ans": "A wall mural depicting a scientific apparatus is visible.",
+    "v": "WRONG"
+  },
+  {
+    "id": 42,
+    "q": "What is the name written below the chemical structure?",
+    "gold": "Hans Fischer",
+    "ans": "HANS FISCHER is written below the chemical structure.",
+    "v": "CORRECT"
+  },
+  {
+    "id": 43,
+    "q": "What year is displayed on the sign?",
+    "gold": "1881 - 1945 (1945 is not visible in this frame)",
+    "ans": "1887 is displayed on the sign.",
+    "v": "WRONG"
+  },
+  {
+    "id": 44,
+    "q": "What color are the tracks of the train?",
+    "gold": "Gray",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 45,
+    "q": "What is the color of the large panel with the chemical structure?",
+    "gold": "blue",
+    "ans": "NOT IN MEMORY.",
+    "v": "WRONG"
+  },
+  {
+    "id": 46,
+    "q": "What years are displayed on the plaque next to the chemical structure?",
+    "gold": "1881 - 1945",
+    "ans": "1881 - 1945 are displayed on the plaque.",
+    "v": "WRONG"
+  },
+  {
+    "id": 47,
+    "q": "What type of structure is depicted on the blue panel?",
+    "gold": "chemical-organic compound which is chlorophyll",
+    "ans": "A chemical structure is depicted on the glass panel.",
+    "v": "WRONG"
+  }
+]
