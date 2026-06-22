@@ -96,7 +96,42 @@ def find_window(title: str, pids: Optional[set[int]] = None) -> Optional[dict]:
     return cands[0][1]
 
 
-def capture_window_jpeg(win_id: int, max_w: int = 768, quality: int = 70) -> bytes:
+# High-confidence verbatim-text channel: Apple Vision OCR (in-memory, no disk).
+try:
+    import os as _os
+    _root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    if _root not in sys.path:
+        sys.path.insert(0, _root)
+    from evaluation.vision_ocr import ocr_cgimage
+except Exception:  # OCR optional; fall back to the VLM TEXT line if unavailable
+    ocr_cgimage = None
+
+
+def merge_ocr(vlm_text: str, ocr_lines) -> str:
+    """Verbatim TEXT comes ONLY from the high-confidence Vision OCR channel.
+
+    ocr_lines is None  -> OCR unavailable: keep the VLM text (graceful fallback).
+    ocr_lines is a list -> OCR is authoritative: use it, or TEXT: NONE if it read
+    nothing. We never let the VLM's guessed text stand when OCR is available, so
+    unreadable (e.g. cursive) text becomes an honest refusal, not a fabrication.
+    """
+    if ocr_lines is None:
+        return vlm_text
+    ocr_str = " | ".join(s.strip() for s in ocr_lines if s.strip())
+    text_line = f"TEXT: {ocr_str}" if ocr_str else "TEXT: NONE"
+    out, replaced = [], False
+    for line in vlm_text.splitlines():
+        if line.upper().startswith("TEXT:"):
+            out.append(text_line)
+            replaced = True
+        else:
+            out.append(line)
+    if not replaced:
+        out.append(text_line)
+    return "\n".join(out)
+
+
+def capture_window_jpeg(win_id: int, max_w: int = 768, quality: int = 70) -> tuple:
     """Composite ONLY this window's pixels (privacy: never the rest of the screen)."""
     cgimg = Quartz.CGWindowListCreateImage(
         Quartz.CGRectNull,
@@ -110,6 +145,14 @@ def capture_window_jpeg(win_id: int, max_w: int = 768, quality: int = 70) -> byt
     h = Quartz.CGImageGetHeight(cgimg)
     if w == 0 or h == 0:
         raise RuntimeError("empty window image")
+    # High-confidence verbatim text from Apple Vision OCR on the in-memory CGImage.
+    # None = OCR unavailable (fall back to VLM); list (maybe empty) = OCR authoritative.
+    ocr_lines = None
+    if ocr_cgimage is not None:
+        try:
+            ocr_lines = ocr_cgimage(cgimg) or []
+        except Exception:
+            ocr_lines = None
     # CGImage -> PNG bytes via ImageIO, then hand to PIL for resize/JPEG.
     from Quartz import (
         CGImageDestinationCreateWithData,
@@ -130,7 +173,7 @@ def capture_window_jpeg(win_id: int, max_w: int = 768, quality: int = 70) -> byt
         img = img.resize((max_w, int(img.height * max_w / img.width)))
     buf = io.BytesIO()
     img.save(buf, "JPEG", quality=quality)
-    return buf.getvalue()
+    return buf.getvalue(), ocr_lines
 
 
 def perceive(jpeg: bytes, model: str, ollama: str, timeout: int = 120) -> str:
@@ -186,9 +229,9 @@ def main() -> int:
           flush=True)
 
     if args.probe:
-        jpeg = capture_window_jpeg(win_id)
-        text = perceive(jpeg, args.model, args.ollama)
-        print(f"[probe] {len(jpeg)} bytes ->\n{text}")
+        jpeg, ocr = capture_window_jpeg(win_id)
+        text = merge_ocr(perceive(jpeg, args.model, args.ollama), ocr)
+        print(f"[probe] {len(jpeg)} bytes, {len(ocr)} OCR lines ->\n{text}")
         return 0
 
     start = time.monotonic()
@@ -206,8 +249,8 @@ def main() -> int:
             print("  [skip] window gone", flush=True)
             continue
         try:
-            jpeg = capture_window_jpeg(win.get("kCGWindowNumber"))
-            text = perceive(jpeg, args.model, args.ollama)
+            jpeg, ocr = capture_window_jpeg(win.get("kCGWindowNumber"))
+            text = merge_ocr(perceive(jpeg, args.model, args.ollama), ocr)
             if not text:
                 continue
             res = post_perception(args.brain, args.moment, text)
