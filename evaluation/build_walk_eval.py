@@ -139,7 +139,7 @@ h1{font-size:20px} .sub{color:#666;margin-bottom:14px}
 .card{border:1px solid #ddd;border-radius:10px;padding:14px;margin:14px 0}
 .card img{max-width:100%;border-radius:6px;display:block;margin:8px 0}
 .q{font-weight:600;margin-bottom:6px} label{margin-right:14px;font-size:14px}
-.seek{background:#1971c2;color:#fff;border:0;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:13px}
+.seek{background:#1971c2;color:#fff;border:0;border-radius:6px;padding:6px 11px;cursor:pointer;font-size:13px;text-decoration:none;display:inline-block;margin:6px 0}
 input[type=text]{width:100%;padding:7px;font-size:14px;box-sizing:border-box;margin-top:6px}
 details{margin-top:8px;color:#888;font-size:13px}
 #bar{position:sticky;bottom:0;background:#fff;border-top:1px solid #ddd;padding:12px 0}
@@ -147,19 +147,15 @@ button#export{background:#e8590c;color:#fff;border:0;border-radius:8px;padding:1
 #out{width:100%;height:80px;margin-top:8px;font:12px monospace} .no input[type=text]{opacity:.35}
 </style></head><body>
 <h1>TRACE — confirm the gold (Munich walk)</h1>
-<div class="sub">For each question: click <b>▶ watch at…</b> to jump the video to that moment, look carefully,
-and type the TRUE short answer (the box has an AI guess — fix it). If it's not answerable from the video there,
-pick <b>not answerable</b>. Then <b>Export</b> at the bottom and paste the JSON back to the Chief.</div>
-<div id="player"><div id="yt"></div></div>
+<div class="sub">Read the answer straight off the <b>frame image</b> in each card. If you need motion/context, click
+<b>▶ watch on YouTube at…</b> (opens the video at that exact second in a new tab). Type the TRUE short answer
+(the box has an AI guess — fix it). If it's not readable, pick <b>not answerable</b>. Then <b>Export</b> at the
+bottom and paste the JSON back to the Chief.</div>
 <div id="app"></div>
 <div id="bar"><button id="export">Export gold &rarr; clipboard</button>
 <textarea id="out" placeholder="exported JSON appears here"></textarea></div>
-<script src="https://www.youtube.com/iframe_api"></script>
 <script>
-const DATA = __DATA__; const YT = "__YT__";
-let player;
-function onYouTubeIframeAPIReady(){ player = new YT.Player('yt',
-  {height:'360',width:'640',videoId:YT,playerVars:{rel:0}}); }
+const DATA = __DATA__; const VID = "__YT__";
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const mmss = s => Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
 const app = document.getElementById('app');
@@ -167,14 +163,13 @@ DATA.forEach(it => {
   const c = document.createElement('div'); c.className='card'; c.id='c'+it.id;
   c.innerHTML =
     '<div class="q">Q'+it.id+': '+esc(it.question)+'</div>'+
-    '<button class="seek" data-t="'+it.t+'">▶ watch at '+mmss(it.t)+'</button>'+
     '<img loading="lazy" src="'+it.src+'">'+
+    '<a class="seek" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v='+VID+'&t='+Math.floor(it.t)+'s">▶ watch on YouTube at '+mmss(it.t)+'</a>'+
     '<label><input type="radio" name="a'+it.id+'" value="yes" checked> answerable</label>'+
     '<label><input type="radio" name="a'+it.id+'" value="no"> not answerable</label>'+
     '<input type="text" id="g'+it.id+'" value="'+esc(it.candidate)+'">'+
     '<details><summary>what the OCR read here</summary>'+esc(it.ocr)+'</details>';
   app.appendChild(c);
-  c.querySelector('.seek').onclick = e => { if(player&&player.seekTo){player.seekTo(+e.target.dataset.t,true);player.playVideo();window.scrollTo({top:0,behavior:'smooth'});} };
   c.querySelectorAll('input[name=a'+it.id+']').forEach(r=>r.onchange=()=>{
     c.classList.toggle('no', c.querySelector('input[name=a'+it.id+']:checked').value==='no'); });
 });
