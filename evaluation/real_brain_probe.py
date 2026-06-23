@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import ask_home  # noqa: E402
 
 MEMO = "/tmp/ocr_memory.json"
-MODEL = "gemma3:12b-it-qat"
+MODEL = __import__("os").environ.get("PROBE_MODEL", "gemma3:12b-it-qat")
 TEXT_IDS = {2, 4, 5, 7, 10, 22, 24, 25, 26, 33, 36, 40, 42, 43, 46}
 
 
