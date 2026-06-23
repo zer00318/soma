@@ -78,6 +78,10 @@ try:
 except Exception:
     _structured_recall = None
 try:
+    import consensus_recall as _consensus_recall
+except Exception:
+    _consensus_recall = None
+try:
     from artifact_provenance import provenance_matches as _provenance_matches
 except Exception:
     _provenance_matches = None
@@ -622,7 +626,7 @@ READING_SURFACE_RE = re.compile(
     r"\b(sign|signs|poster|posters|screen|label|document|note|form|billboard|"
     r"plaque|menu|display|monitor|page|book|paper|card|board|chat|prompt|text)\b")
 
-# Audio / speech channel. SOMA's voice is a SEPARATE transcript; these questions
+# Audio / speech channel. TRACE's voice is a SEPARATE transcript; these questions
 # must never be answered from the visual layers (the -12 failure: "what words
 # were said" answered with object labels). Speech verbs + audio events + the
 # "words ... said/spoken" shape.
@@ -806,7 +810,7 @@ def is_screen_question(q):
 def classify_question(q):
     """Return 'audio' | 'spatial' | 'temporal' | 'counting' | 'screen' | 'reading' | 'general'.
 
-    Audio and spatial are checked FIRST: both name channels SOMA's visual memory
+    Audio and spatial are checked FIRST: both name channels TRACE's visual memory
     cannot answer from, so they must short-circuit before a stray word ("said",
     "side") routes them into reading/counting where the model would confabulate.
     Temporal and counting are checked before screen so "how long on the laptop"
@@ -2061,7 +2065,7 @@ def build_evidence_dossier(question, channels, max_per_channel=ASSEMBLER_MAX_PER
         if (requested_attribute and matched and
                 not any(_candidate_has_attribute(c, requested_attribute) for c in matched)):
             parts.append(
-                "NOTE: the entity-capture channel did not record a %s for %s. This is "
+                "NOTE: no %s was recorded for %s by the entity-capture channel. This is "
                 "scoped to ONE channel only — if ANOTHER line below (OCR, region OCR, a "
                 "bound memory, a persistent entity) reports it for that same item, answer "
                 "from that line. Refuse only if NO channel reports it."
@@ -2633,7 +2637,10 @@ def structural_grounding(question, draft, memory_path):
             # Whole-sentence scoring can select an unrelated well-supported token
             # and accidentally license a caption-only phantom.
             asserted = {noun.lower() for noun in _PRESENCE_NOUN_RE.findall(draft or "")}
-            if any(_evidence.score_claim(noun, sup).get("confidence", 0.0)
+            # presence_confidence (not score_claim) so a GENERIC noun the detector
+            # actually saw (people/car/sign in the reliable 'world' channel) counts
+            # as grounded; a caption-only phantom still floors out.
+            if any(_evidence.presence_confidence(noun, sup)
                    < ASSEMBLER_CONF_MIN for noun in asserted):
                 return ("refuse", GROUNDED_REFUSAL)
 
@@ -2699,7 +2706,7 @@ def compose(question, scenes, model, host, timeout=60):
 # Top-level routing.
 # --------------------------------------------------------------------------- #
 def ask(question, memory_path, model="gemma3:12b-it-qat",
-        host="http://127.0.0.1:11434", timeout=60, k=4):
+        host="http://127.0.0.1:11434", timeout=60, k=4, anchor=None):
     mems = _resolve_memories(memory_path)
     kf, world, kf_path = mems["kf"], mems["world"], mems["kf_path"]
 
@@ -2707,6 +2714,32 @@ def ask(question, memory_path, model="gemma3:12b-it-qat",
         return {"answer": "I haven't built a memory of your home yet.", "scenes": []}
 
     kind = classify_question(question)
+
+    # ── CROSS-FRAME OCR CONSENSUS (the honest "read what I'm looking at" path) ──── #
+    # When the caller supplies a temporal anchor (the moment the question is about —
+    # "now" in the live stream), reading questions are answered FIRST from the OCR
+    # consensus of the frames around that moment. Frequency = confidence: a sign read
+    # many times wins; a one-off garble or cross-time screen leak (the assembler's
+    # confident-fabrication failure modes — "Hi kaife", "IPP Garching") can't reach
+    # quorum and the layer stays silent, falling through to the assembler unchanged.
+    if (anchor is not None and kind in ("reading", "screen")
+            and _consensus_recall is not None and kf):
+        try:
+            res = _consensus_recall.consensus_read(
+                kf, question, lambda p: _ollama(p, model, host, timeout),
+                center=float(anchor))
+        except Exception:
+            res = None
+        if res and not res.get("refused") and res.get("answer"):
+            return {"answer": res["answer"], "scenes": [],
+                    "source": "ocr_consensus", "support": res.get("support")}
+        # Honesty-first: in the anchored "read what I'm looking at" mode, if the OCR
+        # consensus could not read it, REFUSE — do NOT fall through to the assembler,
+        # which fabricates on exactly these (probe: a refused cursive panel became a
+        # confident "Hans Fischer"; a missing screen date became "June 1901"). The
+        # whole moat is reads-or-stays-silent; a VLM guess here would break it.
+        return {"answer": "I didn't read that clearly enough to say.",
+                "scenes": [], "source": "ocr_consensus", "refused": True}
 
     # 0a) audio/speech -> the voice transcript ONLY (refuse if no usable speech).
     #     Never let the visual layers answer "what was said" (the -12 failure).

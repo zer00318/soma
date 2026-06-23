@@ -47,13 +47,15 @@ def main():
         if i not in want or i not in gold:
             continue
         try:
-            res = ask_home.ask(r["question"], path, model=MODEL)
+            res = ask_home.ask(r["question"], path, model=MODEL,
+                               anchor=secs(r["frame"]))
             ans = (res or {}).get("answer", "")
+            src = (res or {}).get("source", "assembler")
         except Exception as e:
-            ans = f"<ERROR {e!r}>"
+            ans, src = f"<ERROR {e!r}>", "error"
         print(f"--- Q{i}: {r['question']}")
         print(f"    gold: {gold[i][:70]}")
-        print(f"    REAL BRAIN: {ans[:160]}\n", flush=True)
+        print(f"    REAL BRAIN [{src}]: {ans[:160]}\n", flush=True)
 
 
 if __name__ == "__main__":

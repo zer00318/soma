@@ -45,9 +45,17 @@ read, keyboard-row noise) fails safe to refusal, never a confident lie. 27b for 
   INTEGRATION DESIGN (the honest seam): consensus needs a TEMPORAL ANCHOR. In the live "read what I'm
   looking at NOW" path the anchor = latest frame → consensus over the recent window (exactly what the eval
   does). "Recall an arbitrary past sign by description" is a harder retrieval problem (the name isn't in the
-  question, so IDF can't find it) — secondary, not the core use case. So wire: live caller passes anchor=now;
-  `ask()` reading branch runs `consensus_read(kf, q, answerer, center=anchor)` BEFORE the assembler, returns
-  if confident, else falls through unchanged (additive, fail-safe).
+  question, so IDF can't find it) — secondary, not the core use case.
+- **WIRED + VERIFIED (2026-06-23):** `ask_home.ask(..., anchor=)` now runs `consensus_read` BEFORE the
+  assembler for reading/screen questions when an anchor is given. Additive + backward-compatible (anchor
+  defaults None → brain server & all existing callers UNCHANGED). Crucially REFUSE-HARD: if consensus can't
+  read it, the brain refuses ("I didn't read that clearly enough to say") instead of falling through to the
+  assembler — because the probe proved the assembler FABRICATES on exactly those (`June 1901`, `Hans Fischer`
+  for a cursive Meißner panel). Result through the REAL brain (12b consensus answerer): the 3 confident lies
+  (Q4/Q22/Q40) became honest refusals; readable plaques answer correctly. Full-15: 8 correct / 2 wrong / 5
+  refused — and the 2 "wrongs" are NOT invented (Q24 a valid alt name on the sign; Q25 wrong-street, a 12b
+  slip). The brain now reads-or-refuses. NEXT: run the live recall with the 27b answerer (recovers Q24/Q25/
+  Q26/Q46 that 12b-consensus refused → assembler), and the bigger capture for a trustworthy n.
 
 Everything else — knowledge-graph, mindmap, agentic overhaul, GTM philosophy, form factor — is
 downstream noise until that number is real. When the founder asks to build any of those, the answer
