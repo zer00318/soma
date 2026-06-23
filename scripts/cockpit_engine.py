@@ -10,6 +10,7 @@ status="UNINSTRUMENTED" plus the instrument plan — we never fake a metric.
   .venv/bin/python scripts/cockpit_engine.py --print    # also print a terminal view
 """
 import argparse
+import datetime
 import json
 import subprocess
 import time
@@ -125,6 +126,44 @@ def blockers():
     ]
 
 
+def progress():
+    """Weighted milestones to pitch-ready + % complete + a PROJECTED ETA date.
+    Effort is in working-days (rough, honest estimate); ETA = today + remaining effort.
+    completion in [0,1]. The ETA is a projection, not a promise — labeled as such."""
+    ms = [
+        ("Honesty moat: consensus reads-or-refuses", 25, 1.0, 0, "shipped + wired into ask_home"),
+        ("Trustworthy number (n>=50 founder gold)", 20, 0.55, 1, "Munich 45-Q page built; awaiting founder gold + 1 eval run"),
+        ("Kill residual hallucination (gate every channel)", 15, 0.30, 2, "refuse-hard on anchored reading done; non-reading channels still guess"),
+        ("Live capture hardened (ScreenCaptureKit + budget)", 20, 0.10, 3, "still on deprecated Quartz; no frame-budget drop"),
+        ("Instrumentation (latency / compression)", 10, 0.25, 1, "OCR latency sampled; @span spans + compression pending"),
+        ("Retention signal on real use", 10, 0.0, 5, "not started; the founder's own validation bar"),
+    ]
+    total_w = sum(w for _, w, _, _, _ in ms)
+    pct = round(sum(w * c for _, w, c, _, _ in ms) / total_w, 3)
+    remaining_days = sum(e * (1 - c) for _, _, c, e, _ in ms)
+    # round up remaining effort, add weekend slack (~1.4x calendar/working)
+    eta = datetime.date.today() + datetime.timedelta(days=round(remaining_days * 1.4))
+    return {
+        "pct_to_pitch_ready": round(pct * 100, 1),
+        "projected_eta": eta.isoformat(),
+        "remaining_effort_days": round(remaining_days, 1),
+        "note": "ETA = today + remaining effort x1.4 calendar slack; projection, recomputed each run",
+        "milestones": [{"label": l, "weight": w, "completion": c,
+                        "effort_days_left": round(e * (1 - c), 1),
+                        "state": "done" if c >= 1 else "active" if c > 0 else "todo",
+                        "note": n} for l, w, c, e, n in ms],
+    }
+
+
+def realtime():
+    """Live-capture feasibility: can the helpers keep up at frame-rate? Read from a
+    sampled metrics file; UNINSTRUMENTED until the eval writes it."""
+    r = read_json(CK / "realtime.json")
+    if not r:
+        return {"status": "UNINSTRUMENTED", "note": "run the eval's latency sample to populate"}
+    return r
+
+
 def build_status():
     """The in-flight bigger-capture pipeline."""
     qf = ROOT / "data/walks/munich_text/work/questions.json"
@@ -159,6 +198,10 @@ table{width:100%;border-collapse:collapse;font-size:12px} td{padding:4px 6px;bor
 </style></head><body>
 <h1>TRACE — ENGINE COCKPIT</h1><div class="ts" id="ts"></div>
 <div class="verdict" id="verdict"></div>
+<div class="card" id="progwrap"><h2>Progress to pitch-ready — <span id="pct"></span> · ETA <span id="eta"></span></h2>
+<div id="progbar" style="height:14px;background:#21262d;border-radius:7px;overflow:hidden;margin:4px 0 10px">
+<div id="progfill" style="height:100%;background:linear-gradient(90deg,#3fb950,#58a6ff)"></div></div>
+<div id="ms"></div><div class="dim" id="etanote" style="margin-top:6px"></div></div>
 <div class="grid">
   <div class="card"><h2>North Star — text-recall vs gold</h2><div id="ns"></div></div>
   <div class="card"><h2>Build / Git</h2><div id="git"></div></div>
@@ -174,6 +217,18 @@ const P=(c,t)=>`<span class="pill ${c}">${t}</span>`;
 function render(){
   document.getElementById('ts').textContent = 'server_ts '+new Date(D.server_ts*1000).toLocaleString();
   document.getElementById('verdict').textContent = '⚑ '+D.verdict;
+  const pr=D.progress;
+  document.getElementById('pct').textContent = pr.pct_to_pitch_ready+'%';
+  document.getElementById('eta').textContent = pr.projected_eta;
+  document.getElementById('progfill').style.width = pr.pct_to_pitch_ready+'%';
+  document.getElementById('etanote').textContent = pr.note+' · '+pr.remaining_effort_days+' effort-days left';
+  document.getElementById('ms').innerHTML = pr.milestones.map(m=>{
+    const col = m.state==='done'?'var(--green)':m.state==='active'?'var(--amber)':'var(--dim)';
+    const mark = m.state==='done'?'✓':m.state==='active'?'◐':'○';
+    return `<div class="row"><span style="color:${col}">${mark} ${m.label}</span>`+
+      `<span class="dim">${Math.round(m.completion*100)}%${m.effort_days_left?' · '+m.effort_days_left+'d left':''}</span></div>`+
+      `<div class="dim" style="font-size:11px;margin:-2px 0 4px 16px">${m.note}</div>`;}).join('');
+  const rt=D.realtime;
   const n=D.north_star;
   document.getElementById('ns').innerHTML =
     `<div class="big">${n.correct_pc}% <span class="dim" style="font-size:14px">correct</span> &nbsp; ${n.halluc_pc}% <span class="dim" style="font-size:14px">halluc</span></div>`+
@@ -196,8 +251,10 @@ function render(){
     `<div class="blk ${b.sev}">${P(b.sev,b.sev)} <span class="t">${b.title}</span> <span class="dim">[${b.owner}]</span>`+
     `<div class="r">root: ${b.root}</div><div class="f">→ ${b.fix}</div></div>`).join('');
   const w=D.bigger_capture;
+  const rtline = rt.status==='UNINSTRUMENTED' ? 'realtime: ⊘ uninstrumented'
+    : `realtime: OCR p50 ${rt.ocr_p50_ms}ms / p95 ${rt.ocr_p95_ms}ms · ${rt.pct_within_budget}% within ${rt.budget_ms}ms live budget @ ${rt.fps}fps`;
   document.getElementById('wait').innerHTML = `<b>Waiting on founder:</b> ${D.waiting_on_founder}`+
-    `<div class="dim">bigger capture: ${w.questions_built} Qs built · gold page ${w.gold_page_ready?'READY ✓ '+w.gold_page:'building…'}</div>`;
+    `<div class="dim">bigger capture: ${w.questions_built} Qs built · gold page ${w.gold_page_ready?'READY ✓':'building…'} · ${rtline}</div>`;
 }
 render();
 </script></body></html>"""
@@ -213,6 +270,8 @@ def main():
         "verdict": "NOT PITCH-READY — honesty moat works; number untrusted (n small); capture API fragile",
         "git": git_state(),
         "north_star": ns,
+        "progress": progress(),
+        "realtime": realtime(),
         "pipeline": pipeline(),
         "channels": channels(),
         "blockers": blockers(),
