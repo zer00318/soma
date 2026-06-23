@@ -4,6 +4,28 @@
 and the memory index. Author: the Chief (Claude). Founder: Satoshi (KIT student, thesis at
 Max Planck IPP Garching). Branch: `chief/p0-honesty-sprint` (pushed to origin `zer00318/soma`).*
 
+## ACTIVE WORKSTREAM (2026-06-23, pick up here) — bigger trustworthy capture
+Building the ~50-question Munich-walk eval so the honest number is bettable (n=15 was too small).
+- **Video (BEST pick):** YouTube `bpPdGx6Soa4` — "MUNICH Downtown & Marienplatz Walking Tour 2024",
+  daytime, German signage (founder-verifiable), text-rich. Downloaded 1080p60 video-only (format 299)
+  to `data/walks/munich_text/source.mp4`. **YT format unlock:** default clients are PO-token-gated to
+  360p; use `--extractor-args "youtube:player_client=android_vr"` to get the 60fps DASH formats
+  (cookies-from-browser is TCC-blocked on this Mac). yt-dlp installed in `.venv`; cv2 4.10 reads the mp4
+  (NO ffmpeg needed/installed).
+- **Pipeline:** `evaluation/build_walk_eval.py` — frames@2fps -> Apple-Vision OCR all -> select text-rich
+  key frames (temporally spread) -> gemma writes reading Qs -> emits `gold_review_walk.html` (embeds the
+  YouTube player with per-question "watch at MM:SS" seek + the extracted frame; founder confirms gold vs
+  the video, Exports JSON). Run AFTER download:
+  `.venv/bin/python evaluation/build_walk_eval.py --video data/walks/munich_text/source.mp4 --outdir data/walks/munich_text/work --yt bpPdGx6Soa4 --fps 2 --n 45 --qper 1`
+- **Then:** founder fills the page -> save gold JSON -> point `ocr_recall.py` at the new
+  `data/walks/munich_text/work/ocr_memory.json` + gold + question timestamps (anchors) -> honest number.
+- **COCKPIT IS LIVE** at http://127.0.0.1:8788 (`scripts/ops_cockpit.py`, started userland). Founder
+  glances at `ops/cockpit/chief.json` (now/next/waiting_on_you) + `pitch_progress.json` instead of asking.
+  Keep these two files current as the status surface.
+- **PROCESS RULE (learned the hard way):** do NOT spawn `until…do sleep` background waiter loops — the
+  harness already notifies on `run_in_background` completion; waiters leak for hours. See
+  `memory/process-background-task-hygiene.md`.
+
 ## THE ONE METRIC (this is the whole game — do not add scope until it moves)
 > **% of what the founder can read off a frame that the system answers correctly, with lies near zero.**
 > Narrowed to the TEXT subset (15 reading Qs) per the pivot. Measured vs founder human gold
