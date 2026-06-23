@@ -1,0 +1,266 @@
+{
+  "half": 5.0,
+  "minrep": 3,
+  "summary": {
+    "REFUSED": 4,
+    "CORRECT": 9,
+    "WRONG": 2
+  },
+  "correct_frac": 0.6,
+  "halluc_frac": 0.182,
+  "rows": [
+    {
+      "id": 2,
+      "v": "REFUSED",
+      "gold": "Claude application, specifically claude code",
+      "ans": "NOT IN MEMORY",
+      "q": "What appears to be displayed on the laptop screen?",
+      "tally": {
+        "you news wa vidaesaudro you very whether soch entwer l tru": 1,
+        "soma vision drift and priori": 1,
+        "mixewhisper on the dev": 1,
+        "bask batobal": 1,
+        "sinion": 1,
+        "cordon": 1,
+        "o vim": 1
+      }
+    },
+    {
+      "id": 4,
+      "v": "REFUSED",
+      "gold": "Jun 14 there is no year but it likely must be 2026 based on the other data on when it was captured as this was a live feed of the person operating the laptop",
+      "ans": "NOT IN MEMORY",
+      "q": "What month and year are displayed in the top right corner of the screen?",
+      "tally": {
+        "ma trage archieet handover": 1,
+        "5 la currently onavallab": 1,
+        "81": 1,
+        "2": 2,
+        "3": 1
+      }
+    },
+    {
+      "id": 5,
+      "v": "REFUSED",
+      "gold": "recent claude code chats",
+      "ans": "NOT IN MEMORY",
+      "q": "What is visible on the laptop's screen to the left of the main window?",
+      "tally": {
+        "claude fable 5 is eurrently unavallable": 1,
+        "6 trageides crilloue and direction": 1,
+        "o vum main a worktres": 1,
+        "bask batobal": 1,
+        "needs logot": 1,
+        "leeds input": 1,
+        "soma cose": 1,
+        "moshi pro": 1,
+        "com mane": 1,
+        "routines": 1,
+        "cordon": 1,
+        "sinion": 1,
+        "cowon": 1,
+        "o vim": 1,
+        "o vla": 1,
+        "3": 1
+      }
+    },
+    {
+      "id": 7,
+      "v": "CORRECT",
+      "gold": "At the extreme top left is the apple logo, followed to it's right by Claude, file, edit etc. Inside the claude app that's opened, there is Chat, Cowork that's greyed out and the Code part is currently highlighted then below these you have new session, routines, customise etc. On the main screen you have \"Welcome, Satoshi\"",
+      "ans": "Welcome back, Satoshi",
+      "q": "What is written in the top left corner of the screen?",
+      "tally": {
+        "daatrace architect handow": 1,
+        "soma trace architecti": 1,
+        "o vum main a worktres": 1,
+        "welcome back satoshi": 3,
+        "welcome back satoshl": 1,
+        "icome back satoshi": 1,
+        "lenme back satoshi": 1,
+        "welcome doom": 1,
+        "o toal o vla": 1,
+        "needs inpul": 1,
+        "leeds input": 1,
+        "needs logot": 1,
+        "needs input": 1,
+        "orkure d": 1,
+        "routines": 1,
+        "cowork": 2,
+        "d q": 1
+      }
+    },
+    {
+      "id": 10,
+      "v": "CORRECT",
+      "gold": "At the extreme top left is the apple logo, followed to it's right by Claude, file, edit etc. Inside the claude app that's opened, there is Chat, Cowork that's greyed out and the Code part is currently highlighted then below these you have new session, routines, customise etc. On the main screen you have \"Welcome, Satoshi\"",
+      "ans": "Welcome back, Satoshi",
+      "q": "What is written in the top left corner of the screen?",
+      "tally": {
+        "i m now outside can walk and record vust uve me a prompt to sort in a new chat win out peaceroey": 1,
+        "daatrace architect handow": 1,
+        "idea or how to go forwaro": 1,
+        "soma trace architecti": 1,
+        "welcome back satoshi": 3,
+        "welcome back satoshl": 1,
+        "lenme back satoshi": 1,
+        "vlm audio transo": 1,
+        "sun jun 14 19 03": 1,
+        "sun jun 14 13 03": 1,
+        "needs inpul": 1,
+        "vlm audiot": 1,
+        "orkure d": 1,
+        "cowor": 1,
+        "d q": 1
+      }
+    },
+    {
+      "id": 22,
+      "v": "REFUSED",
+      "gold": "W. Meißner",
+      "ans": "NOT IN MEMORY",
+      "q": "What name is written on the panel in cursive?",
+      "tally": {
+        "arching forschungsz": 1,
+        "forschungszentr": 1,
+        "rschungszentrum": 1,
+        "ar men forest": 1,
+        "are then fres": 1,
+        "are the funer": 1,
+        "ar men frest": 2,
+        "mr men rest": 1,
+        "kaife": 1
+      }
+    },
+    {
+      "id": 24,
+      "v": "WRONG",
+      "gold": "In this frame there is no research center shown but in other frames, it would be Max Planck Campus",
+      "ans": "Max-Planck-Campus",
+      "q": "What is the name of the research center shown on the sign?",
+      "tally": {
+        "arching forschungsz": 2,
+        "max planck campus": 3,
+        "forschungszentru": 2,
+        "ng forschungszen": 1,
+        "rschungszentrum": 3,
+        "are then fres": 1,
+        "ar men forest": 1,
+        "robert sa": 1
+      }
+    },
+    {
+      "id": 25,
+      "v": "WRONG",
+      "gold": "Boltzmannstr.",
+      "ans": "na-Boyksen-Str., Walther-Meißner-Str.,",
+      "q": "According to the sign, what street is accessible via bus from this location?",
+      "tally": {
+        "na boyksen str walther mei ner str": 3,
+        "alther mei ner str boltzmannstr": 2,
+        "en str walther mei ner str bol": 1,
+        "walther mei ner str boltzman": 2,
+        "lichtenbergstr am cou": 2,
+        "c rangun": 1,
+        "bus": 1
+      }
+    },
+    {
+      "id": 26,
+      "v": "CORRECT",
+      "gold": "1898 - 1970",
+      "ans": "1898 - 1970",
+      "q": "What years are listed next to 'Robert Sauer' on the lower plaque?",
+      "tally": {
+        "1898 1970": 1,
+        "e rangena": 1
+      }
+    },
+    {
+      "id": 33,
+      "v": "CORRECT",
+      "gold": "WILHELM CONRAD RÖNTGEN",
+      "ans": "WILHELM CONRAD RÖNTGEN",
+      "q": "What is the name on the sign?",
+      "tally": {
+        "wilhelm conrad r ntgen": 9,
+        "aufzug triebwerissraum": 1,
+        "aufzug triebwerksraum": 1,
+        "m conrad rontgen": 2,
+        "adt masch": 1,
+        "42 meso": 1,
+        "kastn": 1,
+        "le": 1
+      }
+    },
+    {
+      "id": 36,
+      "v": "CORRECT",
+      "gold": "1845 - 1923",
+      "ans": "1845 - 1923",
+      "q": "What years does the sign indicate Röntgen lived?",
+      "tally": {
+        "1845 1923": 13,
+        "52 1 m": 1
+      }
+    },
+    {
+      "id": 40,
+      "v": "CORRECT",
+      "gold": "W.C Röntgen",
+      "ans": "nischen Strahlung erhielt Röntgen 1901 den erster",
+      "q": "What name appears in cursive at the bottom of the image?",
+      "tally": {
+        "nischen strahlung erhielt r ntgen 1901 den erster": 5,
+        "strahlung erhielt r ntgen 1901 den ersten": 2,
+        "hatis fischer": 1,
+        "hans fischer": 2,
+        "1845 1923": 1,
+        "a alsons": 1,
+        "ronge": 1,
+        "00": 1
+      }
+    },
+    {
+      "id": 42,
+      "v": "CORRECT",
+      "gold": "Hans Fischer",
+      "ans": "HANS FISCHER",
+      "q": "What is the name written below the chemical structure?",
+      "tally": {
+        "georg es rarester te stuitun tes gr nen barensuite chimagnal": 1,
+        "hatis fischer": 1,
+        "hans fischer": 10,
+        "cher emiker": 1,
+        "a alsons": 1,
+        "ronge": 1,
+        "chg": 1
+      }
+    },
+    {
+      "id": 43,
+      "v": "CORRECT",
+      "gold": "1881 - 1945 (1945 is not visible in this frame)",
+      "ans": "1881 - 1945",
+      "q": "What year is displayed on the sign?",
+      "tally": {
+        "1881 1945": 6,
+        "1930": 6,
+        "1920": 1
+      }
+    },
+    {
+      "id": 46,
+      "v": "CORRECT",
+      "gold": "1881 - 1945",
+      "ans": "1881 - 1945",
+      "q": "What years are displayed on the plaque next to the chemical structure?",
+      "tally": {
+        "1881 1945": 9,
+        "thans tu": 1,
+        "chlg": 1,
+        "1930": 5
+      }
+    }
+  ]
+}
