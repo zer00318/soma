@@ -59,7 +59,9 @@ def oll(prompt, images=None):
     return ""
 
 
-def extract(video, outdir, fps, max_seconds):
+def extract(video, outdir, fps, start, dur):
+    """Extract frames at `fps` from [start, start+dur] seconds. Timestamps are the
+    REAL video seconds (so the gold page's 'watch at MM:SS' matches the YouTube clock)."""
     frames_dir = Path(outdir) / "frames"
     frames_dir.mkdir(parents=True, exist_ok=True)
     cap = cv2.VideoCapture(video)
@@ -67,16 +69,17 @@ def extract(video, outdir, fps, max_seconds):
         raise SystemExit(f"cv2 could not open {video} (need ffmpeg backend / valid mp4)")
     vfps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     step = max(1, round(vfps / fps))
+    start_f = int(start * vfps)
+    end_f = int((start + dur) * vfps) if dur else int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.set(cv2.CAP_PROP_POS_FRAMES, start_f)
     out = []
-    i = 0
-    while True:
+    i = start_f
+    while i < end_f:
         ok = cap.grab()
         if not ok:
             break
-        if i % step == 0:
+        if (i - start_f) % step == 0:
             t = i / vfps
-            if max_seconds and t > max_seconds:
-                break
             ok, frame = cap.retrieve()
             if ok:
                 p = frames_dir / f"f_{int(round(t*1000)):08d}ms.jpg"
@@ -195,13 +198,14 @@ def main():
     ap.add_argument("--n", type=int, default=45, help="key frames -> questions")
     ap.add_argument("--qper", type=int, default=1)
     ap.add_argument("--min-gap", type=float, default=6.0, help="seconds between key frames")
-    ap.add_argument("--max-seconds", type=float, default=0, help="cap processed duration (0=all)")
+    ap.add_argument("--start", type=float, default=0, help="start second in the video")
+    ap.add_argument("--dur", type=float, default=0, help="seconds to process from start (0=all)")
     args = ap.parse_args()
     out = Path(args.outdir)
     out.mkdir(parents=True, exist_ok=True)
 
-    print("1/4 extracting frames...", flush=True)
-    frames = extract(args.video, args.outdir, args.fps, args.max_seconds)
+    print(f"1/4 extracting frames [{args.start}s..+{args.dur}s] @ {args.fps}fps...", flush=True)
+    frames = extract(args.video, args.outdir, args.fps, args.start, args.dur)
     print(f"    {len(frames)} frames @ {args.fps}fps", flush=True)
 
     print("2/4 OCR (Apple Vision) over all frames...", flush=True)
