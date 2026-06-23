@@ -37,6 +37,17 @@ read, keyboard-row noise) fails safe to refusal, never a confident lie. 27b for 
   full `ask_home` brain. The brain already embodies the same repeat-support philosophy (`structured_recall.py`,
   MIN_REPEAT_SUPPORT=2, time-clustering) for specific SLOTS; `consensus_recall` is the general-reading
   sibling. NEXT REAL STEP: wire it into `ask_home.ask` reading path, then re-measure the real brain.
+- PROBE (`evaluation/real_brain_probe.py`, builds a walk kf_memory and asks the REAL `ask_home`): the
+  current brain CONFIDENTLY FABRICATES on reading Qs — Q33 "name on the sign" → `Hi kaife` (a one-off OCR
+  garble), Q24 "research center on sign" → `IPP Garching` (laptop SCREEN chat text from 22.5s, wrong scene),
+  Q43 → `1945` (truncated frame). Consensus fixes all three (frequency-vote ignores the 1-off `Hi kaife`;
+  temporal scoping blocks the cross-time screen contamination; clustering completes the truncation).
+  INTEGRATION DESIGN (the honest seam): consensus needs a TEMPORAL ANCHOR. In the live "read what I'm
+  looking at NOW" path the anchor = latest frame → consensus over the recent window (exactly what the eval
+  does). "Recall an arbitrary past sign by description" is a harder retrieval problem (the name isn't in the
+  question, so IDF can't find it) — secondary, not the core use case. So wire: live caller passes anchor=now;
+  `ask()` reading branch runs `consensus_read(kf, q, answerer, center=anchor)` BEFORE the assembler, returns
+  if confident, else falls through unchanged (additive, fail-safe).
 
 Everything else — knowledge-graph, mindmap, agentic overhaul, GTM philosophy, form factor — is
 downstream noise until that number is real. When the founder asks to build any of those, the answer
