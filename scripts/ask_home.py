@@ -82,6 +82,14 @@ try:
 except Exception:
     _consensus_recall = None
 try:
+    import premise_gate as _premise_gate
+except Exception:
+    _premise_gate = None
+try:
+    import inject_expand as _inject_expand  # the INJECTION/EXPAND layer (world-knowledge understanding)
+except Exception:
+    _inject_expand = None
+try:
     from artifact_provenance import provenance_matches as _provenance_matches
 except Exception:
     _provenance_matches = None
@@ -235,6 +243,31 @@ def load_transcript(memory_path):
             return {"usable_speech": bool(text.strip()), "text": text,
                     "verdict": "on-device ASR (%s)" % (a.get("model") or "whisper"),
                     "segments": segs}
+        except Exception:
+            pass
+    # 3) Live native path: speech packets are already text-only rows in
+    #    kf_memory.json. They must be visible to the audio gate without requiring
+    #    a separate transcript projection file.
+    p = os.path.join(base, "kf_memory.json")
+    if os.path.exists(p):
+        try:
+            rows = json.load(open(p))
+            segments = []
+            for row in rows if isinstance(rows, list) else []:
+                caption = str(row.get("caption") or "")
+                if "nearby speech" not in caption.lower() and "transcript" not in caption.lower():
+                    continue
+                match = re.search(r'transcript:\s*"([^"]+)"', caption, flags=re.IGNORECASE)
+                text = (match.group(1) if match else caption).strip()
+                if not text:
+                    continue
+                t = float(row.get("t", 0.0) or 0.0)
+                segments.append({"start": t, "end": t, "text": text})
+            if segments:
+                text = "\n".join("[%.1fs] %s" % (s["start"], s["text"]) for s in segments)
+                return {"usable_speech": True, "text": text,
+                        "verdict": "live native speech transcript",
+                        "segments": segments}
         except Exception:
             pass
     return None
@@ -2408,6 +2441,19 @@ _G4_NARRATION = {
     "likely", "appeared", "and", "for", "was", "had", "its", "it's", "i've", "didn't",
 }
 
+_QUESTION_SUBJECT_STOP = STOP | {
+    "which", "whose", "whom", "why", "am", "be", "being", "may", "might", "must",
+    "shall", "should", "would", "will", "won", "not", "no", "yes", "anything",
+    "something", "everything", "thing", "things", "one", "ones", "line", "lines",
+    "word", "words", "letter", "letters", "text", "read", "reads", "reading",
+    "written", "writing", "say", "says", "said", "shown", "show", "shows",
+    "seen", "see", "look", "looks", "looking", "about", "near", "beside",
+    "next", "onto", "into", "than", "then", "color", "colour", "name", "names",
+    "named", "year", "years", "date", "dates", "number", "numbers", "price",
+    "cost", "amount", "value", "much", "many", "old",
+}
+_QUESTION_SUBJECT_TOKEN_RE = re.compile(r"[^\W_]+(?:['’]s)?", re.UNICODE)
+
 AMBIGUOUS_REFUSAL = (
     "I can read the detail, but I can't tell which one you mean — it could belong to "
     "more than one thing I saw, so I won't guess which it was.")
@@ -2497,6 +2543,52 @@ def _raw_text_corpus(mdir):
     except Exception:
         return ""
     return " ".join((tx or "") for (_t, _ch, tx) in obs).lower()
+
+
+def _question_focal_nouns(question):
+    """Conservative subject words from an open question.
+
+    The absence guard only refuses when it extracts at least one focal word and
+    none of them appears in the read corpus.
+    """
+    seen = set()
+    focal = []
+    for raw in _QUESTION_SUBJECT_TOKEN_RE.findall((question or "").lower()):
+        token = raw
+        if token.endswith("'s") or token.endswith("’s"):
+            token = token[:-2]
+        if len(token) < 3 or token in _QUESTION_SUBJECT_STOP:
+            continue
+        if token not in seen:
+            seen.add(token)
+            focal.append(token)
+    return focal
+
+
+def _subject_token_variants(token):
+    variants = {token}
+    if token.endswith("'s") or token.endswith("’s"):
+        variants.add(token[:-2])
+    if len(token) > 3 and token.endswith("s"):
+        variants.add(token[:-1])
+    if len(token) > 4 and token.endswith("es"):
+        variants.add(token[:-2])
+    if len(token) > 4 and token.endswith("ies"):
+        variants.add(token[:-3] + "y")
+    return {v for v in variants if len(v) >= 3}
+
+
+def _question_subject_grounded(question, corpus_text):
+    """Return False only when every focal question subject is absent."""
+    focal = _question_focal_nouns(question)
+    if not focal:
+        return True
+    corpus = (corpus_text or "").lower()
+    return any(
+        variant in corpus
+        for token in focal
+        for variant in _subject_token_variants(token)
+    )
 
 
 def _state_bound_to_question_entity(question, state, mdir):
@@ -2681,6 +2773,13 @@ def answer_assembler(question, memory_path, mems, model, host, timeout):
     dossier, cited = build_evidence_dossier(question, channels)
     if not dossier.strip():
         return {"answer": "I don't have that in my memory.", "scenes": []}
+    mdir = os.path.dirname(os.path.abspath(memory_path))
+    corpus = _raw_text_corpus(mdir)
+    focal = _question_focal_nouns(question)
+    if corpus.strip() and focal and not _question_subject_grounded(question, corpus):
+        subject = " ".join(focal)
+        return {"answer": "I didn't see anything about %s in what I read." % subject,
+                "scenes": [], "source": "assembler", "refused": True}
     draft = think_and_answer(question, dossier, model, host, timeout)
     # STRUCTURAL gate (deterministic, no second gemma call): assert only when the
     # answer is unambiguously bound to the asked entity AND any specific value it
@@ -2731,6 +2830,16 @@ def ask(question, memory_path, model="gemma3:12b-it-qat",
         except Exception:
             res = None
         if res and not res.get("refused") and res.get("answer"):
+            correction = None
+            if _premise_gate is not None:
+                try:
+                    correction = _premise_gate.premise_correction(question, res)
+                except Exception:
+                    correction = None
+            if correction:
+                return {"answer": correction, "scenes": [],
+                        "source": "premise_correction", "mode": "correct",
+                        "support": res.get("support")}
             return {"answer": res["answer"], "scenes": [],
                     "source": "ocr_consensus", "support": res.get("support")}
         # Honesty-first: in the anchored "read what I'm looking at" mode, if the OCR
@@ -2740,6 +2849,28 @@ def ask(question, memory_path, model="gemma3:12b-it-qat",
         # whole moat is reads-or-stays-silent; a VLM guess here would break it.
         return {"answer": "I didn't read that clearly enough to say.",
                 "scenes": [], "source": "ocr_consensus", "refused": True}
+
+    if (anchor is None and kind in ("reading", "screen")
+            and _consensus_recall is not None and kf):
+        try:
+            res = _consensus_recall.consensus_read(
+                kf, question, lambda p: _ollama(p, model, host, timeout),
+                center=None)
+        except Exception:
+            res = None
+        if res and not res.get("refused") and res.get("answer"):
+            correction = None
+            if _premise_gate is not None:
+                try:
+                    correction = _premise_gate.premise_correction(question, res)
+                except Exception:
+                    correction = None
+            if correction:
+                return {"answer": correction, "scenes": [],
+                        "source": "premise_correction", "mode": "correct",
+                        "support": res.get("support")}
+            return {"answer": res["answer"], "scenes": [],
+                    "source": "ocr_consensus", "support": res.get("support")}
 
     # 0a) audio/speech -> the voice transcript ONLY (refuse if no usable speech).
     #     Never let the visual layers answer "what was said" (the -12 failure).
@@ -2869,6 +3000,88 @@ def ask(question, memory_path, model="gemma3:12b-it-qat",
     else:
         answer = answer_general(aq, scenes, model, host, timeout)
     return {"answer": answer, "scenes": scenes}
+
+
+# ── INJECTION / EXPAND: the "Prompt" in Context -> Prompt -> Answer ──────────── #
+# Turns the fused multi-modal memory into UNDERSTANDING: when the user asks what a
+# thing they SAW *is* (a storefront, a plaque, a poster), attach fenced world
+# knowledge about the observed referents. Additive + two-zone: it never alters the
+# personal answer's claims, and world facts are physically fenced from personal ones.
+_UNDERSTANDING_RE = re.compile(
+    r"\b(what(?:'s| is| are)\b.*\b(this|that|these|those|place|building|brand|store|shop|company|"
+    r"sign|logo|landmark|monument)|who (?:is|are|was|were)\b|tell me about\b|what kind of\b|"
+    r"what does .+ mean\b|explain\b|what'?s the (?:story|history) (?:of|behind)\b)",
+    re.IGNORECASE,
+)
+
+
+def _is_understanding(q: str) -> bool:
+    return bool(_UNDERSTANDING_RE.search(q or ""))
+
+
+_UNSURE_RE = re.compile(
+    r"didn'?t see|didn'?t read|don'?t have|do not have|couldn'?t|could not|not in my memory|"
+    r"no reliable|nothing (?:readable|reliable)|i'?m not sure|can'?t tell|cannot tell",
+    re.IGNORECASE,
+)
+
+
+def _looks_unsure(answer: str) -> bool:
+    return not (answer or "").strip() or bool(_UNSURE_RE.search(answer))
+
+
+def _evidence_for_expand(kf, anchor=None, window=12.0, cap=14):
+    """Collect the observed evidence lines (captions + verbatim reads) to expand —
+    the window around the anchored moment when given, else a spread across memory."""
+    if not kf:
+        return []
+    recs = kf
+    if anchor is not None:
+        near = [r for r in kf if abs(float(r.get("t", 0)) - float(anchor)) <= window]
+        recs = near or kf
+    lines, seen = [], set()
+    for r in recs:
+        for piece in ([r.get("caption")] + list(r.get("ocr") or [])):
+            s = str(piece or "").strip()
+            key = s.lower()
+            if s and key not in seen:
+                lines.append(s)
+                seen.add(key)
+    return lines[:cap]
+
+
+def ask_with_understanding(question, memory_path, model="gemma3:12b-it-qat",
+                           host="http://127.0.0.1:11434", timeout=60, k=4, anchor=None,
+                           expand_enabled=True):
+    """ask() + world-knowledge EXPAND for 'what/who is this' questions. Backward
+    compatible: returns exactly ask()'s dict unless an understanding question yields
+    grounded world_context, in which case it adds a fenced second zone (+ res['world_context'])."""
+    res = ask(question, memory_path, model=model, host=host, timeout=timeout, k=k, anchor=anchor)
+    if not (expand_enabled and _inject_expand is not None and _is_understanding(question)):
+        return res
+    try:
+        kf = _resolve_memories(memory_path)["kf"]
+        evidence = _evidence_for_expand(kf, anchor)
+        if not evidence:
+            return res
+        oracle = lambda p: _ollama(p, model, host, timeout)
+        packet = _inject_expand.expand(evidence, question, oracle)
+        if packet.get("world_context"):
+            res = dict(res)
+            base = res.get("answer", "")
+            # If the base brain over-refused this understanding question (it routes
+            # "what kind of place" through the OCR path and misses the SCENE/OBJECTS
+            # channel), ground the personal zone from what the camera actually saw, so
+            # the two zones stay coherent — never contradict the world note.
+            if _looks_unsure(base):
+                grounded = _inject_expand.summarize_observed(evidence, oracle)
+                if grounded:
+                    base = grounded
+            res["answer"] = _inject_expand.compose(base, packet)
+            res["world_context"] = packet["world_context"]
+    except Exception:
+        return res
+    return res
 
 
 def main() -> int:

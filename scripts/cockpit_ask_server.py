@@ -351,7 +351,10 @@ def do_ask(question):
 
     def _run():
         try:
-            result["res"] = ask_home.ask(
+            # ask_with_understanding = ask() + world-knowledge EXPAND for "what/who is
+            # this" questions (additive two-zone); falls back to plain ask() otherwise.
+            _ask = getattr(ask_home, "ask_with_understanding", ask_home.ask)
+            result["res"] = _ask(
                 question.strip(), mem_path, model=MODEL, host=OLLAMA,
                 timeout=ASK_TIMEOUT)
         except Exception as e:

@@ -378,7 +378,10 @@ def _ask(payload: dict[str, Any]) -> dict[str, Any]:
     anchor = _anchor_from_payload(payload, kf_for_anchor)
 
     t0 = time.time()
-    res = ask_home.ask(question, str(mem_path), MODEL, anchor=anchor)
+    # Understanding-aware entry: ask() + world-knowledge EXPAND for "what/who is this"
+    # (additive two-zone); falls back to plain ask() on any older ask_home.
+    _ask = getattr(ask_home, "ask_with_understanding", ask_home.ask)
+    res = _ask(question, str(mem_path), MODEL, anchor=anchor)
     answer = res.get("answer", "")
     out = _answer_payload(res, answer, anchor, time.time() - t0)
 
