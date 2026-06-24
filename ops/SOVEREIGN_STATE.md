@@ -331,3 +331,25 @@ A pitch-ready [Context → Prompt → Answer] ambient-memory prototype. Target =
 - roadblock being cleared: the brain confidently turned the WORLD into the SELF (a sign's name into "my name"). That
   single class of error was the whole hallucination count on the day clip and the most pitch-damaging kind of lie.
   It is now structurally impossible without corroboration, verified end-to-end.
+
+---
+[STATE_MANIFEST]
+- cycle: 12 (2026-06-24) — WS1 guard + WS2 binder v0 + cockpit v3 + handoff; local LLM grinding
+- LEASH: goal=deliverable #1 (truthful glance cockpit, founder-accepted "correct direction") + the moat
+  (WS1) + the architecture's primary gap (WS2 binder). verified=WS1 four ways; binder 6/6 unit + real day
+  run (51 confident / 139 abstained); cockpit JS-parse + curl 200 + live data. founder-#1=YES (cockpit +
+  run-local-LLMs-24/7 + handoff, all explicit this cycle).
+- micro-milestone DONE: WS1 self/world binding guard (committed 29d3030); WS2 capture-time binder v0
+  (scripts/inject_bind.py, committed 40eebb9); cockpit v3 glance board (HELPERS→INJECT→LLM bars, per-helper
+  health, crew/tasks/flight-recorder, machine-load removed); HANDOFF_NEXT_CHAT.md written.
+- RUNNING: evaluation/run_binding_audit.py detached on local gemma3:12b — MEASURED binding precision
+  (checkpoint ops/cockpit/binding_audit.json; log /tmp/binding_audit.log). Founder is skeptical of
+  ESTIMATED cockpit %s — this replaces one with a measurement.
+- arch version: query-side honesty hardened (WS1); INJECT now has a deterministic temporal/identity binder
+  (unwired); spatial binding still blocked on a box-bearing capture.
+- next 3 autonomous actions (for the resuming chat):
+  1. Read binding_audit.json when done → put MEASURED binding precision on the cockpit; spot-check verdicts.
+  2. Wire inject_bind into ask_home (answer "where did I see this before" from bound entities) + re-measure.
+  3. Prep the n>=50 human-gold pipeline (THE gate) so it's one founder session away; keep local LLMs grinding.
+- roadblock being cleared: the cockpit was rambling, not glanceable, and the binder (Stage 3) did not exist.
+  Both addressed; the remaining honesty gap is replacing ESTIMATED progress with MEASURED numbers.
