@@ -86,6 +86,10 @@ try:
 except Exception:
     _premise_gate = None
 try:
+    import self_world_guard as _self_world_guard  # WS1: refuse ungrounded self/scene bindings
+except Exception:
+    _self_world_guard = None
+try:
     import inject_expand as _inject_expand  # the INJECTION/EXPAND layer (world-knowledge understanding)
 except Exception:
     _inject_expand = None
@@ -2804,8 +2808,47 @@ def compose(question, scenes, model, host, timeout=60):
 # --------------------------------------------------------------------------- #
 # Top-level routing.
 # --------------------------------------------------------------------------- #
+def _memory_dir(memory_path, mems):
+    """The directory that holds kf_memory.json / asr.json, for self_entity corroboration.
+    memory_path may be that dir OR the kf_memory.json file inside it."""
+    try:
+        kfp = mems.get("kf_path") if isinstance(mems, dict) else None
+        if kfp:
+            return os.path.dirname(os.path.abspath(kfp))
+        if memory_path and os.path.isdir(memory_path):
+            return os.path.abspath(memory_path)
+        if memory_path:
+            return os.path.dirname(os.path.abspath(memory_path))
+    except Exception:
+        pass
+    return None
+
+
 def ask(question, memory_path, model="gemma3:12b-it-qat",
         host="http://127.0.0.1:11434", timeout=60, k=4, anchor=None):
+    """Public entry: run the brain, then apply the self/world binding guard to WHATEVER
+    path produced the answer. The guard is the honesty moat — observed external text must
+    never bind to the wearer-self or a named co-present person without corroboration. It
+    can only turn an ungrounded binding into an honest refusal; it never edits a grounded
+    answer (verified: 3 day hallucinations -> refusals, 0 ceiling/walk regressions)."""
+    res = _ask_impl(question, memory_path, model=model, host=host,
+                    timeout=timeout, k=k, anchor=anchor)
+    if _self_world_guard is not None and isinstance(res, dict) and res.get("answer"):
+        try:
+            mems = _resolve_memories(memory_path)
+            refusal = _self_world_guard.guard(
+                question, res["answer"], _memory_dir(memory_path, mems))
+        except Exception:
+            refusal = None
+        if refusal:
+            return {"answer": refusal, "scenes": [], "source": "self_world_guard",
+                    "guarded_answer": res.get("answer"),
+                    "guarded_source": res.get("source")}
+    return res
+
+
+def _ask_impl(question, memory_path, model="gemma3:12b-it-qat",
+              host="http://127.0.0.1:11434", timeout=60, k=4, anchor=None):
     mems = _resolve_memories(memory_path)
     kf, world, kf_path = mems["kf"], mems["world"], mems["kf_path"]
 
@@ -3021,7 +3064,8 @@ def _is_understanding(q: str) -> bool:
 
 _UNSURE_RE = re.compile(
     r"didn'?t see|didn'?t read|don'?t have|do not have|couldn'?t|could not|not in my memory|"
-    r"no reliable|nothing (?:readable|reliable)|i'?m not sure|can'?t tell|cannot tell",
+    r"no reliable|nothing (?:readable|reliable)|i'?m not sure|can'?t tell|cannot tell|"
+    r"trouble reaching my memory|reach(?:ing)? my memory just now",
     re.IGNORECASE,
 )
 
