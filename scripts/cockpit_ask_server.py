@@ -20,7 +20,9 @@ ask_home is imported and called over the active memory path — never edited her
 from __future__ import annotations
 
 import json
+import os
 import re
+import subprocess
 import sys
 import tempfile
 import threading
@@ -54,9 +56,23 @@ MODEL = "gemma3:12b-it-qat"
 OLLAMA = "http://127.0.0.1:11434"
 ASK_TIMEOUT = 60
 PAGE = ROOT / "scripts" / "cockpit_layman.html"
+ENGINE_PAGE = ROOT / "ops" / "cockpit" / "cockpit_engine.html"
+OPS_PAGE = ROOT / "ops" / "cockpit" / "cockpit_ops.html"
+ENGINE_JSON = ROOT / "ops" / "cockpit" / "engine.json"
+AGENT_PLAN_JSON = ROOT / "ops" / "cockpit" / "agent_plan.json"
+ACTIVITY_LOG = ROOT / "ops" / "cockpit" / "activity.jsonl"   # the flight recorder
 FEEDBACK = ROOT / "ops" / "cockpit" / "feedback.jsonl"
 ABLATION = ROOT / "evaluation" / "ras" / "posthoc_ablation_n16.json"
 DEMO_ASK_CACHE = ROOT / "ops" / "cockpit" / "demo_cache.json"
+LIVE44_DAY_STATUS = ROOT / "ops" / "cockpit" / "eval_live44_day.json"
+LIVE44_WALK_STATUS = ROOT / "ops" / "cockpit" / "eval_live44_walk.json"
+LIVE44_SUMMARY = ROOT / "evaluation" / "ras" / "live44_summary.json"
+
+try:
+    import cockpit_engine  # noqa: E402
+except Exception as e:  # pragma: no cover
+    cockpit_engine = None
+    print(f"[warn] could not import cockpit_engine: {e!r}")
 
 # The active memory path is resolved per request. Parsed counts are cached by
 # file signature so status polling stays cheap while live capture is idle.
@@ -65,6 +81,567 @@ _LIVE_CACHE = {}
 _DEMO_CACHE = {}
 _DEMO_ASK_CACHE_SNAPSHOT = (None, {})
 _ASK_LOCK = threading.Lock()
+
+
+def _git(*args):
+    try:
+        return subprocess.check_output(
+            ("git",) + args, cwd=ROOT, text=True, stderr=subprocess.DEVNULL
+        ).strip()
+    except Exception:
+        return ""
+
+
+def _live_git_state():
+    return {
+        "branch": _git("rev-parse", "--abbrev-ref", "HEAD") or "unknown",
+        "head": _git("log", "-1", "--pretty=%h %s") or "unknown",
+        "ahead_of_main": _git("rev-list", "--count", "main..HEAD") or "?",
+        "dirty_files": len(
+            [x for x in _git("status", "--porcelain=v1").splitlines() if x]
+        ),
+    }
+
+
+def _engine_snapshot():
+    try:
+        with ENGINE_JSON.open(encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        data = {"error": "engine.json not found"}
+    if isinstance(data, dict):
+        if not isinstance(data.get("pipeline"), list):
+            data["pipeline"] = _engine_pipeline_defaults()
+        if not isinstance(data.get("deliverables"), list):
+            data["deliverables"] = _engine_deliverable_defaults()
+        now = int(time.time())
+        data["server_ts"] = now
+        data["git"] = _live_git_state()
+        data["runtime"] = {
+            "memory": active_memory(),
+            "ollama_up": ollama_up(),
+            "brain_model": MODEL,
+            "ask_timeout_s": ASK_TIMEOUT,
+        }
+        data["measurement_runtime"] = _live44_snapshot(now)
+    return data
+
+
+def _read_json_file(path, default):
+    try:
+        with Path(path).open(encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return default
+
+
+def _command_output(*args, timeout=4):
+    try:
+        return subprocess.check_output(
+            args,
+            cwd=ROOT,
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=timeout,
+        ).strip()
+    except Exception:
+        return ""
+
+
+def _safe_int(value, default=0):
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
+def _safe_float(value, default=0.0):
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+
+def _engine_pipeline_defaults():
+    if cockpit_engine is None:
+        return []
+    try:
+        return cockpit_engine.pipeline()
+    except Exception:
+        return []
+
+
+def _engine_deliverable_defaults():
+    if cockpit_engine is None:
+        return []
+    try:
+        return cockpit_engine.deliverables()
+    except Exception:
+        return []
+
+
+def _parse_ps_rows(text):
+    rows = []
+    for line in (text or "").splitlines():
+        m = re.match(r"^\s*(\d+)\s+([0-9.]+)\s+(\S+)\s+(.*)$", line)
+        if not m:
+            continue
+        rows.append(
+            {
+                "pid": int(m.group(1)),
+                "cpu_pct": _safe_float(m.group(2)),
+                "elapsed": m.group(3),
+                "command": m.group(4).strip(),
+            }
+        )
+    return rows
+
+
+def _job_process_snapshot(pattern):
+    pids = []
+    raw = _command_output("pgrep", "-f", str(pattern or ""), timeout=3)
+    for line in raw.splitlines():
+        pid = _safe_int(line.strip(), default=None)
+        if pid:
+            pids.append(pid)
+    if not pids:
+        return {
+            "state": "DEAD",
+            "alive": False,
+            "pid": None,
+            "pid_count": 0,
+            "elapsed": "—",
+            "cpu_pct": None,
+            "command": "",
+            "pids": [],
+        }
+
+    rows = _parse_ps_rows(
+        _command_output(
+            "ps",
+            "-p",
+            ",".join(str(pid) for pid in pids),
+            "-o",
+            "pid=",
+            "-o",
+            "%cpu=",
+            "-o",
+            "etime=",
+            "-o",
+            "command=",
+            timeout=4,
+        )
+    )
+    if not rows:
+        return {
+            "state": "ALIVE",
+            "alive": True,
+            "pid": pids[0],
+            "pid_count": len(pids),
+            "elapsed": "—",
+            "cpu_pct": None,
+            "command": "",
+            "pids": pids,
+        }
+
+    rows.sort(key=lambda row: (row["cpu_pct"], row["pid"]), reverse=True)
+    primary = rows[0]
+    return {
+        "state": "ALIVE",
+        "alive": True,
+        "pid": primary["pid"],
+        "pid_count": len(rows),
+        "elapsed": primary["elapsed"] or "—",
+        "cpu_pct": primary["cpu_pct"],
+        "command": primary["command"],
+        "pids": [row["pid"] for row in rows],
+    }
+
+
+def _progress_label(path, raw):
+    label = ""
+    if isinstance(raw, dict):
+        label = str(raw.get("label") or raw.get("name") or "").strip()
+    if label:
+        return label
+    stem = Path(path).stem
+    stem = re.sub(r"^eval_live44_", "", stem)
+    return stem.replace("_", " ")
+
+
+def _progress_snapshot(path):
+    raw = _read_json_file(path, {})
+    label = _progress_label(path, raw)
+    if not isinstance(raw, dict) or not raw:
+        return {
+            "path": str(path),
+            "label": label,
+            "state": "unknown",
+            "done": None,
+            "total": None,
+            "correct": None,
+            "wrong": None,
+            "miss": None,
+            "summary": f"{label} —",
+        }
+
+    state = str(raw.get("state") or "unknown")
+    done = _safe_int(raw.get("done"), 0)
+    total = _safe_int(raw.get("total"), 0)
+    correct = _safe_int(raw.get("correct"), 0)
+    wrong = _safe_int(raw.get("wrong"), 0)
+    miss = _safe_int(raw.get("miss"), 0)
+
+    done_word = "done" if state in ("done", "complete", "completed") else state
+    total_text = str(total) if total else "?"
+    summary = (
+        f"{label} {done}/{total_text} {done_word} "
+        f"({correct}✔ {wrong}✘ {miss}–)"
+    ).strip()
+    current_q = raw.get("current_q")
+    if current_q not in (None, "") and total and done < total:
+        summary += f"  q {current_q}"
+
+    return {
+        "path": str(path),
+        "label": label,
+        "state": state,
+        "done": done,
+        "total": total,
+        "correct": correct,
+        "wrong": wrong,
+        "miss": miss,
+        "current_q": current_q,
+        "summary": summary,
+    }
+
+
+def _jobs_snapshot(plan_doc):
+    jobs = []
+    raw_jobs = plan_doc.get("jobs") if isinstance(plan_doc, dict) else []
+    for job in raw_jobs if isinstance(raw_jobs, list) else []:
+        if not isinstance(job, dict):
+            continue
+        pattern = str(job.get("pattern") or "").strip()
+        progress_paths = job.get("progress") if isinstance(job.get("progress"), list) else []
+        progress = [_progress_snapshot(ROOT / str(path)) for path in progress_paths]
+        proc = _job_process_snapshot(pattern) if pattern else {
+            "state": "DEAD",
+            "alive": False,
+            "pid": None,
+            "pid_count": 0,
+            "elapsed": "—",
+            "cpu_pct": None,
+            "command": "",
+            "pids": [],
+        }
+        jobs.append(
+            {
+                "label": str(job.get("label") or pattern or "job"),
+                "pattern": pattern,
+                "does": str(job.get("does") or "—"),
+                "state": proc["state"],
+                "alive": proc["alive"],
+                "pid": proc["pid"],
+                "pid_count": proc["pid_count"],
+                "elapsed": proc["elapsed"],
+                "cpu_pct": proc["cpu_pct"],
+                "command": proc["command"],
+                "pids": proc["pids"],
+                "progress_items": progress,
+                "progress_compact": "  ".join(
+                    item["summary"] for item in progress if item.get("summary")
+                ) or "—",
+            }
+        )
+    return jobs
+
+
+def _parse_load_averages(text):
+    m = re.search(
+        r"load averages?:\s*([0-9.]+)[,\s]+([0-9.]+)[,\s]+([0-9.]+)",
+        text or "",
+        flags=re.I,
+    )
+    if m:
+        return [float(m.group(1)), float(m.group(2)), float(m.group(3))]
+    try:
+        return [round(x, 2) for x in os.getloadavg()]
+    except Exception:
+        return []
+
+
+def _ollama_runtime():
+    raw = _command_output("ollama", "ps", timeout=5)
+    if not raw:
+        return {"state": "idle", "model": None, "processor": None, "raw": ""}
+    lines = [line.strip() for line in raw.splitlines() if line.strip()]
+    if not lines:
+        return {"state": "idle", "model": None, "processor": None, "raw": raw}
+    lower = " ".join(lines).lower()
+    if "no models loaded" in lower or len(lines) == 1:
+        return {"state": "idle", "model": None, "processor": None, "raw": raw}
+    first = lines[1] if lines[0].lower().startswith("name") else lines[0]
+    cols = re.split(r"\s{2,}", first)
+    model = cols[0] if cols else None
+    processor = cols[3] if len(cols) >= 4 else None
+    return {
+        "state": "loaded",
+        "model": model,
+        "processor": processor,
+        "raw": first,
+    }
+
+
+def _top_cpu_process():
+    rows = _parse_ps_rows(
+        _command_output(
+            "ps",
+            "-Ao",
+            "pid=",
+            "-o",
+            "%cpu=",
+            "-o",
+            "etime=",
+            "-o",
+            "command=",
+            timeout=5,
+        )
+    )
+    if not rows:
+        return {"pid": None, "cpu_pct": None, "elapsed": "—", "command": "unknown"}
+    rows.sort(key=lambda row: row["cpu_pct"], reverse=True)
+    return rows[0]
+
+
+def _machine_snapshot():
+    uptime_raw = _command_output("uptime", timeout=3)
+    return {
+        "uptime_raw": uptime_raw,
+        "load_avg": _parse_load_averages(uptime_raw),
+        "ollama": _ollama_runtime(),
+        "top_cpu": _top_cpu_process(),
+    }
+
+
+def _normalize_plan_steps(plan_doc):
+    items = plan_doc.get("plan") if isinstance(plan_doc, dict) else []
+    out = []
+    for item in items if isinstance(items, list) else []:
+        if isinstance(item, str):
+            out.append({"step": item, "state": "unknown", "note": ""})
+            continue
+        if not isinstance(item, dict):
+            continue
+        out.append(
+            {
+                "step": str(item.get("step") or item.get("title") or "—"),
+                "state": str(item.get("state") or "unknown"),
+                "note": str(item.get("note") or ""),
+            }
+        )
+    return out
+
+
+def _blocked_on_founder(plan_doc):
+    raw = plan_doc.get("blocked_on_founder") if isinstance(plan_doc, dict) else []
+    if isinstance(raw, str):
+        return [raw]
+    return [str(item) for item in raw] if isinstance(raw, list) else []
+
+
+def _overall_status(plan_doc, jobs, plan_steps):
+    raw = str(plan_doc.get("status") or "").strip().lower() if isinstance(plan_doc, dict) else ""
+    if raw in ("working", "blocked", "idle"):
+        return raw
+    if any(step.get("state") == "blocked" for step in plan_steps) or _blocked_on_founder(plan_doc):
+        return "blocked"
+    if any(job.get("alive") for job in jobs) or any(step.get("state") == "now" for step in plan_steps):
+        return "working"
+    return "idle"
+
+
+def _activity_snapshot(limit=60):
+    """The flight recorder: newest-first timestamped events the Chief logs as it works.
+    Each line of activity.jsonl is {"ts": <epoch>, "kind": <str>, "text": <str>}. Robust to
+    malformed lines (a half-written append never breaks the page)."""
+    events = []
+    try:
+        if ACTIVITY_LOG.exists():
+            with ACTIVITY_LOG.open("r", encoding="utf-8") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rec = json.loads(line)
+                    except Exception:
+                        continue
+                    if not isinstance(rec, dict):
+                        continue
+                    events.append({
+                        "ts": _safe_int(rec.get("ts"), 0),
+                        "kind": str(rec.get("kind") or "info"),
+                        "text": str(rec.get("text") or ""),
+                    })
+    except Exception:
+        pass
+    events.sort(key=lambda e: e["ts"], reverse=True)
+    return events[:limit]
+
+
+def _ops_snapshot():
+    now = int(time.time())
+    plan_doc = _read_json_file(AGENT_PLAN_JSON, {})
+    if not isinstance(plan_doc, dict):
+        plan_doc = {}
+    engine_doc = _engine_snapshot()
+
+    plan_steps = _normalize_plan_steps(plan_doc)
+    jobs = _jobs_snapshot(plan_doc)
+    blocked = _blocked_on_founder(plan_doc)
+    headline_block = engine_doc.get("headline") if isinstance(engine_doc.get("headline"), dict) else {}
+    official = engine_doc.get("official_measurement") if isinstance(engine_doc.get("official_measurement"), dict) else {}
+    progress = {
+        "honest_number": {
+            "status": str(official.get("status") or "UNMEASURED"),
+            "headline": str(
+                official.get("headline")
+                or headline_block.get("verdict")
+                or "—"
+            ),
+            "why": str(official.get("why") or "—"),
+            "nearest_proxy": str(official.get("nearest_proxy") or "—"),
+            "proxy_state": str(
+                (engine_doc.get("measurement_runtime") or {}).get("state") or "unknown"
+            ),
+        },
+        "pipeline": engine_doc.get("pipeline") if isinstance(engine_doc.get("pipeline"), list) else _engine_pipeline_defaults(),
+        "deliverables": engine_doc.get("deliverables") if isinstance(engine_doc.get("deliverables"), list) else _engine_deliverable_defaults(),
+        "measurement_runtime": engine_doc.get("measurement_runtime") if isinstance(engine_doc.get("measurement_runtime"), dict) else {},
+        "engine_url": "/engine",
+    }
+
+    return {
+        "server_ts": now,
+        "status": _overall_status(plan_doc, jobs, plan_steps),
+        "headline": str(
+            plan_doc.get("headline")
+            or headline_block.get("verdict")
+            or headline_block.get("title")
+            or "mission control unavailable"
+        ),
+        "sources": {
+            "agent_plan": "ok" if AGENT_PLAN_JSON.exists() else "missing",
+            "engine": "ok" if ENGINE_JSON.exists() else "missing",
+        },
+        "jobs": jobs,
+        "activity": _activity_snapshot(),
+        # machine load deliberately NOT surfaced — the founder reads CPU/RAM from Activity
+        # Monitor; the cockpit shows PRODUCT + AGENT telemetry, not the box.
+        "chief": {
+            "doing_now": str(plan_doc.get("doing_now") or "—"),
+            "current_task": str(plan_doc.get("current_task") or "—"),
+            "next_action": str(plan_doc.get("next_action") or "—"),
+            "next_wake": str(plan_doc.get("next_wake") or "—"),
+        },
+        "plan": plan_steps,
+        "blocked_on_founder": blocked,
+        "progress": progress,
+        "agent_plan": plan_doc,
+        "engine": engine_doc,
+    }
+
+
+def _ops_page_html():
+    try:
+        template = OPS_PAGE.read_text(encoding="utf-8")
+    except Exception:
+        template = (
+            "<!doctype html><meta charset='utf-8'>"
+            "<title>TRACE Ops</title><body>ops page unavailable</body>"
+        )
+    bootstrap = json.dumps(_ops_snapshot(), ensure_ascii=False).replace("</", "<\\/")
+    return template.replace("__OPS_BOOTSTRAP__", bootstrap)
+
+
+def _clip_eval_snapshot(label, path, total_hint, now):
+    raw = _read_json_file(path, {})
+    if not isinstance(raw, dict) or not raw:
+        return {
+            "label": label,
+            "state": "not_started",
+            "done": 0,
+            "total": total_hint,
+            "correct": 0,
+            "wrong": 0,
+            "miss": 0,
+            "needs_review": 0,
+            "hard_ras": None,
+            "halluc_pct": None,
+            "updated_epoch": None,
+            "age_s": None,
+            "current_question": None,
+            "eta_human": None,
+            "stalled": False,
+            "note": "no score file yet",
+        }
+    updated = raw.get("updated_epoch")
+    age_s = max(0, now - int(updated)) if updated else None
+    avg_s = float(raw.get("avg_s_per_q") or 0.0)
+    stale_after = max(180, int(avg_s * 4)) if avg_s else 240
+    stalled = bool(raw.get("state") == "running" and age_s is not None and age_s > stale_after)
+    state = raw.get("state") or "unknown"
+    if stalled:
+        state = "stalled"
+    return {
+        "label": label,
+        "state": state,
+        "done": int(raw.get("done", 0) or 0),
+        "total": int(raw.get("total", 0) or total_hint),
+        "correct": int(raw.get("correct", 0) or 0),
+        "wrong": int(raw.get("wrong", 0) or 0),
+        "miss": int(raw.get("miss", 0) or 0),
+        "needs_review": int(raw.get("needs_review", 0) or 0),
+        "hard_ras": raw.get("hard_ras"),
+        "halluc_pct": raw.get("halluc_pct"),
+        "updated_epoch": updated,
+        "age_s": age_s,
+        "current_q": raw.get("current_q"),
+        "current_question": raw.get("current_question"),
+        "eta_human": raw.get("eta_human"),
+        "stalled": stalled,
+        "note": raw.get("message") or "",
+    }
+
+
+def _live44_snapshot(now):
+    day = _clip_eval_snapshot("day", LIVE44_DAY_STATUS, 19, now)
+    walk = _clip_eval_snapshot("walk", LIVE44_WALK_STATUS, 25, now)
+    summary_doc = _read_json_file(LIVE44_SUMMARY, {})
+    summary = summary_doc.get("summary") if isinstance(summary_doc, dict) else None
+
+    states = {day["state"], walk["state"]}
+    if "running" in states:
+        overall = "running"
+    elif "stalled" in states:
+        overall = "stalled"
+    elif "paused" in states:
+        overall = "paused"
+    elif states == {"complete"}:
+        overall = "complete"
+    elif day["done"] or walk["done"]:
+        overall = "partial"
+    else:
+        overall = "not_started"
+
+    return {
+        "battery_name": "live44",
+        "question_total": 44,
+        "clips": [day, walk],
+        "summary": summary,
+        "state": overall,
+    }
 
 
 def _secs(name):
@@ -421,12 +998,18 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             self._json({"error": "page not found"}, 404)
             return
+        self._html_bytes(body)
+
+    def _html_bytes(self, body):
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self._cors()
         self.end_headers()
         self.wfile.write(body)
+
+    def _html_text(self, text):
+        self._html_bytes(text.encode("utf-8"))
 
     def _read_body(self):
         try:
@@ -445,6 +1028,16 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path in ("/", "/index.html"):
             self._html(PAGE)
+        elif path in ("/ops", "/ops/", "/cockpit_ops.html",
+                      "/ops/cockpit/cockpit_ops.html"):
+            self._html_text(_ops_page_html())
+        elif path == "/ops.json":
+            self._json(_ops_snapshot())
+        elif path in ("/engine", "/engine/", "/cockpit_engine.html",
+                      "/ops/cockpit/cockpit_engine.html"):
+            self._html(ENGINE_PAGE)
+        elif path in ("/engine.json", "/ops/cockpit/engine.json"):
+            self._json(_engine_snapshot())
         elif path == "/api/status":
             memory = active_memory()
             engine_on = bool(ollama_up() and memory.get("path"))
@@ -511,6 +1104,7 @@ def main():
     print("=" * 60)
     print(" TRACE layman cockpit is live")
     print("  local:   http://127.0.0.1:%d/" % port)
+    print("  founder ops: http://127.0.0.1:%d/ops" % port)
     print("  LAN/phone: http://%s:%d/" % (ip, port))
     print("  memory:  resolves per request (live: %s)" % LIVE_MEM)
     print("  ollama:  %s" % ("ON" if ollama_up() else "OFF"))
