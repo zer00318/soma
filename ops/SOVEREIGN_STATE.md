@@ -1,0 +1,79 @@
+# SOVEREIGN STATE — autonomous orchestrator resume anchor
+*Read this FIRST on any resume. Most recent [STATE_MANIFEST] at the BOTTOM. Branch chief/p0-honesty-sprint.*
+
+## Mission
+A pitch-ready [Context → Prompt → Answer] ambient-memory prototype. Target = a flawless, zero-latency
+3-minute investor demo of the paradigm (see Red-Team verdict: bulletproof DEMO, not a perfect general product).
+
+## Standing facts (don't re-derive)
+- Brain: `scripts/ask_home.py` (gemma3:12b via ollama). Honesty fixes live & verified: S1 consensus-default
+  + token-aligned merge, S2 `premise_gate.py` stand-your-ground, B1 assembler absence-guard. ~40% on open Qs.
+- Brain server (phone): `TRACE_BIND=0.0.0.0 TRACE_BRAIN_PORT=8765 .venv/bin/python scripts/trace_brain_server.py`.
+- Cockpit demo: `.venv/bin/python scripts/cockpit_ask_server.py` → :8799 (+ LAN). Layman page + curated chips.
+- Native app: `trace-native-fastvlm`, on the iPhone 17 (D3A506B2…) signed under Personal Team
+  zer00318@proton.me (LXAAJP44KG). FRAGILE: hub IP hardcoded, LAN IP roulette (192.168.50.250 ↔ 172.20.10.6).
+- Founder-walk memory (demo corpus): `/tmp/ocr_memory.json` (979 lines, 185 frames). Cockpit uses it when live idle.
+- Codex CLI: `codex exec --sandbox workspace-write -c approval_policy=never - < brief.md` (no ollama in its sandbox).
+- Local LLMs: ollama gemma3:12b-it-qat, gemma3:27b-it-qat. Verify everything yourself (agent self-tests ≠ proof).
+
+## Demo script (the 3-min paradigm, scripted + to be made zero-latency)
+1. READ: "What years next to Robert Sauer?" → 1898-1970 (it remembered what it saw)
+2. MEANING (cross-lingual): "What did Röntgen discover?" → X-rays, read off the German sign
+3. HONESTY: "What was the wifi password on the wall?" → "I don't have that" (won't make it up)
+4. STAND-YOUR-GROUND: "Was that plaque dated 1899?" → "No — I read 1881-1945" (won't be gaslit)
+5. (stretch) ENRICHMENT: a sign → what it IS (EXPAND, not built; pre-compute one for the demo)
+
+---
+[STATE_MANIFEST]
+- cycle: 1 (2026-06-24)
+- micro-milestone: Initialize sovereign engine; build the ZERO-LATENCY demo answer cache (instant scripted Q&A).
+- architecture version: v0.1 — Context(founder-walk OCR) → Prompt(ask_home assembler+consensus) → Answer(gemma3:12b), honesty gates S1/S2/B1. Demo surface = cockpit :8799.
+- next 3 autonomous actions:
+  1. Codex: add demo-cache instant-serve to cockpit_ask_server.py (reads ops/cockpit/demo_cache.json; exact/normalized hit → instant, else live).
+  2. Local brain: pre-compute the 5 scripted demo answers → ops/cockpit/demo_cache.json (one-time, then taps are instant).
+  3. Verify zero-latency (curl timing < 50ms on cached Qs) + screenshot; then harden the stand-your-ground answer if it didn't fire.
+- roadblock being cleared: 18s/answer gemma latency makes any live demo unwatchable → pre-compute scripted answers for guaranteed zero-latency (RULE 4 demo-god / ring-buffer substitution).
+
+---
+[STATE_MANIFEST]
+- cycle: 2–3 (2026-06-24) — DONE
+- micro-milestone DONE: ZERO-LATENCY bulletproof demo engine. demo_cache.json (6 grounded beats) served instant
+  (~1ms, was 18–48s) via cockpit cache layer; chips == cache keys so every tap is curated+instant. Added the
+  enrichment "magic" beat (read name → who they were, two-zone honest seam) + honest privacy footer. Wrote the
+  3-min narration `ops/PITCH_DEMO_SCRIPT.md`.
+- arch version: v0.2 — Context→Prompt→Answer with a demo-cache fast path (instant, curated, grounded) in front of
+  the live brain (real fallback). Demo surface = cockpit :8799.
+- VERDICT: the CONTROLLED 3-min demo is essentially pitch-ready (instant, correct, paradigm beats, honest). The
+  general product is still ~40% (roadmap). These are different deliverables — the demo is the ask; the product is next.
+- next 3 autonomous actions:
+  1. Codex: build a REAL `scripts/scrub_pii.py` (emails / phone+ID number runs / obvious PII → redacted, with
+     unit tests, NOT enabled on the public-sign demo corpus) so the privacy claim becomes literally true.
+  2. Harden the demo's resilience: a tiny supervisor so cockpit+brain auto-restart (survive the 5h/reset), and a
+     network-independent demo (cockpit on localhost needs no hotspot IP).
+  3. Re-measure the live brain honestly (n≥the walk) to quantify the real-product gap vs the demo; log to state.
+- roadblock being cleared: privacy footer claimed PII-scrub that wasn't built (honesty breach) → softened to true
+  claims now + building the real scrub so the claim is honest. And: non-deterministic gemma garbling demo answers
+  → fixed by the curated cache.
+
+---
+[STATE_MANIFEST]
+- cycle: 4 (2026-06-24) — DONE, committed `cad8104`
+- micro-milestone DONE: the privacy claim is now LITERALLY TRUE + provable. Red-Team verification of the prior
+  cycle found `scrub_pii.py` existed + unit-tested but was wired into NOTHING (correct code, never ran on stored
+  data). Wired it into BOTH storage seams: live phone-ingest (`trace_brain_server._capture`/`_records_to_kf`,
+  scrubbed before RAM + disk) and the demo-memory build (`cockpit_ask_server._build_demo_memory`, the artifact
+  the brain reasons over). Fixed a demo-breaking false positive (grouped-phone heuristic ate the truncated
+  plaque date `1845 - 192` → year-range guard). 0 false positives on the real 1564-line corpus (was 1).
+  Proof: `evaluation/test_scrub_wiring.py` (end-to-end on real artifacts) + `test_scrub_pii.py` (9/9). Claim text
+  upgraded "by design/being built" → "scrubbed before storage" in cockpit footer + PITCH_DEMO_SCRIPT.
+- arch version: v0.3 — Context→Prompt→Answer with (a) demo-cache fast path, (b) consensus reads-or-refuses brain,
+  (c) on-device PII redaction ENFORCED at every storage seam. Demo surface = cockpit :8799.
+- next 3 autonomous actions (recommended order; #3 needs the founder):
+  1. Demo resilience audit: confirm cockpit_supervise.sh/keepalive actually auto-restart cockpit+brain across a
+     reset, and that the demo runs network-independent on localhost (no hotspot-IP dependency). Verify, don't assume.
+  2. Honest live-brain re-measure (deliberate, ~20-min gemma job, NOT a blind kick-off): run the walk through the
+     REAL ask_home (consensus + premise gate) and log correct/refuse/wrong vs founder gold → quantify product gap.
+  3. [NEEDS FOUNDER] Bigger text-rich capture + human gold (n=15→~50). This is the pitch-readiness GATE for the
+     general product; I can prep the capture+gold pipeline but cannot fabricate human gold. Surface to founder.
+- roadblock being cleared: "PII scrubbing" was an unwired module → an honesty breach waiting to be asked about in
+  the pitch. Now enforced at source + verified, so the privacy moat (RULE 4) is real end-to-end, not aspirational.
