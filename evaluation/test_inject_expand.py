@@ -16,6 +16,8 @@ import inject_expand as ix
 def fake_oracle(prompt: str) -> str:
     """Deterministic stand-in. Suggests one grounded + one HALLUCINATED referent,
     glosses Röntgen confidently, and returns UNKNOWN for a generic word."""
+    if "STRICT fact-checker" in prompt:  # skeptical corroboration pass
+        return "YES" if "Röntgen" in prompt else "NO"
     if "OWN CAMERA" in prompt:  # the personal-zone grounding summary
         return "You saw a plaque reading Wilhelm Conrad Röntgen, 1845-1923."
     if "JSON array" in prompt:

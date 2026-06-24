@@ -110,3 +110,25 @@ A pitch-ready [Context → Prompt → Answer] ambient-memory prototype. Target =
      knowledge, two-zone, that pure memory cannot give.
 - roadblock being cleared: the pitch had memory but not UNDERSTANDING — nothing that makes an investor feel the
   paradigm. The EXPAND layer is that "magic." Building the real thing, not a slide.
+
+---
+[STATE_MANIFEST]
+- cycle: 6 (2026-06-24) — built the LEASH + actually VERIFIED EXPAND (caught + fixed a real hallucination)
+- LEASH: goal=both deliverables (demo magic + an honest guard); verified=adversarial audit n=4 on real gemma
+  (evaluation/expand_audit.py), NOT a single demo; founder-#1=YES (founder explicitly asked for self-check +
+  anti-tunnel mechanism this cycle).
+- what shipped: (1) `ops/ANTI_TUNNEL_LEASH.md` — the Chief's 7-question self-check catching BOTH over-narrow (OCR
+  trap) and over-broad (architecture-astronomy) + the recurring "declare done on one demo" flaw; structurally
+  enforced via a mandatory `LEASH:` line on every manifest. (2) Verified EXPAND for real: the audit caught gemma
+  CONFIDENTLY FABRICATING a made-up company ("Zlorptech Systems GmbH", conf 0.95) — the honesty moat's throat. Fix:
+  a refute-by-default skeptical corroboration pass (`_corroborated`) in `inject_expand.world_gloss`; self-reported
+  confidence is worthless, a fresh skeptical existence check is the gate. Re-audit 4/4: real entities survive,
+  fabrications go silent, unseen referents dropped. 7 unit + 4 audit cases green.
+- arch version: v0.5 — EXPAND now hallucination-gated (recognize-or-stay-silent), matching the OCR channel's
+  reads-or-refuses discipline. The whole engine is now self-calibrating-honest across channels.
+- leashed next (was "continue with all" → reordered by the leash): (1) surface the verified paradigm beat on the
+  cockpit demo card (deliverable #1); (2) premise-gate 3-mode standing-ground at build_evidence_dossier; DEFER
+  LINK (optimization, not the bottleneck — leash Q3/Q6).
+- roadblock being cleared: I was about to build a demo-card on an UNVERIFIED capability (the fake-number trap in
+  paradigm clothing). The leash forced verification first; verification found a moat-breaking hallucination. Caught
+  pre-pitch, not on stage.

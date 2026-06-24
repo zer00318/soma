@@ -143,10 +143,31 @@ def summarize_observed(evidence: list[str], llm: Callable[[str], str]) -> str:
     return out[0] if out else ""
 
 
+_VERIFY_PROMPT = (
+    'You are a STRICT fact-checker. A user saw text that reads: "{ref}". Is this the name of a '
+    "REAL, specific, widely-documented real-world entity (a particular person, place, organization, "
+    "product, work, or event) that you can identify with HIGH CONFIDENCE from general knowledge? Be "
+    "skeptical: if it is generic, unfamiliar, or could plausibly be invented, answer NO. A made-up "
+    "but real-sounding company name must be NO. First line EXACTLY: YES or NO."
+)
+
+
+def _corroborated(referent: str, llm: Callable[[str], str]) -> bool:
+    """Refute-by-default second pass. gemma confidently FABRICATES a plausible gloss for an
+    unknown-but-real-looking name (audit: 'ZLORPTECH SYSTEMS GMBH' at conf 0.95) — self-reported
+    confidence is worthless. A fresh skeptical existence check is the real gate: real entities
+    (McDonald's, Röntgen) survive; invented/generic ones get refuted."""
+    out = (llm(_VERIFY_PROMPT.format(ref=referent)) or "").strip()
+    first = out.splitlines()[0].strip().upper() if out else ""
+    return first.startswith("YES")
+
+
 def world_gloss(referent: str, llm: Callable[[str], str]) -> Optional[dict]:
     """One fenced world-knowledge fact about a referent, or None (confident-or-silent)."""
     parsed = _parse_gloss(llm(_GLOSS_PROMPT.format(ref=referent)))
     if parsed is None:
+        return None
+    if not _corroborated(referent, llm):  # skeptical pass kills confident fabrications
         return None
     parsed.update({"referent": referent, "tier": "world_context"})
     return parsed
