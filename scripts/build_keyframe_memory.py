@@ -20,6 +20,26 @@ CAPTION_PROMPT = (
     "— that is handled separately. ~80 words."
 )
 
+# Dense "extract everything" variant: the captures were under-extracting (generic scene
+# summaries), so question-relevant detail (a held glasses case, a game controller, a person's
+# clothing, a bag's zip state, keys on a table) never reached the brain. This pulls the moment
+# speculatively-over-complete (north star §2) — solve the PRINCIPLE (extract all aspects), not
+# the example. Still text-blind (OCR is a separate channel) so it can't fabricate labels.
+CAPTION_PROMPT_DENSE = (
+    "Extract EVERYTHING in this image for later recall — be exhaustive, concrete, factual. "
+    "Cover, WHENEVER PRESENT:\n"
+    "(1) PEOPLE — each person, what they wear (garment + color), what they hold or are doing;\n"
+    "(2) DEVICES / SCREENS — laptop, phone, tablet, game console, controller, TV, monitor: the "
+    "TYPE and broadly what is on the screen;\n"
+    "(3) VEHICLES — type and any make/model/body-shape cues (pickup, sedan, bus);\n"
+    "(4) HELD or WORN — anything in a hand, on a wrist (watch), on the face (glasses), a bag and "
+    "whether it looks open or closed;\n"
+    "(5) ON SURFACES — what sits on tables/desks/counters/beds (keys, cases, cups, papers, bedding);\n"
+    "(6) LAYOUT — left/right, fore/background, what is on or next to what.\n"
+    "State colors and materials. If something is ambiguous or you are unsure, say so plainly. "
+    "Do NOT transcribe or guess any text, labels, or brand names — that is a separate channel. ~140 words."
+)
+
 # Counting-aware variant: fix counting at the SEEING stage (where the pixels are),
 # not the text-merge stage. Used by the overnight re-caption (--counting).
 CAPTION_PROMPT_COUNT = (
@@ -97,8 +117,12 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0, help="benchmark: only N frames")
     ap.add_argument("--counting", action="store_true",
                     help="use the counting-aware caption prompt (overnight re-caption)")
+    ap.add_argument("--dense", action="store_true",
+                    help="use the dense 'extract everything' prompt (people/devices/held/surfaces)")
     args = ap.parse_args()
-    cap_prompt = CAPTION_PROMPT_COUNT if args.counting else CAPTION_PROMPT
+    cap_prompt = (CAPTION_PROMPT_DENSE if args.dense
+                  else CAPTION_PROMPT_COUNT if args.counting else CAPTION_PROMPT)
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
 
     # reuse describe_walk's cheap dedup so we caption DISTINCT scenes only
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

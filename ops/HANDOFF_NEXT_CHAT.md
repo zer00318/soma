@@ -78,3 +78,44 @@ an ESTIMATE with a MEASUREMENT — the founder is skeptical of estimated %s, rig
   `data/walks/{...}/memory/` (caption-rich = ceiling). Eval: `evaluation/run_live.py`,
   `evaluation/ras/live44_*_guarded.jsonl`.
 - Resume anchors: `ops/SOVEREIGN_STATE.md` (newest [STATE_MANIFEST] at bottom), this file.
+
+---
+## CYCLE 12 UPDATE — the reframe + the build that matters (read this)
+**The founder corrected a lazy framing and was right:** do NOT call any of the 44 questions
+"unanswerable." The founder answered ALL 44 by watching the video, so the info IS in the
+moment. Every failure = a CAPABILITY WE HAVE NOT BUILT, not a dead question. When a question
+breaks, build the helper (north star §2/§5.3). The only honest "refuse" is when the moment
+truly lacks it (e.g. "no clear speech" — and even that should be a confident positive answer,
+not a blank refuse).
+
+**Root cause of most failures:** the vision captures were GENERIC scene-summaries ("a
+workspace setup..."), so question-relevant detail (a held glasses case, a game controller,
+people's clothing, a bag's zip, keys on a table) never reached the brain. **Under-extraction
+at capture.**
+
+**Capability build-roadmap (the 24 ceiling-fails, by what unlocks them):**
+- ~11 — DENSE vision extraction (people+clothing, devices, held/worn, surfaces) ← BUILDING NOW
+- ~5  — wire the binder + qualifier binding ("the YELLOW poster")
+- ~3  — world-EXPAND on observed referents (molecule→porphyrin, vehicle→model, place)
+- ~2  — egocentric heading (left/right from camera pan)
+- ~2  — fine screen/UI reading (active chat, notification colour)
+- ~1  — object last-seen tracking (keys)
+- ~1  — ASR silence as a positive answer ("near-silent, no speech")
+
+**RUNNING NOW (local compute):** dense re-caption of the day clip on MLX Qwen2.5-VL:
+`scripts/build_keyframe_memory.py --dense` (added CAPTION_PROMPT_DENSE + --dense flag).
+- cmd: `PYTHONUNBUFFERED=1 nohup caffeinate -is .venv/bin/python scripts/build_keyframe_memory.py
+  --frames-dir data/walks/day_in_life_20260618/work/run_frames
+  --out data/walks/day_in_life_20260618_dense/memory/kf_memory.json --dense > /tmp/dense_caption.log 2>&1 & disown`
+- ~13s/frame, 120 keyframes (~26 min), checkpointed/resumable. Monitor /tmp/dense_caption.log +
+  the .ckpt.ndjson. Early captions already show structured People/Devices — far richer.
+
+**NEXT (in order):**
+1. When the dense day memory is built → re-run the 44 vs it (run_ceiling.py with MEMORY pointed
+   at the _dense dir, or a quick ask loop) → MEASURE how many vision questions it unlocks.
+   Spot-check a few; watch hallucination doesn't rise (the dense prompt is text-blind, OCR
+   stays separate, so it shouldn't).
+2. Dense-pass the walk clip too. Then wire inject_bind (qualifier binding) for the poster/sign Qs.
+3. Build egocentric heading + the small helpers (ASR-silence, screen-state) for the rest.
+4. The n>=50 human-gold number remains THE gate (needs the founder).
+- Founder goal: the app must be tester-grade — answers the answerable, refuses honestly, zero lies.
