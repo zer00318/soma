@@ -3030,6 +3030,19 @@ def _looks_unsure(answer: str) -> bool:
     return not (answer or "").strip() or bool(_UNSURE_RE.search(answer))
 
 
+def _evidence_from_scenes(scenes, cap=14):
+    """Evidence drawn from the frames the brain actually grounded its answer on — so
+    EXPAND's referents are RELEVANT to the question (not a blind sample of the walk)."""
+    lines, seen = [], set()
+    for s in scenes or []:
+        for piece in ([s.get("caption")] + list(s.get("ocr") or [])):
+            t = str(piece or "").strip()
+            if t and t.lower() not in seen:
+                lines.append(t)
+                seen.add(t.lower())
+    return lines[:cap]
+
+
 def _evidence_for_expand(kf, anchor=None, window=12.0, cap=14):
     """Collect the observed evidence lines (captions + verbatim reads) to expand —
     the window around the anchored moment when given, else a spread across memory."""
@@ -3061,7 +3074,11 @@ def ask_with_understanding(question, memory_path, model="gemma3:12b-it-qat",
         return res
     try:
         kf = _resolve_memories(memory_path)["kf"]
-        evidence = _evidence_for_expand(kf, anchor)
+        # Prefer the frames the brain grounded its answer on (relevant to the question);
+        # fall back to the anchored/spread window. Without this, anchor=None samples the
+        # whole walk and EXPAND picks unrelated referents (audit: "Who was Röntgen?"
+        # expanded "VIM" from an unrelated screen frame).
+        evidence = _evidence_from_scenes(res.get("scenes")) or _evidence_for_expand(kf, anchor)
         if not evidence:
             return res
         oracle = lambda p: _ollama(p, model, host, timeout)
