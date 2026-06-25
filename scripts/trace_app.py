@@ -33,9 +33,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from phone_perceive import perceive_frames  # noqa: E402
 
-from trace_memory.adapters.ollama import OllamaReasoner  # noqa: E402
-from trace_memory.demo import bound_memory_to_dict, build_bound_memory, make_recall  # noqa: E402
-from trace_memory.domain.query import Query  # noqa: E402
+import ask_home  # noqa: E402  the brain (consensus OCR + WS1 self/world guard + binder)
 
 PORT = int(os.environ.get("TRACE_PORT", "8799"))
 MODEL = os.environ.get("TRACE_MODEL", "gemma3:12b-it-qat")
@@ -87,32 +85,41 @@ def _capture(payload: dict[str, Any]) -> dict[str, Any]:
     return summary
 
 
+_UNSURE = re.compile(
+    r"didn'?t (?:see|read|capture)|don'?t have|do not have|couldn'?t|could not|"
+    r"not in (?:my )?memory|i'?m not sure|can'?t tell|cannot tell|no clear|"
+    r"didn'?t read enough|i don'?t know", re.I)
+
+
 def _ask(payload: dict[str, Any]) -> dict[str, Any]:
-    """Answer a question over a captured moment, grounded with citations."""
+    """Answer a question over a captured moment via the real brain (ask_home): consensus OCR
+    read-or-refuse, the WS1 self/world guard, and honesty gates. Citations come from the
+    frames the answer grounded on."""
     moment = str(payload.get("moment_id") or "")
     question = str(payload.get("question") or "").strip()
     mdir = _moment_dir(moment)
-    if not (mdir / "kf_memory.json").exists():
-        return {"answer": "Capture a moment first — then ask me about it.", "citations": []}
+    kf = mdir / "kf_memory.json"
+    if not kf.exists():
+        return {"answer": "Capture a moment first — then ask me about it.",
+                "citations": [], "honesty": "unsure"}
     if not question:
-        return {"answer": "Ask me something about what you captured.", "citations": []}
+        return {"answer": "Ask me something about what you captured.",
+                "citations": [], "honesty": "unsure"}
 
-    result, corpus = build_bound_memory(str(mdir))
-    recall = make_recall(OllamaReasoner(model=MODEL), result, corpus)
-    answer = recall.answer(Query(question), str(mdir))
+    res = ask_home.ask(question, str(kf), model=MODEL)
+    answer = (res.get("answer") or "").strip() if isinstance(res, dict) else str(res)
+    scenes = res.get("scenes") or [] if isinstance(res, dict) else []
 
-    seen: set[int] = set()
+    seen: set[float] = set()
     cites: list[dict[str, Any]] = []
-    for citation in answer.citations:
-        if citation.t_ms in seen:
+    for s in scenes:
+        t = s.get("t") if isinstance(s, dict) else None
+        if t is None or float(t) in seen:
             continue
-        seen.add(citation.t_ms)
-        cites.append({"t_ms": citation.t_ms, "label": f"{citation.t_ms / 1000:.1f}s"})
-    return {
-        "answer": answer.text,
-        "citations": cites[:8],
-        "counts": bound_memory_to_dict(result)["counts"],
-    }
+        seen.add(float(t))
+        cites.append({"t_ms": int(float(t) * 1000), "label": f"{float(t):.1f}s"})
+    honesty = "unsure" if (not answer or _UNSURE.search(answer)) else "saw_it"
+    return {"answer": answer or "I didn't catch that.", "citations": cites[:8], "honesty": honesty}
 
 
 class Handler(BaseHTTPRequestHandler):
