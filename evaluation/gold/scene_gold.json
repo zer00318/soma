@@ -9,7 +9,7 @@
     "moment": "pantry",
     "question": "how many water bottles",
     "expect": "answer",
-    "must_contain": ["1 water bottle"]
+    "must_contain": ["at least 1 water bottle"]
   },
   {
     "moment": "pantry",
@@ -25,6 +25,12 @@
   },
   {
     "moment": "pantry",
+    "question": "is there a pringles can",
+    "expect": "answer",
+    "must_contain": ["pringles can"]
+  },
+  {
+    "moment": "pantry",
     "question": "what label is on the cereal box",
     "expect": "answer",
     "must_contain": ["morning oats"]
@@ -36,10 +42,37 @@
     "must_contain": ["cereal box"]
   },
   {
+    "moment": "pantry",
+    "question": "what label is on the soda can",
+    "expect": "answer",
+    "must_contain": ["club soda"]
+  },
+  {
+    "moment": "pantry",
+    "question": "is there pesto",
+    "expect": "refuse"
+  },
+  {
+    "moment": "pantry",
+    "question": "how many nutella jars",
+    "expect": "refuse"
+  },
+  {
+    "moment": "pantry",
+    "question": "is there nutella",
+    "expect": "refuse"
+  },
+  {
     "moment": "desk",
     "question": "is there a coffee mug",
     "expect": "answer",
     "must_contain": ["coffee mug"]
+  },
+  {
+    "moment": "desk",
+    "question": "how many coffee mugs",
+    "expect": "answer",
+    "must_contain": ["2 coffee mugs"]
   },
   {
     "moment": "desk",
@@ -49,14 +82,27 @@
   },
   {
     "moment": "desk",
-    "question": "how many coffee mugs",
+    "question": "is there a notebook",
     "expect": "answer",
-    "must_contain": ["1 coffee mug"]
+    "must_contain": ["notebook"]
   },
   {
-    "moment": "pantry",
-    "question": "is there pesto",
-    "expect": "refuse"
+    "moment": "desk",
+    "question": "what label is on the tea tin",
+    "expect": "answer",
+    "must_contain": ["earl grey"]
+  },
+  {
+    "moment": "desk",
+    "question": "is there a tea tin",
+    "expect": "answer",
+    "must_contain": ["tea tin"]
+  },
+  {
+    "moment": "desk",
+    "question": "what colour is the pen cup",
+    "expect": "answer",
+    "must_contain": ["black"]
   },
   {
     "moment": "desk",
@@ -64,8 +110,110 @@
     "expect": "refuse"
   },
   {
-    "moment": "pantry",
-    "question": "how many nutella jars",
+    "moment": "fridge",
+    "question": "how many water bottles",
+    "expect": "answer",
+    "must_contain": ["2 water bottles"]
+  },
+  {
+    "moment": "fridge",
+    "question": "is there a water bottle",
+    "expect": "answer",
+    "must_contain": ["water bottle"]
+  },
+  {
+    "moment": "fridge",
+    "question": "what colour is the juice carton",
+    "expect": "answer",
+    "must_contain": ["orange"]
+  },
+  {
+    "moment": "fridge",
+    "question": "what label is on the juice carton",
+    "expect": "answer",
+    "must_contain": ["sunvale orange"]
+  },
+  {
+    "moment": "fridge",
+    "question": "is there a yogurt cup",
+    "expect": "answer",
+    "must_contain": ["yogurt cup"]
+  },
+  {
+    "moment": "fridge",
+    "question": "how many yogurt cups",
+    "expect": "answer",
+    "must_contain": ["at least 1 yogurt cup"]
+  },
+  {
+    "moment": "fridge",
+    "question": "is there a juice carton",
+    "expect": "answer",
+    "must_contain": ["juice carton"]
+  },
+  {
+    "moment": "fridge",
+    "question": "how many juice cartons",
+    "expect": "answer",
+    "must_contain": ["at least 1 juice carton"]
+  },
+  {
+    "moment": "fridge",
+    "question": "is there a tortilla",
     "expect": "refuse"
+  },
+  {
+    "moment": "sideboard",
+    "question": "how many candle jars",
+    "expect": "answer",
+    "must_contain": ["2 candle jars"]
+  },
+  {
+    "moment": "sideboard",
+    "question": "is there a candle jar",
+    "expect": "answer",
+    "must_contain": ["candle jar"]
+  },
+  {
+    "moment": "sideboard",
+    "question": "what colour is the candle jar",
+    "expect": "answer",
+    "must_contain": ["blue"]
+  },
+  {
+    "moment": "sideboard",
+    "question": "what label is on the book",
+    "expect": "answer",
+    "must_contain": ["city walks"]
+  },
+  {
+    "moment": "sideboard",
+    "question": "is there a cracker box",
+    "expect": "answer",
+    "must_contain": ["cracker box"]
+  },
+  {
+    "moment": "sideboard",
+    "question": "what flavour is the cracker box",
+    "expect": "answer",
+    "must_contain": ["rosemary"]
+  },
+  {
+    "moment": "sideboard",
+    "question": "is there an apple",
+    "expect": "answer",
+    "must_contain": ["apple"]
+  },
+  {
+    "moment": "sideboard",
+    "question": "what colour is the apple",
+    "expect": "answer",
+    "must_contain": ["red"]
+  },
+  {
+    "moment": "sideboard",
+    "question": "how many apples",
+    "expect": "answer",
+    "must_contain": ["at least 1 apple"]
   }
 ]

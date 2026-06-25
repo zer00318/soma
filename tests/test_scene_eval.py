@@ -6,7 +6,16 @@ from evaluation import run_scene_eval
 
 
 def test_scene_eval_fixture_prints_summary_and_table(capsys, tmp_path: Path) -> None:
-    result = run_scene_eval.main(["--fixture-root", str(tmp_path)])
+    result = run_scene_eval.main(
+        [
+            "--fixture-root",
+            str(tmp_path),
+            "--results-json",
+            str(tmp_path / "scene_eval_latest.json"),
+            "--results-md",
+            str(tmp_path / "scene_eval_latest.md"),
+        ]
+    )
 
     captured = capsys.readouterr().out
 
@@ -14,6 +23,7 @@ def test_scene_eval_fixture_prints_summary_and_table(capsys, tmp_path: Path) -> 
     assert "Scene Eval Summary" in captured
     assert "correct%=" in captured
     assert "hallucination%=" in captured
+    assert "95% CI=" in captured
     assert "Per-item table:" in captured
 
 

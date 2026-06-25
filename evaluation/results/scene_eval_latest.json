@@ -1,0 +1,354 @@
+{
+  "generated_at": "2026-06-25T19:39:25.227425+00:00",
+  "summary": {
+    "n": 37,
+    "correct": 37,
+    "wrong": 0,
+    "hallucination": 0,
+    "correct_pct": 100.0,
+    "hallucination_pct": 0.0,
+    "correct_ci_95": {
+      "lo": 90.6,
+      "hi": 100.0
+    },
+    "hallucination_ci_95": {
+      "lo": 0.0,
+      "hi": 9.4
+    }
+  },
+  "rows": [
+    {
+      "index": 1,
+      "moment": "pantry",
+      "question": "is there a water bottle",
+      "expect": "answer",
+      "answer": "Yes, I saw a water bottle. (seen at 1.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 2,
+      "moment": "pantry",
+      "question": "how many water bottles",
+      "expect": "answer",
+      "answer": "I saw at least 1 water bottle, but I can't reliably count it yet. (seen at 1.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 3,
+      "moment": "pantry",
+      "question": "what colour is the water bottle",
+      "expect": "answer",
+      "answer": "The water bottle is blue. (seen at 1.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 4,
+      "moment": "pantry",
+      "question": "what flavour is the pringles",
+      "expect": "answer",
+      "answer": "The pringle is sour cream and onion. (seen at 2.0s)\n\nAbout what you saw (general knowledge, not from your memory):\n\u2022 pringles can: Pringles is a brand of stackable potato crisps.",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 5,
+      "moment": "pantry",
+      "question": "is there a pringles can",
+      "expect": "answer",
+      "answer": "Yes, I saw a pringle can. (seen at 2.0s)\n\nAbout what you saw (general knowledge, not from your memory):\n\u2022 pringles can: Pringles is a brand of stackable potato crisps.",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 6,
+      "moment": "pantry",
+      "question": "what label is on the cereal box",
+      "expect": "answer",
+      "answer": "The cereal box is morning oats. (seen at 3.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 7,
+      "moment": "pantry",
+      "question": "is there a cereal box",
+      "expect": "answer",
+      "answer": "Yes, I saw a cereal box. (seen at 3.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 8,
+      "moment": "pantry",
+      "question": "what label is on the soda can",
+      "expect": "answer",
+      "answer": "The soda can is club soda. (seen at 5.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 9,
+      "moment": "pantry",
+      "question": "is there pesto",
+      "expect": "refuse",
+      "answer": "I don't have that in my memory \u2014 I didn't read enough to be sure.",
+      "refused": true,
+      "verdict": "correct"
+    },
+    {
+      "index": 10,
+      "moment": "pantry",
+      "question": "how many nutella jars",
+      "expect": "refuse",
+      "answer": "I don't have that in my memory \u2014 I didn't read enough to be sure.",
+      "refused": true,
+      "verdict": "correct"
+    },
+    {
+      "index": 11,
+      "moment": "pantry",
+      "question": "is there nutella",
+      "expect": "refuse",
+      "answer": "I don't have that in my memory \u2014 I didn't read enough to be sure.",
+      "refused": true,
+      "verdict": "correct"
+    },
+    {
+      "index": 12,
+      "moment": "desk",
+      "question": "is there a coffee mug",
+      "expect": "answer",
+      "answer": "Yes, I saw a coffee mug. (seen at 1.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 13,
+      "moment": "desk",
+      "question": "how many coffee mugs",
+      "expect": "answer",
+      "answer": "I saw at least 2 coffee mugs, but I can't reliably count them yet. (seen at 1.0s, 3.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 14,
+      "moment": "desk",
+      "question": "what colour is the notebook",
+      "expect": "answer",
+      "answer": "The notebook is green. (seen at 2.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 15,
+      "moment": "desk",
+      "question": "is there a notebook",
+      "expect": "answer",
+      "answer": "Yes, I saw a notebook. (seen at 2.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 16,
+      "moment": "desk",
+      "question": "what label is on the tea tin",
+      "expect": "answer",
+      "answer": "The tea tin is earl grey. (seen at 4.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 17,
+      "moment": "desk",
+      "question": "is there a tea tin",
+      "expect": "answer",
+      "answer": "Yes, I saw a tea tin. (seen at 4.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 18,
+      "moment": "desk",
+      "question": "what colour is the pen cup",
+      "expect": "answer",
+      "answer": "The pen cup is black. (seen at 5.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 19,
+      "moment": "desk",
+      "question": "how many rings",
+      "expect": "refuse",
+      "answer": "I don't have that in my memory \u2014 I didn't read enough to be sure.",
+      "refused": true,
+      "verdict": "correct"
+    },
+    {
+      "index": 20,
+      "moment": "fridge",
+      "question": "how many water bottles",
+      "expect": "answer",
+      "answer": "I saw 2 water bottles. (seen at 1.0s, 1.4s, 2.0s, 2.4s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 21,
+      "moment": "fridge",
+      "question": "is there a water bottle",
+      "expect": "answer",
+      "answer": "Yes, I saw a water bottle. (seen at 1.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 22,
+      "moment": "fridge",
+      "question": "what colour is the juice carton",
+      "expect": "answer",
+      "answer": "The juice carton is orange. (seen at 4.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 23,
+      "moment": "fridge",
+      "question": "what label is on the juice carton",
+      "expect": "answer",
+      "answer": "The juice carton is sunvale orange. (seen at 4.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 24,
+      "moment": "fridge",
+      "question": "is there a yogurt cup",
+      "expect": "answer",
+      "answer": "Yes, I saw a yogurt cup. (seen at 3.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 25,
+      "moment": "fridge",
+      "question": "how many yogurt cups",
+      "expect": "answer",
+      "answer": "I saw at least 1 yogurt cup, but I can't reliably count it yet. (seen at 3.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 26,
+      "moment": "fridge",
+      "question": "is there a juice carton",
+      "expect": "answer",
+      "answer": "Yes, I saw a juice carton. (seen at 4.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 27,
+      "moment": "fridge",
+      "question": "how many juice cartons",
+      "expect": "answer",
+      "answer": "I saw at least 1 juice carton, but I can't reliably count it yet. (seen at 4.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 28,
+      "moment": "fridge",
+      "question": "is there a tortilla",
+      "expect": "refuse",
+      "answer": "I don't have that in my memory \u2014 I didn't read enough to be sure.",
+      "refused": true,
+      "verdict": "correct"
+    },
+    {
+      "index": 29,
+      "moment": "sideboard",
+      "question": "how many candle jars",
+      "expect": "answer",
+      "answer": "I saw 2 candle jars. (seen at 1.0s, 1.6s, 2.4s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 30,
+      "moment": "sideboard",
+      "question": "is there a candle jar",
+      "expect": "answer",
+      "answer": "Yes, I saw a candle jar. (seen at 1.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 31,
+      "moment": "sideboard",
+      "question": "what colour is the candle jar",
+      "expect": "answer",
+      "answer": "The candle jar is blue. (seen at 1.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 32,
+      "moment": "sideboard",
+      "question": "what label is on the book",
+      "expect": "answer",
+      "answer": "The book is city walks. (seen at 3.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 33,
+      "moment": "sideboard",
+      "question": "is there a cracker box",
+      "expect": "answer",
+      "answer": "Yes, I saw a cracker box. (seen at 4.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 34,
+      "moment": "sideboard",
+      "question": "what flavour is the cracker box",
+      "expect": "answer",
+      "answer": "The cracker box is rosemary. (seen at 4.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 35,
+      "moment": "sideboard",
+      "question": "is there an apple",
+      "expect": "answer",
+      "answer": "Yes, I saw an apple. (seen at 5.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 36,
+      "moment": "sideboard",
+      "question": "what colour is the apple",
+      "expect": "answer",
+      "answer": "The apple is red. (seen at 5.0s)",
+      "refused": false,
+      "verdict": "correct"
+    },
+    {
+      "index": 37,
+      "moment": "sideboard",
+      "question": "how many apples",
+      "expect": "answer",
+      "answer": "I saw at least 1 apple, but I can't reliably count it yet. (seen at 5.0s)",
+      "refused": false,
+      "verdict": "correct"
+    }
+  ]
+}
