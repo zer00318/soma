@@ -32,6 +32,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 # ask_home is the brain; import defensively so the page still serves if it can't load.
@@ -50,7 +51,8 @@ except Exception as e:  # pragma: no cover
     def scrub_pii(text, *, mask="[redacted]"):  # type: ignore  fail-open to never break the page
         return text
 
-LIVE_MEM = ROOT / "data" / "phone_captures" / "live" / "kf_memory.json"
+PHONE_CAPTURES_ROOT = ROOT / "data" / "phone_captures"
+LIVE_MEM = PHONE_CAPTURES_ROOT / "live" / "kf_memory.json"
 OCR_MEMO = Path("/tmp/ocr_memory.json")
 MODEL = "gemma3:12b-it-qat"
 OLLAMA = "http://127.0.0.1:11434"
@@ -67,6 +69,9 @@ DEMO_ASK_CACHE = ROOT / "ops" / "cockpit" / "demo_cache.json"
 LIVE44_DAY_STATUS = ROOT / "ops" / "cockpit" / "eval_live44_day.json"
 LIVE44_WALK_STATUS = ROOT / "ops" / "cockpit" / "eval_live44_walk.json"
 LIVE44_SUMMARY = ROOT / "evaluation" / "ras" / "live44_summary.json"
+SCENE_EVAL_LATEST = ROOT / "evaluation" / "results" / "scene_eval_latest.json"
+CODEX_QUEUE = ROOT / "ops" / "codex_queue"
+CODEX_DRIVER_LOG = CODEX_QUEUE / "driver.log"
 
 try:
     import cockpit_engine  # noqa: E402
@@ -74,11 +79,20 @@ except Exception as e:  # pragma: no cover
     cockpit_engine = None
     print(f"[warn] could not import cockpit_engine: {e!r}")
 
+try:
+    from trace_memory.adapters.sqlite_eventlog import SqliteEventLog  # noqa: E402
+    from trace_memory.application.entity_binder import bind_entities  # noqa: E402
+except Exception as e:  # pragma: no cover
+    SqliteEventLog = None
+    bind_entities = None
+    print(f"[warn] could not import trace_memory eventlog/binder: {e!r}")
+
 # The active memory path is resolved per request. Parsed counts are cached by
 # file signature so status polling stays cheap while live capture is idle.
 _MEM_LOCK = threading.Lock()
 _LIVE_CACHE = {}
 _DEMO_CACHE = {}
+_EVENT_CACHE = {}
 _DEMO_ASK_CACHE_SNAPSHOT = (None, {})
 _ASK_LOCK = threading.Lock()
 
@@ -490,11 +504,67 @@ def _activity_snapshot(limit=60):
     return events[:limit]
 
 
-def _ops_snapshot():
-    now = int(time.time())
+def _latest_scene_eval_number():
+    raw = _read_json_file(SCENE_EVAL_LATEST, {})
+    summary = raw.get("summary") if isinstance(raw, dict) else {}
+    if not isinstance(summary, dict) or not summary:
+        return {}
+    return {
+        "n": _safe_int(summary.get("n"), 0),
+        "correct_pct": _safe_float(summary.get("correct_pct"), 0.0),
+        "correct_ci_95": summary.get("correct_ci_95") or {},
+        "hallucination_pct": _safe_float(summary.get("hallucination_pct"), 0.0),
+        "hallucination_ci_95": summary.get("hallucination_ci_95") or {},
+        "source": str(SCENE_EVAL_LATEST.relative_to(ROOT)),
+        "note": "FIXTURE ONLY — scene_eval_latest.json is not the real-capture product number.",
+        "generated_at": raw.get("generated_at"),
+    }
+
+
+def _queue_pending_count():
+    pending = CODEX_QUEUE / "pending"
+    try:
+        return len([path for path in pending.glob("*.md") if path.is_file()])
+    except Exception:
+        return 0
+
+
+def _last_committed_task():
+    try:
+        lines = CODEX_DRIVER_LOG.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return ""
+    for line in reversed(lines):
+        match = re.search(r"\bcommitted\s+([^\s]+)\s+\(", line)
+        if match:
+            return match.group(1)
+    return ""
+
+
+def _queue_runtime_snapshot():
+    return {
+        "driver_alive": bool(_command_output("pgrep", "-f", "scripts/codex_loop.sh", timeout=3)),
+        "codex_active": bool(_command_output("pgrep", "-f", "codex exec", timeout=3)),
+        "queue_pending": _queue_pending_count(),
+        "last_committed_task": _last_committed_task(),
+    }
+
+
+def _agent_plan_snapshot():
     plan_doc = _read_json_file(AGENT_PLAN_JSON, {})
     if not isinstance(plan_doc, dict):
         plan_doc = {}
+    plan_doc = dict(plan_doc)
+    honest_number = _latest_scene_eval_number()
+    if honest_number:
+        plan_doc["honest_number"] = honest_number
+    plan_doc["running"] = _queue_runtime_snapshot()
+    return plan_doc
+
+
+def _ops_snapshot():
+    now = int(time.time())
+    plan_doc = _agent_plan_snapshot()
     engine_doc = _engine_snapshot()
 
     plan_steps = _normalize_plan_steps(plan_doc)
@@ -658,6 +728,103 @@ def _file_sig(path):
     if st.st_size <= 0:
         return None
     return (st.st_mtime_ns, st.st_size, st.st_mtime)
+
+
+def _event_db_paths(captures_root=None):
+    captures_root = captures_root or PHONE_CAPTURES_ROOT
+    try:
+        return sorted(
+            (path for path in Path(captures_root).glob("*/events.db") if path.is_file()),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+    except Exception:
+        return []
+
+
+def _event_db_snapshot(path):
+    sig = _file_sig(path)
+    if sig is None or SqliteEventLog is None:
+        return None
+
+    cache_key = (str(path), sig)
+    with _MEM_LOCK:
+        cached = dict(_EVENT_CACHE) if _EVENT_CACHE.get("key") == cache_key else None
+
+    if cached is None:
+        try:
+            log = SqliteEventLog(str(path))
+            try:
+                observations = tuple(log.observations())
+            finally:
+                log.close()
+        except Exception:
+            return None
+
+        object_observations = [
+            observation
+            for observation in observations
+            if getattr(observation, "kind", "").strip().lower() == "object"
+        ]
+        subject_labels = {
+            str(observation.subject).strip().lower()
+            for observation in object_observations
+            if str(observation.subject).strip()
+        }
+        entities = []
+        if bind_entities is not None and object_observations:
+            try:
+                entities = bind_entities(object_observations)
+            except Exception:
+                entities = []
+
+        distinct_subject_count = len(entities) or len(subject_labels)
+        bound_entity_count = sum(
+            max(1, _safe_int(getattr(entity, "count", 1), 1))
+            for entity in entities
+        )
+        things = bound_entity_count or distinct_subject_count or len(observations)
+        cached = {
+            "key": cache_key,
+            "path": str(path),
+            "observation_count": len(observations),
+            "object_observation_count": len(object_observations),
+            "distinct_subject_count": distinct_subject_count,
+            "bound_entity_count": bound_entity_count or distinct_subject_count or len(observations),
+            "things_remembered": things,
+        }
+        with _MEM_LOCK:
+            _EVENT_CACHE.clear()
+            _EVENT_CACHE.update(cached)
+
+    age = time.time() - sig[2]
+    return {
+        "path": cached["path"],
+        "things_remembered": cached["things_remembered"],
+        "observation_count": cached["observation_count"],
+        "object_observation_count": cached["object_observation_count"],
+        "distinct_subject_count": cached["distinct_subject_count"],
+        "bound_entity_count": cached["bound_entity_count"],
+        "mode": "live",
+        "capture": "LIVE" if age <= 60 else "IDLE",
+        "last_capture": (
+            "latest event log %s (%d observations, %d bound things, %d subject types)"
+            % (
+                _age_words(age),
+                cached["observation_count"],
+                cached["bound_entity_count"],
+                cached["distinct_subject_count"],
+            )
+        ),
+    }
+
+
+def _resolve_live_event_memory():
+    for path in _event_db_paths():
+        snapshot = _event_db_snapshot(path)
+        if snapshot and snapshot.get("observation_count", 0) > 0:
+            return snapshot
+    return None
 
 
 def _normalize_question(question):
@@ -869,6 +1036,30 @@ def ollama_up():
         return False
 
 
+def _status_snapshot():
+    answer_memory = active_memory()
+    capture_memory = _resolve_live_event_memory() or answer_memory
+    status = {
+        "engine_on": bool(ollama_up() and answer_memory.get("path")),
+        "things_remembered": _safe_int(capture_memory.get("things_remembered"), 0),
+        "mode": capture_memory.get("mode", answer_memory.get("mode", "demo")),
+        "capture": capture_memory.get("capture", answer_memory.get("capture", "IDLE")),
+        "last_capture": capture_memory.get(
+            "last_capture",
+            answer_memory.get("last_capture", "no capture yet"),
+        ),
+    }
+    for key in (
+        "observation_count",
+        "object_observation_count",
+        "distinct_subject_count",
+        "bound_entity_count",
+    ):
+        if key in capture_memory:
+            status[key] = _safe_int(capture_memory.get(key), 0)
+    return status
+
+
 def load_suggestions():
     """A curated, demo-SAFE set of tappable questions, hand-verified against the
     current brain on the founder-walk memory. The first four are answers it reads
@@ -1039,13 +1230,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path in ("/engine.json", "/ops/cockpit/engine.json"):
             self._json(_engine_snapshot())
         elif path == "/api/status":
-            memory = active_memory()
-            engine_on = bool(ollama_up() and memory.get("path"))
-            self._json({"engine_on": engine_on,
-                        "things_remembered": memory["things_remembered"],
-                        "mode": memory["mode"],
-                        "capture": memory["capture"],
-                        "last_capture": memory["last_capture"]})
+            self._json(_status_snapshot())
         elif path == "/api/suggestions":
             self._json(load_suggestions())
         else:
