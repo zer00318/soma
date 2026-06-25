@@ -42,7 +42,17 @@ DO NOT merge to main). End by printing a summary of changed files + the pytest r
     >> "$logf" 2>&1
   rc=$?
 
+  # Codex's sandbox can't write .git, so the driver checkpoints the work (code paths
+  # only — model binaries stay gitignored). Lands on this dev branch for review; never main/push.
+  git -C "$ROOT" add scripts src tests ops evaluation .gitignore >/dev/null 2>&1
+  if ! git -C "$ROOT" diff --cached --quiet 2>/dev/null; then
+    git -C "$ROOT" commit -q -m "codex(${name}): autonomous task output [needs review]" >>"$logf" 2>&1 \
+      && log "committed $name ($(git -C "$ROOT" rev-parse --short HEAD))"
+  else
+    log "no code changes to commit for $name"
+  fi
+
   mv "$Q/running/$name.md" "$Q/done/$name.md"
-  log "DONE  $name  rc=$rc  (review branch codex/$name; log $logf)"
+  log "DONE  $name  rc=$rc  (committed on $(git -C "$ROOT" branch --show-current); log $logf)"
   sleep 20
 done
