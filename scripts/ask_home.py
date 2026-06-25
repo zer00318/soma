@@ -90,6 +90,10 @@ try:
 except Exception:
     _self_world_guard = None
 try:
+    import inject_bind as _inject_bind  # WS2: the capture-time binder (recurrence/duration)
+except Exception:
+    _inject_bind = None
+try:
     import inject_expand as _inject_expand  # the INJECTION/EXPAND layer (world-knowledge understanding)
 except Exception:
     _inject_expand = None
@@ -2651,8 +2655,12 @@ def structural_grounding(question, draft, memory_path):
 
     # ── (G1) BINDING AMBIGUITY — refuse a specific-item question whose entity is
     # ambiguous, EVEN IF the token is high-reliability OCR (day Q13/Q18). A `self`
-    # ("I/my") question binds to the unique wearer and is never refused here.
-    if _entity_graph is not None and _SPECIFIC_ITEM_Q.search(question or ""):
+    # ("I/my") question binds to the unique wearer and is never refused here. A
+    # RECURRENCE/DURATION question ("time on laptop vs posters") is answered from the
+    # binder's seen-counts/spans, NOT entity identity, so the ambiguity gate must NOT
+    # fire on it (it mis-read a duration comparison as a mis-attribution).
+    if (_entity_graph is not None and _SPECIFIC_ITEM_Q.search(question or "")
+            and not _RECURRENCE_Q.search(question or "")):
         try:
             graph = _entity_graph.build_entities(mdir)
             bc = _entity_graph.binding_confidence(question, graph)
@@ -2766,6 +2774,36 @@ def structural_grounding(question, draft, memory_path):
     return ("assert", draft)
 
 
+# WS2 binder wire-in: only RECURRENCE / DURATION / where-seen questions get a bound-entities
+# block. Every other question's dossier is byte-identical (no base regression by construction).
+_RECURRENCE_Q = re.compile(
+    r"\b(how (?:long|often|much time|many times)|time (?:spent|on|with)|duration|"
+    r"longer|more time|most time|recurr|repeatedly|where did i see|"
+    r"seen (?:before|most|again)|how frequently|compared to .* (?:seeing|looking))\b", re.I)
+
+
+def _bound_entities_block(mdir, max_n=10):
+    """A CONCISE, high-confidence RECURRENCE block from the INJECT binder: entities seen
+    across many frames with support + time-span. Confidence is from corroboration
+    (frequency), not the LLM — bound structure, not verbose prose (validated 96.9% precision
+    on base). Returns "" when unavailable so the dossier is unchanged."""
+    if _inject_bind is None or not mdir:
+        return ""
+    try:
+        res = _inject_bind.bind_memory(mdir)
+    except Exception:
+        return ""
+    conf = sorted((e for e in res.get("entities", []) if not e.get("speculative")),
+                  key=lambda e: -e.get("support", 0))[:max_n]
+    if not conf:
+        return ""
+    lines = ["RECURRING THINGS I SAW (bound across frames — seen-count = how often, span = over how long):"]
+    for e in conf:
+        lines.append("  - %r: seen in %d frames, over %.0fs"
+                     % (str(e.get("value"))[:60], e.get("support", 0), e.get("span_s", 0)))
+    return "\n".join(lines)
+
+
 def answer_assembler(question, memory_path, mems, model, host, timeout):
     """DEFAULT answer path: gather every channel -> dossier -> gemma thinks -> answer.
 
@@ -2784,6 +2822,12 @@ def answer_assembler(question, memory_path, mems, model, host, timeout):
         subject = " ".join(focal)
         return {"answer": "I didn't see anything about %s in what I read." % subject,
                 "scenes": [], "source": "assembler", "refused": True}
+    # WS2: for recurrence/duration questions ONLY, append the binder's bound-entity block
+    # (concise, high-confidence). All other questions keep the exact base dossier.
+    if _inject_bind is not None and _RECURRENCE_Q.search(question or ""):
+        block = _bound_entities_block(mdir)
+        if block:
+            dossier = dossier + "\n\n" + block
     draft = think_and_answer(question, dossier, model, host, timeout)
     # STRUCTURAL gate (deterministic, no second gemma call): assert only when the
     # answer is unambiguously bound to the asked entity AND any specific value it
