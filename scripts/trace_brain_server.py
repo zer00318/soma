@@ -209,6 +209,13 @@ def _answer_payload(
     }
 
 
+def _with_eventlog_fields(out: dict[str, Any]) -> dict[str, Any]:
+    if TRACE_EVENTLOG:
+        out.setdefault("personal_evidence", "")
+        out.setdefault("world_context", "")
+    return out
+
+
 def _capture(payload: dict[str, Any]) -> dict[str, Any]:
     mtext = str(payload.get("memory_text") or "").strip()
     # Drop the "nothing reliably visible" scene filler — it's noise for Q&A.
@@ -456,6 +463,10 @@ def _frontier_answer(question: str, kf: list[dict[str, Any]]) -> dict[str, Any]:
     return {"answer": text.strip(), "source": f"frontier:{model}"}
 
 
+def _eventlog_world_knowledge_oracle(prompt: str) -> str:
+    return ask_home._ollama(prompt, MODEL, OLLAMA_HOST, 15)
+
+
 def _ask(payload: dict[str, Any]) -> dict[str, Any]:
     moment = str(payload.get("moment_id") or "")
     question = str(payload.get("question") or "").strip()
@@ -485,26 +496,26 @@ def _ask(payload: dict[str, Any]) -> dict[str, Any]:
                "refused": bool(refused), "model": MODEL, "latency_s": round(time.time() - t1, 1)}
         _log("ASK", moment=moment, q=question[:60], src="mac_vision", frames=len(descs),
              refused=refused, ans=ans.replace("\n", " ")[:90])
-        return out
+        return _with_eventlog_fields(out)
 
     if payload.get("records"):  # ingest-then-ask in one shot
         _write_memory(moment, payload["records"])
     mdir = _moment_dir(moment)
     mem_path = mdir / "kf_memory.json"
     if not mem_path.exists():
-        return {
+        return _with_eventlog_fields({
             "answer": "Capture a moment first, then ask me about it.",
             "citations": [],
             "source": "none",
             "refused": True,
-        }
+        })
     if not question:
-        return {
+        return _with_eventlog_fields({
             "answer": "Ask me something about what you captured.",
             "citations": [],
             "source": "none",
             "refused": True,
-        }
+        })
 
     kf_for_anchor = _load_kf_records(mem_path)
     anchor = _anchor_from_payload(payload, kf_for_anchor)
@@ -513,7 +524,11 @@ def _ask(payload: dict[str, Any]) -> dict[str, Any]:
     if TRACE_EVENTLOG:
         eventlog_path = mdir / "events.db"
         if eventlog_path.exists():
-            eventlog_result = eventlog_answer(question, eventlog_path)
+            eventlog_result = eventlog_answer(
+                question,
+                eventlog_path,
+                world_knowledge_oracle=_eventlog_world_knowledge_oracle,
+            )
             if eventlog_result.supported:
                 scenes = [
                     {
@@ -529,6 +544,8 @@ def _ask(payload: dict[str, Any]) -> dict[str, Any]:
                     anchor,
                     time.time() - t0,
                 )
+                out["personal_evidence"] = eventlog_result.personal_evidence
+                out["world_context"] = eventlog_result.world_context
                 _log(
                     "ASK",
                     moment=moment,
@@ -537,7 +554,7 @@ def _ask(payload: dict[str, Any]) -> dict[str, Any]:
                     refused=out["refused"],
                     ans=answer.replace("\n", " ")[:90],
                 )
-                return out
+                return _with_eventlog_fields(out)
 
     # Understanding-aware entry: ask() + world-knowledge EXPAND for "what/who is this"
     # (additive two-zone); falls back to plain ask() on any older ask_home.
@@ -572,7 +589,7 @@ def _ask(payload: dict[str, Any]) -> dict[str, Any]:
         lat=out.get("latency_s"),
         ans=(out.get("answer") or "").replace("\n", " ")[:100],
     )
-    return out
+    return _with_eventlog_fields(out)
 
 
 def _proof(moment: str) -> dict[str, Any]:

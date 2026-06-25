@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import importlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Sequence
 
 from trace_memory.adapters.sqlite_eventlog import SqliteEventLog
 from trace_memory.application.entity_binder import bind_entities
@@ -79,6 +80,8 @@ class EventLogAnswer:
     answer: str
     refused: bool
     citations: tuple[Observation, ...]
+    personal_evidence: str = ""
+    world_context: str = ""
 
 
 def append_perception_observations(
@@ -106,7 +109,12 @@ def append_perception_observations(
     return len(observations)
 
 
-def answer_question(question: str, db_path: str | Path) -> EventLogAnswer:
+def answer_question(
+    question: str,
+    db_path: str | Path,
+    *,
+    world_knowledge_oracle: Callable[[str], str] | None = None,
+) -> EventLogAnswer:
     parsed = _parse_question(question)
     if parsed is None:
         return EventLogAnswer(supported=False, answer="", refused=False, citations=())
@@ -126,33 +134,49 @@ def answer_question(question: str, db_path: str | Path) -> EventLogAnswer:
             citations=(),
         )
 
+    bound_entities = bind_entities(object_matches)
+
     if parsed.intent == "count":
-        bound_entities = bind_entities(object_matches)
         count = sum(entity.count for entity in bound_entities)
         noun = parsed.subject if count != 1 else _singularize_phrase(parsed.subject)
         if bound_entities and all(entity.confidence == "low" for entity in bound_entities):
             pronoun = "it" if count == 1 else "them"
-            return EventLogAnswer(
-                supported=True,
-                answer=f"I saw at least {count} {noun}, but I can't reliably count {pronoun} yet.",
-                refused=False,
-                citations=object_matches,
+            personal_answer = (
+                f"I saw at least {count} {noun}, but I can't reliably count {pronoun} yet."
             )
+        else:
+            personal_answer = f"I saw {count} {noun}."
+        personal_evidence, world_context, answer = _compose_two_zone_answer(
+            personal_answer,
+            object_matches,
+            _entity_referents(object_matches),
+            world_knowledge_oracle,
+        )
         return EventLogAnswer(
             supported=True,
-            answer=f"I saw {count} {noun}.",
+            answer=answer,
             refused=False,
             citations=object_matches,
+            personal_evidence=personal_evidence,
+            world_context=world_context,
         )
 
     if parsed.intent == "exists":
         noun = _singularize_phrase(parsed.subject)
         article = "an" if noun[:1] in "aeiou" else "a"
+        personal_evidence, world_context, answer = _compose_two_zone_answer(
+            f"Yes, I saw {article} {noun}.",
+            object_matches[:1],
+            _entity_referents(object_matches),
+            world_knowledge_oracle,
+        )
         return EventLogAnswer(
             supported=True,
-            answer=f"Yes, I saw {article} {noun}.",
+            answer=answer,
             refused=False,
             citations=object_matches[:1],
+            personal_evidence=personal_evidence,
+            world_context=world_context,
         )
 
     attribute_value = _attribute_answer(parsed.attribute, object_matches, observations)
@@ -163,11 +187,19 @@ def answer_question(question: str, db_path: str | Path) -> EventLogAnswer:
             refused=True,
             citations=(),
         )
+    personal_evidence, world_context, answer = _compose_two_zone_answer(
+        f"The {_singularize_phrase(parsed.subject)} is {attribute_value}.",
+        object_matches[:1],
+        _entity_referents(object_matches),
+        world_knowledge_oracle,
+    )
     return EventLogAnswer(
         supported=True,
-        answer=f"The {_singularize_phrase(parsed.subject)} is {attribute_value}.",
+        answer=answer,
         refused=False,
         citations=object_matches[:1],
+        personal_evidence=personal_evidence,
+        world_context=world_context,
     )
 
 
@@ -294,6 +326,85 @@ def _parse_question(question: str) -> _ParsedQuestion | None:
             attribute="label",
         )
     return None
+
+
+def _compose_two_zone_answer(
+    personal_answer: str,
+    citations: Sequence[Observation],
+    referents: Sequence[str],
+    world_knowledge_oracle: Callable[[str], str] | None,
+) -> tuple[str, str, str]:
+    personal_evidence = _append_time_citations(personal_answer, citations)
+    expand_module = _load_inject_expand()
+    packet = _world_context_packet(referents, world_knowledge_oracle, expand_module)
+    if expand_module is None or packet is None:
+        return personal_evidence, "", personal_evidence
+    world_context = expand_module.compose("", packet)
+    return personal_evidence, world_context, expand_module.compose(personal_evidence, packet)
+
+
+def _append_time_citations(answer: str, citations: Sequence[Observation]) -> str:
+    note = _time_citation_note(citations)
+    if not note:
+        return answer
+    return f"{answer} {note}"
+
+
+def _time_citation_note(citations: Sequence[Observation]) -> str:
+    seen: set[int] = set()
+    labels: list[str] = []
+    for observation in citations:
+        if observation.t_ms in seen:
+            continue
+        seen.add(observation.t_ms)
+        labels.append(f"{observation.t_ms / 1000.0:.1f}s")
+    if not labels:
+        return ""
+    if len(labels) <= 4:
+        return f"(seen at {', '.join(labels)})"
+    return f"(seen at {', '.join(labels[:4])}, +{len(labels) - 4} more)"
+
+
+def _entity_referents(observations: Sequence[Observation]) -> tuple[str, ...]:
+    referents: list[str] = []
+    seen: set[str] = set()
+    for observation in observations:
+        subject = observation.subject.strip()
+        key = subject.lower()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        referents.append(subject)
+    return tuple(referents)
+
+
+def _load_inject_expand():
+    for module_name in ("scripts.inject_expand", "inject_expand"):
+        try:
+            return importlib.import_module(module_name)
+        except Exception:
+            continue
+    return None
+
+
+def _world_context_packet(
+    referents: Sequence[str],
+    world_knowledge_oracle: Callable[[str], str] | None,
+    expand_module,
+) -> dict[str, list[dict[str, object]]] | None:
+    if expand_module is None or world_knowledge_oracle is None:
+        return None
+    try:
+        world_context = []
+        for referent in referents[:3]:
+            gloss = expand_module.world_gloss(referent, world_knowledge_oracle)
+            if gloss is not None:
+                world_context.append(gloss)
+    except Exception:
+        return None
+    if not world_context:
+        return None
+    return {"world_context": world_context}
 
 
 def _clean_subject(subject: str) -> str:
