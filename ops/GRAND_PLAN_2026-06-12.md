@@ -138,8 +138,8 @@ episode layer (date-scoped retrieval hack instead) → battery OPTIMIZATION
 - ops/HANDOVER.md is the respawn contract; the successor model reads it +
   auto-memory and continues. It must contain: verified state with dates,
   the RAS curve, every open brief, the build recipe, founder test
-  protocols, and the standing laws (X-SOMA-Token, soma_hub.sqlite3,
-  self._connect(), no Flask, suite+north-star green after soma_hub
+  protocols, and the standing laws (X-TRACE-Token, trace_hub.sqlite3,
+  self._connect(), no Flask, suite+north-star green after trace_hub
   changes, never Apple ID/password).
 - Open development continues via the same delegation law: briefs to Codex,
   bounded specs to qwen, gates to gemma, physical tests to founder.

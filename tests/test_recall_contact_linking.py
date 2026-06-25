@@ -19,23 +19,23 @@ import unittest
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-from soma_hub.crypto import EncryptedTextCodec
-from soma_hub.graph import RelationalMemoryGraph
-from soma_hub.recall import RecallFirewall
-from soma_hub.storage import MemoryStore
+from trace_hub.crypto import EncryptedTextCodec
+from trace_hub.graph import RelationalMemoryGraph
+from trace_hub.recall import RecallFirewall
+from trace_hub.storage import MemoryStore
 
-_TEST_KEY = b"soma-test-key-for-unit-tests-xyz"
+_TEST_KEY = b"trace-test-key-for-unit-tests-xyz"
 _UUID_RE = r"[0-9a-f]{8}-[0-9a-f]{4}-"
 
 
 def _make_graph(tmp_path: Path) -> RelationalMemoryGraph:
     codec = EncryptedTextCodec(_TEST_KEY)
-    return RelationalMemoryGraph(tmp_path / "soma_hub.sqlite3", codec)
+    return RelationalMemoryGraph(tmp_path / "trace_hub.sqlite3", codec)
 
 
 def _make_store(tmp_path: Path) -> MemoryStore:
     codec = EncryptedTextCodec(_TEST_KEY)
-    return MemoryStore(tmp_path / "soma_hub.sqlite3", codec)
+    return MemoryStore(tmp_path / "trace_hub.sqlite3", codec)
 
 
 def _ingest_person(graph: RelationalMemoryGraph) -> dict:
@@ -112,7 +112,7 @@ class TestStaleEncounterCleanup(unittest.TestCase):
         self._tmp.cleanup()
 
     def _encounter_count(self, ended: bool) -> int:
-        db_path = self.tmp / "soma_hub.sqlite3"
+        db_path = self.tmp / "trace_hub.sqlite3"
         with sqlite3.connect(db_path) as conn:
             if ended:
                 row = conn.execute(
@@ -127,7 +127,7 @@ class TestStaleEncounterCleanup(unittest.TestCase):
     def _insert_old_encounter(self, entity_id: str, minutes_ago: int) -> None:
         """Directly insert an open encounter with a backdated started_at."""
         import uuid
-        db_path = self.tmp / "soma_hub.sqlite3"
+        db_path = self.tmp / "trace_hub.sqlite3"
         started = (datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)).isoformat()
         with sqlite3.connect(db_path) as conn:
             conn.execute(

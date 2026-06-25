@@ -2,23 +2,23 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HUB_HOST="${SOMA_HUB_HOST:-127.0.0.1}"
-HUB_PORT="${SOMA_HUB_PORT:-8765}"
-HUB_TOKEN="${SOMA_HUB_TOKEN:-dev-token}"
-DATA_DIR="${SOMA_DATA_DIR:-$(mktemp -d /tmp/soma-controlled-profile.XXXXXX)}"
-APP_PATH="${SOMA_NATIVE_APP_PATH:-$ROOT_DIR/build/SomaDerivedData/Build/Products/Debug/FastVLM App.app}"
-PERSON_SECONDS="${SOMA_PERSON_SECONDS:-20}"
-SIGN_SECONDS="${SOMA_SIGN_SECONDS:-20}"
-OBJECT_SECONDS="${SOMA_OBJECT_SECONDS:-20}"
-STALE_SECONDS="${SOMA_STALE_SECONDS:-12}"
-WARMUP_SECONDS="${SOMA_WARMUP_SECONDS:-8}"
+HUB_HOST="${TRACE_HUB_HOST:-127.0.0.1}"
+HUB_PORT="${TRACE_HUB_PORT:-8765}"
+HUB_TOKEN="${TRACE_HUB_TOKEN:-dev-token}"
+DATA_DIR="${TRACE_DATA_DIR:-$(mktemp -d /tmp/trace-controlled-profile.XXXXXX)}"
+APP_PATH="${TRACE_NATIVE_APP_PATH:-$ROOT_DIR/build/TraceDerivedData/Build/Products/Debug/FastVLM App.app}"
+PERSON_SECONDS="${TRACE_PERSON_SECONDS:-20}"
+SIGN_SECONDS="${TRACE_SIGN_SECONDS:-20}"
+OBJECT_SECONDS="${TRACE_OBJECT_SECONDS:-20}"
+STALE_SECONDS="${TRACE_STALE_SECONDS:-12}"
+WARMUP_SECONDS="${TRACE_WARMUP_SECONDS:-8}"
 HUB_PID=""
 
 cleanup() {
   if [[ -n "$HUB_PID" ]]; then
     kill "$HUB_PID" 2>/dev/null || true
   fi
-  if [[ -z "${SOMA_DATA_DIR:-}" && "${SOMA_KEEP_TEST_DATA:-0}" != "1" ]]; then
+  if [[ -z "${TRACE_DATA_DIR:-}" && "${TRACE_KEEP_TEST_DATA:-0}" != "1" ]]; then
     rm -rf "$DATA_DIR"
   fi
 }
@@ -51,15 +51,15 @@ audit() {
 }
 
 reset_graph() {
-  if [[ -z "$HUB_PID" && "${SOMA_RESET_EXISTING_HUB:-0}" != "1" ]]; then
+  if [[ -z "$HUB_PID" && "${TRACE_RESET_EXISTING_HUB:-0}" != "1" ]]; then
     echo "Existing hub detected; not deleting its graph automatically."
-    echo "For a clean controlled test, stop the existing hub or set SOMA_RESET_EXISTING_HUB=1."
+    echo "For a clean controlled test, stop the existing hub or set TRACE_RESET_EXISTING_HUB=1."
     return
   fi
 
   curl -fsS \
     -H "Content-Type: application/json" \
-    -H "X-SOMA-Token: $HUB_TOKEN" \
+    -H "X-TRACE-Token: $HUB_TOKEN" \
     -d '{"scope":"all"}' \
     "http://$HUB_HOST:$HUB_PORT/delete" >/dev/null
 }
@@ -67,27 +67,27 @@ reset_graph() {
 cd "$ROOT_DIR"
 mkdir -p "$DATA_DIR"
 
-if curl -fsS -H "X-SOMA-Token: $HUB_TOKEN" "http://$HUB_HOST:$HUB_PORT/health" >/dev/null 2>&1; then
-  echo "Using existing SOMA hub at http://$HUB_HOST:$HUB_PORT"
+if curl -fsS -H "X-TRACE-Token: $HUB_TOKEN" "http://$HUB_HOST:$HUB_PORT/health" >/dev/null 2>&1; then
+  echo "Using existing TRACE hub at http://$HUB_HOST:$HUB_PORT"
 else
-  echo "Starting SOMA hub at http://$HUB_HOST:$HUB_PORT"
-  python3 -m soma_hub serve --host "$HUB_HOST" --port "$HUB_PORT" --data-dir "$DATA_DIR" --token "$HUB_TOKEN" &
+  echo "Starting TRACE hub at http://$HUB_HOST:$HUB_PORT"
+  python3 -m trace_hub serve --host "$HUB_HOST" --port "$HUB_PORT" --data-dir "$DATA_DIR" --token "$HUB_TOKEN" &
   HUB_PID="$!"
   sleep 1
 fi
 
 if [[ -d "$APP_PATH" ]]; then
-  echo "Opening SOMA native app: $APP_PATH"
+  echo "Opening TRACE native app: $APP_PATH"
   open "$APP_PATH"
 else
   echo "Native app not found at: $APP_PATH"
   echo "Build it first with:"
-  echo "xcodebuild -project soma-native-fastvlm/FastVLM.xcodeproj -scheme 'FastVLM App' -configuration Debug -derivedDataPath build/SomaDerivedData CODE_SIGNING_ALLOWED=NO build"
+  echo "xcodebuild -project trace-native-fastvlm/FastVLM.xcodeproj -scheme 'FastVLM App' -configuration Debug -derivedDataPath build/TraceDerivedData CODE_SIGNING_ALLOWED=NO build"
   exit 2
 fi
 
 echo
-echo "Controlled SOMA profile test"
+echo "Controlled TRACE profile test"
 echo "Data dir: $DATA_DIR"
 echo "This test stores structured text/metadata only. It should not write raw audio, video, screenshots, or frames."
 echo
@@ -130,6 +130,6 @@ echo "- person profile slots: correct/missing/wrong"
 echo "- sign OCR: correct text vs noisy variants"
 echo "- object details: color/material/parts/wear"
 echo "- stale behavior: old target still current, or correctly stale"
-if [[ "${SOMA_KEEP_TEST_DATA:-0}" == "1" || -n "${SOMA_DATA_DIR:-}" ]]; then
+if [[ "${TRACE_KEEP_TEST_DATA:-0}" == "1" || -n "${TRACE_DATA_DIR:-}" ]]; then
   echo "Graph data kept at: $DATA_DIR"
 fi

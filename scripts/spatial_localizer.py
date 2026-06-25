@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Spatial Localizer — binding keystone for the SOMA perception engine.
+"""Spatial Localizer — binding keystone for the TRACE perception engine.
 
 For each frame emits narrow, context-free facts WITH location:
   (a) OCR text tokens + their normalized bboxes   (via ocrmac / Apple Vision)

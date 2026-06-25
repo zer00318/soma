@@ -2587,13 +2587,26 @@ def _subject_token_variants(token):
 
 
 def _question_subject_grounded(question, corpus_text):
-    """Return False only when every focal question subject is absent."""
+    """Return False only when every focal question subject is absent.
+
+    WORD-BOUNDARY matched, not substring: a substring test falsely grounded
+    "rings" against "p[ring]les" and would ground "ear" against "year" etc.
+    The subject must appear as a whole word (with simple plural/possessive
+    variants) before we consider it present."""
     focal = _question_focal_nouns(question)
     if not focal:
         return True
     corpus = (corpus_text or "").lower()
+    # Length-aware: SHORT subjects (<=4 chars, e.g. "ring") need a word-START anchor so
+    # they don't false-match inside a longer word ("p[ring]le"); LONGER subjects
+    # (e.g. "pringle", "nutella") keep substring so they still match garbled/concatenated
+    # OCR. Pure substring false-grounds short words; pure \b breaks on noisy OCR.
+    def _present(variant):
+        if len(variant) <= 4:
+            return re.search(r"\b" + re.escape(variant), corpus) is not None
+        return variant in corpus
     return any(
-        variant in corpus
+        _present(variant)
         for token in focal
         for variant in _subject_token_variants(token)
     )

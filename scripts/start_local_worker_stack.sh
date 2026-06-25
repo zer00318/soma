@@ -2,10 +2,10 @@
 set -euo pipefail
 
 MODEL_KEY="${1:-nvidia/nemotron-3-nano-omni}"
-IDENTIFIER="${SOMA_LOCAL_MODEL_ID:-soma-local-worker}"
-TTL_SECONDS="${SOMA_LOCAL_MODEL_TTL:-7200}"
-PARALLEL="${SOMA_LOCAL_MODEL_PARALLEL:-1}"
-PORT="${SOMA_LOCAL_MODEL_PORT:-1234}"
+IDENTIFIER="${TRACE_LOCAL_MODEL_ID:-trace-local-worker}"
+TTL_SECONDS="${TRACE_LOCAL_MODEL_TTL:-7200}"
+PARALLEL="${TRACE_LOCAL_MODEL_PARALLEL:-1}"
+PORT="${TRACE_LOCAL_MODEL_PORT:-1234}"
 
 if ! command -v lms >/dev/null 2>&1; then
   echo "LM Studio CLI (lms) is not available. Open LM Studio once or install its CLI first." >&2
@@ -38,4 +38,4 @@ echo "Server: http://127.0.0.1:${PORT}"
 echo "Model identifier: ${IDENTIFIER}"
 echo
 echo "Try:"
-echo "python3 scripts/local_model_worker.py --model ${IDENTIFIER} --mode scout --task \"Summarize likely risks in the provided file.\" --context-file /Users/zer00/Documents/VLM/soma_hub/graph.py"
+echo "python3 scripts/local_model_worker.py --model ${IDENTIFIER} --mode scout --task \"Summarize likely risks in the provided file.\" --context-file /Users/zer00/Documents/VLM/trace_hub/graph.py"

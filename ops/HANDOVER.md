@@ -1,4 +1,4 @@
-# SOMA supervisor handover — respawn protocol
+# TRACE supervisor handover — respawn protocol
 
 > Maintained continuously per user directive (2026-06-10). When a session
 > hits its limit, a fresh chat resumes from THIS file + the auto-memory at
@@ -72,7 +72,7 @@ ceiling oracle). REAL audio-event proof needs an audio-rich walk (this one is ne
 
 ## ★ COMMITTED PLAN 2026-06-13 ~22:30 — THE ONLY THING THAT MATTERS NOW (read first; supersedes all object-map/3D/CLIP work below) ★
 
-Founder reframed hard: SOMA = no-raw-storage perception-to-text INPUT layer. GOAL = record a session, ASK questions later, ANSWER the founder's real 25-question blind battery (evaluation/ras/walk1.txt). Prev = RAS -8. ROOT CAUSE of -8: frames were reduced to GENERIC object labels via known_object_labels ("text surface", "machine") and pixels discarded → could never read a poster/form/screen. See memory: project_feasibility_verdict (CORRECTED).
+Founder reframed hard: TRACE = no-raw-storage perception-to-text INPUT layer. GOAL = record a session, ASK questions later, ANSWER the founder's real 25-question blind battery (evaluation/ras/walk1.txt). Prev = RAS -8. ROOT CAUSE of -8: frames were reduced to GENERIC object labels via known_object_labels ("text surface", "machine") and pixels discarded → could never read a poster/form/screen. See memory: project_feasibility_verdict (CORRECTED).
 
 COMMITTED ARCHITECTURE (no more model-hopping; NO 3D, NO MobileCLIP/YOLO/FastVLM object-naming, NO audio for this battery): retrieval-augmented VLM over KEYFRAMES. video(+pose/GPS) → sharp keyframes → per-frame TEXT = {dense attribute-bearing caption || verbatim OCR} → store as graph_messages rows (media_kind='keyframe', JPEG path, NEVER via known_object_labels) → retrieve (existing context_bundle/search_messages_all grep, widened AND→OR for keyframe rows) → answer-time model reads retrieved text + actual JPEG pixels, refusal-default kept → run_ras.py scores SAME 25 Qs.
 
@@ -80,7 +80,7 @@ COMMITTED MODEL STACK:
 - keyframes: scripts/walk_select_sharp_frames.py (+ target_fps 3→5, force-keep ≥12-OCR-char frames, motion-burst on sink/mirror/door). NOTE old walk_office_jun11.mov has NO pose sidecar → needs sharpness-only sampler.
 - OCR: Apple Vision .accurate via ocrmac — INSTALLED + smoke-tested working 22:30 (py3.9 .venv). 1600px downscale, subprocess restart every ~200 frames (leak).
 - caption: Qwen2.5-VL-7B-Instruct-4bit via mlx-vlm (mlx-vlm installed; WEIGHTS were NOT cached → downloading 22:30, /tmp/qwenvl_download.log). gemma3:12b (ollama, already local) = fallback.
-- retrieval: reuse soma_hub graph_messages grep; NO embedder/vector-DB (overkill at 15-min scale).
+- retrieval: reuse trace_hub graph_messages grep; NO embedder/vector-DB (overkill at 15-min scale).
 - answer-time: LOCAL VLM default (Qwen2.5-VL / gemma3) — free/offline, honors "chill"; Claude-vision = optional CEILING test. (Workflow draft said Gemini 3 Pro — OVERRIDDEN, wrong for this setup/no key.)
 - scorer: evaluation/run_ras.py UNCHANGED; SAME walk1.txt 25 Qs (apples-to-apples vs -8).
 
@@ -215,7 +215,7 @@ qwen3-coder:30b pull INTERRUPTED partway (ollama resumes on next
 `ollama pull qwen3-coder:30b` — finish + eval before promoting).
 Capture stack (hub :8765, dashboard :8777 incl. /world3d, cockpit
 :8788, cable-sync 120s) LEFT RUNNING with phone scanning on the stand;
-`pkill -f soma` quiets the Mac if founder wants. Suite was 123/123 +
+`pkill -f trace` quiets the Mac if founder wants. Suite was 123/123 +
 north-star 1.00 at session start; Swift work since is device-verified
 (relabels live), Python untouched after the dashboard route.
 
@@ -242,7 +242,7 @@ north-star 1.00 at session start; Swift work since is device-verified
   the container reset (dialog or FastVLM model re-download — weights
   live in the container that the install wiped). devicectl cannot
   screenshot; FOUNDER SCREEN-CHECK requested (his channel + cockpit).
-  His reply lands in /tmp/soma_founder_reply.txt.
+  His reply lands in /tmp/trace_founder_reply.txt.
 - The stuck 265-packet spool was hand-replayed (clean) and cable-sync
   restarted. /world still shows the 14:53Z snapshot even though 15:05Z
   spatial packets replayed — check api_world's latest-snapshot pick
@@ -277,7 +277,7 @@ delegation, lead = decisions not plumbing. What landed:
   and promote if it beats 4-bugs-per-file. Codex still limit-blocked;
   re-fire brief 7 remainder when founder says.
 - **DEVICE GOTCHAS discovered (read or you'll burn a day):**
-  (1) The 16:55 devicectl install apparently RESET the SOMA dir —
+  (1) The 16:55 devicectl install apparently RESET the TRACE dir —
   spatial_diag.ndjson, vocab_misses.ndjson, spatial_world.arexperience
   all vanished (dir-level pull confirmed; single-file pulls of missing
   files leave a LYING 0-byte local file). spatial_world.json survived
@@ -387,8 +387,8 @@ Codex and local LLMs for labor, you do judgment + device verification.
   per file); gemma3:12b for gates. LM Studio :1234 optional
   (start_local_worker_stack.sh) — do NOT run while anything heavy runs
   (two reboots today from memory pressure; ONE heavy job at a time).
-- Founder channel: /tmp/soma_founder_request.txt → he replies in
-  /tmp/soma_founder_reply.txt. He watches http://localhost:8788 cockpit.
+- Founder channel: /tmp/trace_founder_request.txt → he replies in
+  /tmp/trace_founder_reply.txt. He watches http://localhost:8788 cockpit.
 - Cable-sync: scripts/cable_sync_spool.sh 120 (nohup) replays the phone
   spool over USB every 2 min — THE data path (office Wi-Fi has client
   isolation; phone can never reach the hub there). Restart after reboot
@@ -422,7 +422,7 @@ Codex and local LLMs for labor, you do judgment + device verification.
   delegation, and that you NOT do menial labor yourself.
 
 ### Verification laws (unchanged)
-Suite + north-star after any soma_hub change; daemons restart after
+Suite + north-star after any trace_hub change; daemons restart after
 graph.py changes; never trust "installed" without build stamp on the
 status line; device artifacts (files!) over claims; one compact founder
 test at a time.
@@ -531,7 +531,7 @@ test at a time.
   desk scan with NO human: push `autoOpenSpatial=true` into prefs via
   devicectl, relaunch app → Spatial mode opens itself (phone lives on a
   desk stand, plugged in). Build 391aac8 installed + relaunched this way.
-- Local worker stack UP (soma-local-worker on :1234; gemma/qwen in ollama).
+- Local worker stack UP (trace-local-worker on :1234; gemma/qwen in ollama).
   LVIS 1203-class list fetched (/tmp/lvis.yaml from ultralytics); local LLM
   filtering it for indoor relevance → /tmp/lvis_indoor_keep.json (input to
   brief 6 P1 mega-vocab).
@@ -544,7 +544,7 @@ test at a time.
 - "No progress visible" root cause: the MAC REBOOTED at ~14:17, killing hub
   + enricher (+ wiping /tmp incl. logs/pulls). Phone Wi-Fi was FINE. Lead
   restarted the stack 14:47 (hub/world 200 on 10.168.8.187). A launchd
-  LaunchAgent (~/Library/LaunchAgents/de.zer00.soma.stack.plist) is loaded
+  LaunchAgent (~/Library/LaunchAgents/de.zer00.trace.stack.plist) is loaded
   but TCC-blocks on Documents ("Operation not permitted") — reboot survival
   is Codex brief 6 P2; until then run scripts/run_trace_stack.sh after any
   reboot.
@@ -601,7 +601,7 @@ test at a time.
   spool fallback + P1 hub ok/spooled counters in status line). Blocks P4.
 - **Codex brief 5 landed and installed.** Spatial snapshots now use a
   completion handler; failed/non-2xx posts append the exact payload to
-  `Application Support/SOMA/perception_spool.ndjson`, and Spatial status shows
+  `Application Support/TRACE/perception_spool.ndjson`, and Spatial status shows
   `hub ok:N spooled:N`. `lastPostedSignature`/`lastPostAt` update only after
   a 2xx or successful spool append. The old stale June-11 spool was archived
   at `/tmp/spatial_pull/brief5_prebuild_check/perception_spool.ndjson` and
@@ -618,7 +618,7 @@ test at a time.
   Revisit only if founder correctness check shows wrong/missing names.
 - **G1 status: PARTIAL — awaiting founder steps** (Wi-Fi rejoin, name
   correctness X/11, re-show no-dup, swipe-kill reload). Request live at
-  /tmp/soma_founder_request.txt; reply lands in /tmp/soma_founder_reply.txt.
+  /tmp/trace_founder_request.txt; reply lands in /tmp/trace_founder_reply.txt.
 - Old device spool (/tmp/spool_check.ndjson, 129 packets) is stale June-11
   native_vision traffic from before the spatial redirect — do not replay
   into the real DB without time-scoping; low value, ignore.
@@ -635,12 +635,12 @@ test at a time.
   are cleared, and `/world` shows an empty reset map. Mac stack is up:
   hub :8765, dashboard :8777, enricher running; `/world` GET returns 200.
   Current Mac Wi-Fi IP is `10.168.8.187`; phone prefs were updated to
-  `somaHubURL = http://10.168.8.187:8765` and app relaunched. If the network
+  `traceHubURL = http://10.168.8.187:8765` and app relaunched. If the network
   changes, update this preference before testing.
 - P3 change now feeds MobileCLIP more regions: saliency plus 3x3/center tile
   fallback when saliency returns too little, cap 5 accepted regions/scan, keep
   scan budget, status shows scan ms + namer p50/p95 + words/min, and rejected
-  best words go to `Application Support/SOMA/vocab_misses.ndjson`.
+  best words go to `Application Support/TRACE/vocab_misses.ndjson`.
 - Added `scripts/collect_spatial_artifacts.sh`: one command pulls
   `spatial_world.json`, `spatial_diag.ndjson`, `vocab_misses.ndjson`,
   `spatial_world.arexperience`, and dashboard `/api/world`, then runs
@@ -648,7 +648,7 @@ test at a time.
   `/tmp/spatial_pull/post_url_fix_check`; files are empty as expected because
   the world was reset. Analyzer self-test passes; fixed analyzer per-word mean.
 - Local worker stack is available: `scripts/start_local_worker_stack.sh`
-  loaded LM Studio model `soma-local-worker` on `127.0.0.1:1234`. The harness
+  loaded LM Studio model `trace-local-worker` on `127.0.0.1:1234`. The harness
   supports `--timeout` for slower local responses. Use local workers only for
   bounded scout/critic summaries; they do not replace device/founder judgment.
 - Subagent P4 map (read-only): implement re-entry events mostly in
@@ -695,7 +695,7 @@ test at a time.
   N1 qwen analyzer (scripts/analyze_spatial_diag.py), N2 suite gate,
   N3 founder desk test 2 (ops/FOUNDER_DESK_TEST_2.md — morning, ~6 min,
   identity check first), N4 diag pull gate. State:
-  ops/night_shift_state.json, log /tmp/soma_night_shift.log.
+  ops/night_shift_state.json, log /tmp/trace_night_shift.log.
 - **G1 = founder desk acceptance** (≥4 desk objects named+pinned, no
   dupes on re-show, survive swipe-kill, /world shows them). Next lead
   turn: analyze /tmp/spatial_pull/spatial_diag.ndjson, tune score floor
@@ -707,7 +707,7 @@ test at a time.
 **V1 (relationship memory from comms): COMPLETE and validated on real data.**
 - Full WhatsApp archive imported: iOS ChatStorage at
   `"/Users/zer00/Desktop/Claude not code/1.sqlite"` → 209 contacts, graph at
-  `data/soma_hub.sqlite3` (backup: `data/soma_hub.sqlite3.bak-20260610`).
+  `data/trace_hub.sqlite3` (backup: `data/trace_hub.sqlite3.bak-20260610`).
 - Recall is STRICTLY EXTRACTIVE (no generation in answers — gemma synthesis
   hallucinated people; removed, user-confirmed direction). Citations carry
   message-time provenance + confidence.
@@ -718,13 +718,13 @@ test at a time.
   judging REJECTED by measurement: gemma verdicts inverted under prompt
   rephrasing (real + canary case, 2026-06-10). `_llm_commitment_resolved`
   kept unused.
-- Demo/audit: `python3 scripts/demo_felt_moment.py --db data/soma_hub.sqlite3
+- Demo/audit: `python3 scripts/demo_felt_moment.py --db data/trace_hub.sqlite3
   --person "Name" [--facts]`
 - Eval: `python3 evaluation/run_north_star.py` — labeled fixtures through the
   real importer; canaries: banter, direction, fulfilled, lapsed, elided-subject.
 
 **V2 (camera/perception): IN PROGRESS — current focus.**
-- `soma_perception/scheduler.py`: salience + token-bucket budget engine with
+- `trace_perception/scheduler.py`: salience + token-bucket budget engine with
   PROGRESSIVE ENRICHMENT LADDER (user-confirmed core idea: attention depth =
   knowledge depth). Levels overview/attributes/minutiae at 8s/24s/72s dwell,
   one token each, cap 3; dwell_progress measured vs NEXT level requirement
@@ -732,34 +732,34 @@ test at a time.
   `salience = dwell_progress * (0.6*novelty + 0.4*stability)`. Decisions
   carry level + detail_focus; VLM consumer must prompt for DELTA facts.
   13 contract tests in `tests/test_enrichment_scheduler.py` = Swift port spec.
-- Wired into `soma_perception/worker.py` behind `--enrich-budget N` (per
+- Wired into `trace_perception/worker.py` behind `--enrich-budget N` (per
   hour). Emits `enrichment_request` JSON lines. Run via
   `./scripts/run_perception_worker.sh --enrich-budget 60 --frame-stride 4`
   (uses `.venv/bin/python` — system python3 lacks cv2).
 - Camera: agent shell has NO macOS camera permission ("Claude" not listable);
   USER runs the worker in his Terminal, piping to a /tmp file the agent reads.
-- MAC LIVE VERIFICATION DONE (2026-06-10 21:24 UTC, /tmp/soma_live.json):
+- MAC LIVE VERIFICATION DONE (2026-06-10 21:24 UTC, /tmp/trace_live.json):
   644 ticks; exactly ONE enrichment_request at 4.9s dwell (salience 0.453);
   29 below-threshold holds before; 365 ticks of silence after (repeat
   discount working); 0 denied/evicted. Analyzer:
   `python3 scripts/analyze_budget_run.py <log>`.
-- ENRICHMENT CONSUMER LIVE (soma_perception/enricher.py): worker saves
-  winning-track crops + sidecars to /tmp/soma_enrich; enricher daemon runs
+- ENRICHMENT CONSUMER LIVE (trace_perception/enricher.py): worker saves
+  winning-track crops + sidecars to /tmp/trace_enrich; enricher daemon runs
   level-appropriate gemma3 VISION passes (delta-prompted with what the graph
   knows), writes vlm_overview/attributes/minutiae attributes, deletes crops
   (no media retention). E2E-verified on synthetic object incl. minutiae
   ("faint scratch near M") landing on the SAME entity.
 - 24/7 stack: user runs in HIS Terminal (camera permission):
   `nohup ./scripts/run_trace_camera.sh 12 > /dev/null 2>&1 &`
-  stop: `pkill -f soma_perception`; analyze:
-  `python3 scripts/analyze_budget_run.py /tmp/soma_budget_run.json` +
-  /tmp/soma_enricher.log. THEN: Swift port of scheduler into FastVLM app
+  stop: `pkill -f trace_perception`; analyze:
+  `python3 scripts/analyze_budget_run.py /tmp/trace_budget_run.json` +
+  /tmp/trace_enricher.log. THEN: Swift port of scheduler into FastVLM app
   (contract = tests/test_enrichment_scheduler.py); iPhone connected.
-- Product name: TRACE (pitch brief 2026-06-10, "SOMA is a sedative") —
-  task #9 staged rename; X-SOMA-Token + soma_hub.sqlite3 are load-bearing,
+- Product name: TRACE (pitch brief 2026-06-10, "TRACE is a sedative") —
+  task #9 staged rename; X-TRACE-Token + trace_hub.sqlite3 are load-bearing,
   rename with shims only.
 - iPhone is connected to the Mac and available (FastVLM app:
-  `soma-native-fastvlm/`, bundle `de.zer00.soma`, scheme "FastVLM App";
+  `trace-native-fastvlm/`, bundle `de.zer00.trace`, scheme "FastVLM App";
   `/tmp/actool_wrapper/actool` must be recreated after reboot, chmod +x).
 
 ## THESIS LOCKED 2026-06-11 (founder strategy session) — overrides earlier framing
@@ -797,15 +797,15 @@ test at a time.
   directive (this doc = the contract).
 - MILESTONE LADDER (pitch path): M0 done (desk rig + sealed RAG).
   M1 = worn-POV Garching walk → first RAS number. Offline blocker SOLVED:
-  app spools undeliverable packets to Application Support/SOMA/
+  app spools undeliverable packets to Application Support/TRACE/
   perception_spool.ndjson (error, non-2xx, AND bad-URL guard — comma-bug
   class); replay via scripts/replay_perception_spool.py (timestamps
   preserved — verified on temp DB). Spool-enabled build INSTALLED on
   iPhone 2026-06-11. Founder runbook: ops/M1_WALK_RUNBOOK.md.
   60s OFFLINE TEST PASSED (2026-06-11 15:46): 86 packets spooled on
   device (GPS hints + OCR attempts included), pulled via devicectl —
-  path is "Library/Application Support/SOMA/perception_spool.ndjson"
-  (SOMA/ subdir!) — replayed 86/86 into temp DB then real DB with
+  path is "Library/Application Support/TRACE/perception_spool.ndjson"
+  (TRACE/ subdir!) — replayed 86/86 into temp DB then real DB with
   capture timestamps intact; 1 place row (no phantom explosion); device
   spool truncated after replay (push empty file — devicectl has no rm).
   WiFi GOTCHA: Control Center toggle doesn't rejoin — desk capture keeps
@@ -884,14 +884,14 @@ test at a time.
 - Model export recipe: .venv/bin/python ultralytics export format=coreml
   nms=True → yolo11n.mlpackage → copy into "FastVLM App/" (synced group).
 - Respawn verification (2026-06-11 17:35 CEST): visual-only wipe is already
-  applied and backed up (`data/soma_hub.sqlite3.bak-prewipe-202606111723`);
+  applied and backed up (`data/trace_hub.sqlite3.bak-prewipe-202606111723`);
   current DB keeps 22,949 WhatsApp messages but has 0 visual observations and
   0 visual relations. Python tests pass (122), north-star remains 1.00.
   Genesis-frame Spatial mode now builds: iPhone Release build passes with
   `ASSETCATALOG_EXEC=/tmp/actool_wrapper/actool` as an xcodebuild setting,
   and Mac Debug build also passes after guarding ARKit/CoreMotion/fullScreenCover
   to iOS with harmless Mac stubs. Signed build installed on paired iPhone
-  (`de.zer00.soma`) at 2026-06-11 17:37 CEST. NEXT: 60s desk smoke test
+  (`de.zer00.trace`) at 2026-06-11 17:37 CEST. NEXT: 60s desk smoke test
   above.
 - Founder correction (2026-06-11 17:48 CEST): do NOT frame Spatial mode as
   answering questions or emitting an indented textual tree. Desired behavior:
@@ -984,12 +984,12 @@ test at a time.
   until tracking reaches `.normal`; after 20s it logs `relocalization_timeout`
   and allows upserts with loaded objects.
 - Diagnostics: every naming/upsert decision appends to
-  `Application Support/SOMA/spatial_diag.ndjson` with ts, word, score, ms,
+  `Application Support/TRACE/spatial_diag.ndjson` with ts, word, score, ms,
   pos, decision, matched_id, dist_to_nearest_same_word, and extra reason/
   sightings fields. This is the file to pull after the desk test.
 - Added `scripts/run_trace_stack.sh`: idempotent startup for hub (:8765),
   dashboard/world (:8777), and enricher. Verified output now returns
-  `/health` 200 with `X-SOMA-Token: dev-token`, `/` 200, `/world` 200.
+  `/health` 200 with `X-TRACE-Token: dev-token`, `/` 200, `/world` 200.
 - Validation: focused iOS type-check of `MobileCLIPNamer.swift` +
   `SpatialWorld.swift` passes (only known standalone CVImageBuffer Sendable
   warning); Mac Debug Xcode build passes; Python unittest suite 122/122 and
@@ -1016,7 +1016,7 @@ test at a time.
   via edge raycasts, spatial_pose attribute in graph (upsert by
   entity+key), /world renders from DB, re-entry missing/moved events,
   perf budget + vocab_misses.ndjson feedback loop. Python suite stays
-  the gate after any soma_hub change.
+  the gate after any trace_hub change.
 
 ## CODEX DELEGATION (2026-06-11 ~20:30)
 
@@ -1038,14 +1038,14 @@ test at a time.
   SpatialWorld access-level errors fixed). Parallel session's
   SpatialWorld.swift = genesis-frame ARKit world engine (founder's
   spatial vision) — already in the app.
-- scripts/soma_night_shift.py is executing ops/night_shift_queue.json
+- scripts/trace_night_shift.py is executing ops/night_shift_queue.json
   unattended: T1 episodes module (qwen+self-test) -> T2 suite gate ->
   T3 GT-video review tool -> T4 founder desk check -> T5 ocr_still
   device gate -> T6 founder walk 2 (record button + blind battery) ->
   T7 spool replay + episodes + RAS ask -> T8 founder verdicts.
-- State: ops/night_shift_state.json; log /tmp/soma_night_shift.log;
-  founder channel /tmp/soma_founder_request.txt -> reply via
-  'echo done > /tmp/soma_founder_reply.txt'. Stop: pkill -f soma_night_shift.
+- State: ops/night_shift_state.json; log /tmp/trace_night_shift.log;
+  founder channel /tmp/trace_founder_request.txt -> reply via
+  'echo done > /tmp/trace_founder_reply.txt'. Stop: pkill -f trace_night_shift.
 - NEXT CLAUDE SESSION: read state+log FIRST; qwen work is committed as
   'night-shift:' commits — REVIEW EVERY ONE (qwen passes self-tests it
   wrote to my spec, not judgment); then walk-2 postmortem vs RAS -8.0;
@@ -1126,7 +1126,7 @@ reality, reconstructable without media. Three acceptance failures, all
 2. "What color are the eyeglasses" → legacy MemoryStore dump. No graph
    object-attribute intent; also the eyeglasses entity came from the iOS
    app and mac YOLO can't see that class → never enriched. → task #14.
-   On-device scheduler app INSTALLED on iPhone (de.zer00.soma) closes capture.
+   On-device scheduler app INSTALLED on iPhone (de.zer00.trace) closes capture.
 3. Phantom GPS places while sitting in one room. GPS demoted to coarse
    anchor; precise position = visual-inertial dead reckoning (user's pan-
    tracking insight = ARKit VIO). → task #10 sharpened + place clustering.
@@ -1161,11 +1161,11 @@ reality, reconstructable without media. Three acceptance failures, all
   (legacy observation dump suppressed for those intents).
 - Dashboard UI: flex min-height fixes; chips drop ?/0.00 noise.
 - iPhone CONFIRMED POSTING: app hub URL was already right; blocker was hub
-  not running on mac. Hub must be up: python3 -m soma_hub.api --host
+  not running on mac. Hub must be up: python3 -m trace_hub.api --host
   0.0.0.0 --port 8765 (mac IP 192.168.50.145, phone 192.168.50.69).
 - Pull/push app prefs without user: xcrun devicectl device copy from/to
-  --domain-type appDataContainer --domain-identifier de.zer00.soma
-  --source Library/Preferences/de.zer00.soma.plist
+  --domain-type appDataContainer --domain-identifier de.zer00.trace
+  --source Library/Preferences/de.zer00.trace.plist
 
 ## Spatial object permanence core (2026-06-12)
 
@@ -1179,13 +1179,13 @@ reality, reconstructable without media. Three acceptance failures, all
   `ops/spatial_vocab.txt`; offline builder is
   `scripts/build_vocab_embeddings.py`.
 - Added the local Core ML image package at
-  `soma-native-fastvlm/FastVLM App/mobileclip_s0_image.mlpackage` (22 MB) and
+  `trace-native-fastvlm/FastVLM App/mobileclip_s0_image.mlpackage` (22 MB) and
   vocab JSON (916 KB). NOTE: the builder downloads a hidden Hugging Face
   `.cache/` if run with image-model fetch; delete that cache before building
   because Xcode synchronized groups try to compile it.
 - Permanence landed: spatial objects persist to
-  `Application Support/SOMA/spatial_world.json`; ARWorldMap persists to
-  `Application Support/SOMA/spatial_world.arexperience`; start reloads both,
+  `Application Support/TRACE/spatial_world.json`; ARWorldMap persists to
+  `Application Support/TRACE/spatial_world.arexperience`; start reloads both,
   stop saves both. Upsert identity = same word within 0.4 m; sightings
   increments; position EMA = 0.8 old + 0.2 new; no cap/no decay/no deletion.
 - Validation: Mac Debug build succeeds with
@@ -1227,11 +1227,11 @@ reality, reconstructable without media. Three acceptance failures, all
 - Local workers: gemma3:12b-it-qat (gates), qwen2.5-coder:14b (bounded
   single-file transforms ONLY — proved incompetent at cross-module work).
   Don't run two ollama models concurrently with imports (GPU swap thrash).
-- Auth header `X-SOMA-Token`; DB `soma_hub.sqlite3`; `with self._connect()`;
+- Auth header `X-TRACE-Token`; DB `trace_hub.sqlite3`; `with self._connect()`;
   no Flask; never Apple ID/password. Hub = test harness only (no server in
   product; phone is in-process library).
-- SOMA_USER_NAME env for text-export imports (default "pranav");
-  SOMA_COMMITMENT_WINDOW_DAYS (default 60).
+- TRACE_USER_NAME env for text-export imports (default "pranav");
+  TRACE_COMMITMENT_WINDOW_DAYS (default 60).
 - Re-import is idempotent (upsert by entity+key; same-JID zombies archived).
 - Commit style: short imperative subject + measured rationale body.
 
@@ -1312,7 +1312,7 @@ reality, reconstructable without media. Three acceptance failures, all
   count (trusted distinct vs CLIP's 491) + trusted /world3d (phantoms
   abstained out). Then: rebuild vocab embeddings for the +10 words
   (.venv/bin/python scripts/build_vocab_embeddings.py --vocab
-  ops/spatial_vocab.txt --out 'soma-native-fastvlm/FastVLM App/Resources/
+  ops/spatial_vocab.txt --out 'trace-native-fastvlm/FastVLM App/Resources/
   vocab_embeddings.json'); founder views /world3d; compare trusted-home vs
   the 24 on-device. Capture-quality brief (pose-angular-velocity frame
   selection) is the next density lever.

@@ -15,12 +15,14 @@ Pair with a window launched chromeless so its title is the page <title>:
     open -na "Brave Browser" --args --user-data-dir=/tmp/trace_brave_profile \
         --app=file:///.../data/live/_embed/live.html --window-size=1280,800
 """
+
 from __future__ import annotations
 
 import argparse
 import base64
 import io
 import json
+import os
 import subprocess
 import sys
 import time
@@ -99,6 +101,7 @@ def find_window(title: str, pids: Optional[set[int]] = None) -> Optional[dict]:
 # High-confidence verbatim-text channel: Apple Vision OCR (in-memory, no disk).
 try:
     import os as _os
+
     _root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
     if _root not in sys.path:
         sys.path.insert(0, _root)
@@ -160,6 +163,7 @@ def capture_window_jpeg(win_id: int, max_w: int = 768, quality: int = 70) -> tup
         CGImageDestinationFinalize,
     )
     from CoreFoundation import CFDataCreateMutable
+
     data = CFDataCreateMutable(None, 0)
     dest = CGImageDestinationCreateWithData(data, "public.png", 1, None)
     CGImageDestinationAddImage(dest, cgimg, None)
@@ -168,6 +172,7 @@ def capture_window_jpeg(win_id: int, max_w: int = 768, quality: int = 70) -> tup
     raw = CFDataGetBytes(data, (0, length), None)
     png = bytes(raw)
     from PIL import Image
+
     img = Image.open(io.BytesIO(png)).convert("RGB")
     if img.width > max_w:
         img = img.resize((max_w, int(img.height * max_w / img.width)))
@@ -186,7 +191,8 @@ def perceive(jpeg: bytes, model: str, ollama: str, timeout: int = 120) -> str:
         "options": {"temperature": 0.1, "num_predict": 220},
     }
     req = urllib.request.Request(
-        f"{ollama}/api/generate", data=json.dumps(payload).encode(),
+        f"{ollama}/api/generate",
+        data=json.dumps(payload).encode(),
         headers={"content-type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -194,11 +200,20 @@ def perceive(jpeg: bytes, model: str, ollama: str, timeout: int = 120) -> str:
 
 
 def post_perception(brain: str, moment: str, text: str, timeout: int = 10) -> dict:
-    payload = {"moment_id": moment, "memory_text": text, "source": "live_screen",
-               "scene_phase": "live"}
+    payload = {
+        "moment_id": moment,
+        "memory_text": text,
+        "source": "live_screen",
+        "scene_phase": "live",
+    }
+    headers = {"content-type": "application/json"}
+    token = os.environ.get("TRACE_TOKEN", "dev-token")
+    if token:
+        headers["X-TRACE-Token"] = token
     req = urllib.request.Request(
-        f"{brain}/capture/perception", data=json.dumps(payload).encode(),
-        headers={"content-type": "application/json"},
+        f"{brain}/capture/perception",
+        data=json.dumps(payload).encode(),
+        headers=headers,
     )
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.load(r)
@@ -219,14 +234,19 @@ def main() -> int:
     pids = trace_brave_pids()
     win = find_window(args.title, pids)
     if not win:
-        print(f"[live_feed] no TRACE window found (pids={pids or 'none'}, "
-              f"title~{args.title!r}). Launch the TRACE live window first.", file=sys.stderr)
+        print(
+            f"[live_feed] no TRACE window found (pids={pids or 'none'}, "
+            f"title~{args.title!r}). Launch the TRACE live window first.",
+            file=sys.stderr,
+        )
         return 2
     win_id = win.get("kCGWindowNumber")
     b = win.get("kCGWindowBounds", {})
-    print(f"[live_feed] capturing window {win_id} "
-          f"{int(b.get('Width',0))}x{int(b.get('Height',0))} title={win.get('kCGWindowName')!r}",
-          flush=True)
+    print(
+        f"[live_feed] capturing window {win_id} "
+        f"{int(b.get('Width', 0))}x{int(b.get('Height', 0))} title={win.get('kCGWindowName')!r}",
+        flush=True,
+    )
 
     if args.probe:
         jpeg, ocr = capture_window_jpeg(win_id)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Temporal Specialist — SOMA walk-the-walk memory.
+"""Temporal Specialist — TRACE walk-the-walk memory.
 
 Answers "how long did I spend on X vs Y" and related temporal questions by
 computing continuous TIME-IN-VIEW spans directly from the per-keyframe
@@ -82,7 +82,7 @@ def _detect_subjects(record: dict) -> set[str]:
     # "command" and "option" are keyboard keys that only appear on the laptop OCR.
     if any(k in both for k in ("laptop", "trackpad", "keyboard")):
         subjects.add("laptop")
-    elif any(k in ocr for k in ("command", "option", "ctrl", "welcome back", "soma")):
+    elif any(k in ocr for k in ("command", "option", "ctrl", "welcome back", "trace")):
         subjects.add("laptop")
 
     # --- Röntgen poster (blue) ---
@@ -534,7 +534,7 @@ def _self_test() -> int:
 # --------------------------------------------------------------------------- #
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Temporal specialist for SOMA walk-the-walk memory")
+        description="Temporal specialist for TRACE walk-the-walk memory")
     ap.add_argument("--self-test", action="store_true",
                     help="run built-in self-test on the real walk memory")
     ap.add_argument("--kf", default=None,

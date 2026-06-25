@@ -202,6 +202,7 @@ def build_state():
                              _age("critic_dil.json")) if a is not None]
     state["data_age_s"] = min(data_ages) if data_ages else None
 
+    state["pitch"] = read_json("pitch_progress.json", {})  # founder's always-on prototype tracker
     state["plan"] = read_json("plan.json", {})
     state["status"] = read_json("status.json", {})
     state["asks"] = read_json("asks.json", {})

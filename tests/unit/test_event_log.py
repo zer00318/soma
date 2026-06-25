@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from soma.adapters.sqlite_eventlog import SqliteEventLog
-from soma.domain.confidence import Confidence
-from soma.domain.observation import Attribute, Observation
-from soma.domain.provenance import Provenance
+from trace_memory.adapters.sqlite_eventlog import SqliteEventLog
+from trace_memory.domain.confidence import Confidence
+from trace_memory.domain.observation import Attribute, Observation
+from trace_memory.domain.provenance import Provenance
 
 
 def _observation(

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Small local dashboard for the SOMA Claude supervisor."""
+"""Small local dashboard for the TRACE Claude supervisor."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from typing import Any
 
 
 ROOT = Path("/Users/zer00/Documents/VLM")
-STATE_DIR = ROOT / ".soma_supervisor"
+STATE_DIR = ROOT / ".trace_supervisor"
 STATE_FILE = STATE_DIR / "state.json"
 REQUEST_FILE = STATE_DIR / "USER_TEST_REQUEST.txt"
 
@@ -22,7 +22,7 @@ HTML = """<!doctype html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SOMA Supervisor</title>
+  <title>TRACE Supervisor</title>
   <style>
     body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; background:#111827; color:#f3f4f6; margin:0; }
     .wrap { max-width:1100px; margin:0 auto; padding:24px; }
@@ -41,7 +41,7 @@ HTML = """<!doctype html>
 </head>
 <body>
   <div class="wrap">
-    <h1>SOMA Supervisor</h1>
+    <h1>TRACE Supervisor</h1>
     <div class="row">
       <div class="card"><div class="label">Claude process</div><div class="value" id="process">…</div></div>
       <div class="card"><div class="label">Model</div><div class="value" id="model">…</div></div>
@@ -187,9 +187,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> int:
-    port = int(os.environ.get("SOMA_SUPERVISOR_DASHBOARD_PORT", "8787"))
+    port = int(os.environ.get("TRACE_SUPERVISOR_DASHBOARD_PORT", "8787"))
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"SOMA supervisor dashboard: http://127.0.0.1:{port}")
+    print(f"TRACE supervisor dashboard: http://127.0.0.1:{port}")
     server.serve_forever()
     return 0
 

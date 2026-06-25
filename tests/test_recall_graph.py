@@ -10,23 +10,23 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from soma_hub.crypto import EncryptedTextCodec
-from soma_hub.graph import RelationalMemoryGraph
-from soma_hub.recall import RecallFirewall
-from soma_hub.storage import MemoryStore
+from trace_hub.crypto import EncryptedTextCodec
+from trace_hub.graph import RelationalMemoryGraph
+from trace_hub.recall import RecallFirewall
+from trace_hub.storage import MemoryStore
 
 # Stable test key — 32 bytes minimum
-_TEST_KEY = b"soma-test-key-for-unit-tests-xyz"
+_TEST_KEY = b"trace-test-key-for-unit-tests-xyz"
 
 
 def _make_graph(tmp_path: Path) -> RelationalMemoryGraph:
     codec = EncryptedTextCodec(_TEST_KEY)
-    return RelationalMemoryGraph(tmp_path / "soma_hub.sqlite3", codec)
+    return RelationalMemoryGraph(tmp_path / "trace_hub.sqlite3", codec)
 
 
 def _make_store(tmp_path: Path) -> MemoryStore:
     codec = EncryptedTextCodec(_TEST_KEY)
-    return MemoryStore(tmp_path / "soma_hub.sqlite3", codec)
+    return MemoryStore(tmp_path / "trace_hub.sqlite3", codec)
 
 
 class TestObservationDedup(unittest.TestCase):
@@ -41,7 +41,7 @@ class TestObservationDedup(unittest.TestCase):
         self._tmp.cleanup()
 
     def _count_observations(self) -> int:
-        db_path = self.tmp / "soma_hub.sqlite3"
+        db_path = self.tmp / "trace_hub.sqlite3"
         with sqlite3.connect(db_path) as conn:
             row = conn.execute("SELECT COUNT(*) FROM graph_observations").fetchone()
             return row[0]

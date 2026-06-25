@@ -44,6 +44,34 @@ def test_truncation_folds_into_complete():
     check("truncation -> complete date", r["answer"] == "1881 - 1945" and not r["refused"])
 
 
+def test_numeric_value_does_not_fold_into_street_text():
+    scenes = [
+        {"t": 10.0, "ocr": ["1881"]},
+        {"t": 10.5, "ocr": ["1881"]},
+        {"t": 11.0, "ocr": ["1881 Hauptstrasse"]},
+    ]
+    r = cr.consensus_read(scenes, "What number is shown?", name_answerer,
+                          center=10.5, half=3, minrep=3)
+    check("bare number stays separate from street text",
+          r["answer"] != "1881 Hauptstrasse"
+          and r["tally"].get("1881") == 2
+          and r["tally"].get("1881 hauptstrasse") == 1)
+
+
+def test_numeric_prefix_truncation_folds_into_full_number():
+    scenes = [
+        {"t": 20.0, "ocr": ["089 289"]},
+        {"t": 20.5, "ocr": ["089 289"]},
+        {"t": 21.0, "ocr": ["089 289 112"]},
+    ]
+    r = cr.consensus_read(scenes, "What phone number is shown?", name_answerer,
+                          center=20.5, half=3, minrep=3)
+    check("numeric prefix truncation -> full number",
+          r["answer"] == "089 289 112"
+          and not r["refused"]
+          and r["support"] == 3)
+
+
 def test_one_off_garble_refuses():
     """Cursive the camera can't read -> random per-frame garble, no consensus ->
     the memory must stay SILENT rather than emit a confident lie."""

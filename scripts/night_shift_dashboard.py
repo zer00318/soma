@@ -18,13 +18,13 @@ from pathlib import Path
 ROOT = Path("/Users/zer00/Documents/VLM")
 QUEUE = ROOT / "ops" / "night_shift_queue.json"
 STATE = ROOT / "ops" / "night_shift_state.json"
-LOG = Path("/tmp/soma_night_shift.log")
-REQUEST = Path("/tmp/soma_founder_request.txt")
-REPLY = Path("/tmp/soma_founder_reply.txt")
+LOG = Path("/tmp/trace_night_shift.log")
+REQUEST = Path("/tmp/trace_founder_request.txt")
+REPLY = Path("/tmp/trace_founder_reply.txt")
 PORT = 8788
 
 PAGE = """<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>SOMA Night Shift</title>
+<html><head><meta charset="utf-8"><title>TRACE Night Shift</title>
 <style>
  body{background:#0d1117;color:#e6edf3;font:14px -apple-system,sans-serif;margin:0;padding:24px}
  h1{font-size:20px;margin:0 0 4px} .sub{color:#8b949e;margin-bottom:20px}
@@ -48,7 +48,7 @@ PAGE = """<!DOCTYPE html>
  .bar{height:10px;background:#21262d;border-radius:6px;overflow:hidden;margin:8px 0 4px}
  .fill{height:100%;background:linear-gradient(90deg,#1f6feb,#3fb950);transition:width .6s}
 </style></head><body>
-<h1>SOMA Night Shift <span id="alive" class="badge dead">checking…</span></h1>
+<h1>TRACE Night Shift <span id="alive" class="badge dead">checking…</span></h1>
 <div class="sub">Local models working while everyone sleeps · refreshes every 3s</div>
 <div class="row">
  <div class="col">
@@ -92,7 +92,7 @@ refresh();setInterval(refresh,3000);
 
 
 def shift_alive() -> bool:
-    return subprocess.run(["pgrep", "-f", "soma_night_shift.py"],
+    return subprocess.run(["pgrep", "-f", "trace_night_shift.py"],
                           capture_output=True).returncode == 0
 
 
@@ -133,9 +133,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/done":
             REPLY.write_text("done\n")
         elif self.path == "/api/stop":
-            subprocess.run(["pkill", "-f", "soma_night_shift.py"], capture_output=True)
+            subprocess.run(["pkill", "-f", "trace_night_shift.py"], capture_output=True)
         elif self.path == "/api/restart":
-            subprocess.run(["pkill", "-f", "soma_night_shift.py"], capture_output=True)
+            subprocess.run(["pkill", "-f", "trace_night_shift.py"], capture_output=True)
             # failed tasks become retryable on restart
             if STATE.exists():
                 state = json.loads(STATE.read_text())
@@ -144,8 +144,8 @@ class Handler(BaseHTTPRequestHandler):
                         st["status"] = "pending"
                 STATE.write_text(json.dumps(state, indent=2))
             subprocess.Popen(
-                ["nohup", "python3", str(ROOT / "scripts" / "soma_night_shift.py")],
-                stdout=open("/tmp/soma_night_shift_stdout.log", "a"),
+                ["nohup", "python3", str(ROOT / "scripts" / "trace_night_shift.py")],
+                stdout=open("/tmp/trace_night_shift_stdout.log", "a"),
                 stderr=subprocess.STDOUT, cwd=ROOT, start_new_session=True,
             )
         self._send(b'{"ok": true}')

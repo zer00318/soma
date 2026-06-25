@@ -1,4 +1,4 @@
-# SOMA Capture Pivot — Definitive Honest Assessment
+# TRACE Capture Pivot — Definitive Honest Assessment
 **Date:** 2026-06-13 · **Capture:** `capture_20260613_041423` (home, 12 min) · **Walk analyzed:** OFFICE
 **Build:** app `15caaf9` · device iPhone18,3 / iOS 27.0
 

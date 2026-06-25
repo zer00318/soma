@@ -12,17 +12,17 @@ from urllib.request import Request, urlopen
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from soma_hub.graph_audit import GraphAuditor, audit_to_dict
+from trace_hub.graph_audit import GraphAuditor, audit_to_dict
 
 
 def get_json(url: str, token: str) -> dict:
-    request = Request(url, headers={"X-SOMA-Token": token})
+    request = Request(url, headers={"X-TRACE-Token": token})
     with urlopen(request, timeout=5) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
 def print_report(payload: dict, iteration: int) -> None:
-    print(f"\n=== SOMA Live Graph Audit #{iteration}: {payload['grade']} ({payload['score']}%) ===")
+    print(f"\n=== TRACE Live Graph Audit #{iteration}: {payload['grade']} ({payload['score']}%) ===")
     print(f"Counts: {payload['counts']}")
     print(f"Relation types: {payload['relation_types']}")
     if payload["strengths"]:
@@ -74,7 +74,7 @@ def print_report(payload: dict, iteration: int) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Poll a running SOMA hub and audit the relational graph.")
+    parser = argparse.ArgumentParser(description="Poll a running TRACE hub and audit the relational graph.")
     parser.add_argument("--base-url", default="http://127.0.0.1:8765")
     parser.add_argument("--token", default="dev-token")
     parser.add_argument("--interval", type=float, default=10)
@@ -97,7 +97,7 @@ def main() -> int:
                 profile_url = f"{profile_url}?{urlencode({'label': args.label})}"
             profiles = get_json(profile_url, args.token).get("profiles", [])
         except (HTTPError, URLError, TimeoutError) as exc:
-            print(f"SOMA graph audit could not reach hub: {exc}", file=sys.stderr)
+            print(f"TRACE graph audit could not reach hub: {exc}", file=sys.stderr)
             return 2
 
         payload = audit_to_dict(auditor.audit(graph, relations, profiles))

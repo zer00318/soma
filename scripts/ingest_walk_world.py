@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Post a fused offline walk world into the SOMA hub.
+"""Post a fused offline walk world into the TRACE hub.
 
 Positioned objects are sent with metadata.spatial_words so the existing
 spatial_pose graph path persists them. Positionless objects are still posted
@@ -136,7 +136,7 @@ def _post_json(url: str, token: str, payload: dict[str, Any]) -> tuple[int, str]
     req = urllib.request.Request(
         url.rstrip("/") + "/capture/perception",
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "X-SOMA-Token": token},
+        headers={"Content-Type": "application/json", "X-TRACE-Token": token},
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=12) as resp:

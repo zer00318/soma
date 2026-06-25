@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import unittest
 
-from soma_perception.scheduler import (
+from trace_perception.scheduler import (
     EnrichmentScheduler,
     SalienceScorer,
     TokenBucket,

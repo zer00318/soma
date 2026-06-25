@@ -25,26 +25,26 @@ walk (Garching), then a blind question battery the same evening.
 ```bash
 cd /Users/zer00/Documents/VLM
 
-# 1. Pull the spool off the phone (note the SOMA/ subdirectory)
+# 1. Pull the spool off the phone (note the TRACE/ subdirectory)
 xcrun devicectl device copy from \
   --device D3A506B2-8923-5313-B8A3-FF769ABBA228 \
-  --domain-type appDataContainer --domain-identifier de.zer00.soma \
-  --source "Library/Application Support/SOMA/perception_spool.ndjson" \
+  --domain-type appDataContainer --domain-identifier de.zer00.trace \
+  --source "Library/Application Support/TRACE/perception_spool.ndjson" \
   --destination /tmp/perception_spool.ndjson
 
 # 2. Stop daemons, replay with original walk timestamps, restart
-pkill -f soma_hub.api; pkill -f soma_perception.enricher
+pkill -f trace_hub.api; pkill -f trace_perception.enricher
 python3 scripts/replay_perception_spool.py /tmp/perception_spool.ndjson
-nohup python3 -m soma_hub.api --host 0.0.0.0 --port 8765 >> /tmp/soma_hub_err.log 2>&1 &
-nohup python3 -m soma_perception.enricher --db data/soma_hub.sqlite3 >> /tmp/soma_enricher.log 2>&1 &
+nohup python3 -m trace_hub.api --host 0.0.0.0 --port 8765 >> /tmp/trace_hub_err.log 2>&1 &
+nohup python3 -m trace_perception.enricher --db data/trace_hub.sqlite3 >> /tmp/trace_enricher.log 2>&1 &
 
 # 3. Truncate the device spool so it is never replayed twice
 : > /tmp/empty_spool.ndjson
 xcrun devicectl device copy to \
   --device D3A506B2-8923-5313-B8A3-FF769ABBA228 \
-  --domain-type appDataContainer --domain-identifier de.zer00.soma \
+  --domain-type appDataContainer --domain-identifier de.zer00.trace \
   --source /tmp/empty_spool.ndjson \
-  --destination "Library/Application Support/SOMA/perception_spool.ndjson"
+  --destination "Library/Application Support/TRACE/perception_spool.ndjson"
 ```
 
 WiFi gotcha (learned in the 60s test): the Control Center WiFi toggle

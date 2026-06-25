@@ -1,10 +1,10 @@
-# SOMA — North Star (canonical, rewritten 2026-06-14)
+# TRACE — North Star (canonical, rewritten 2026-06-14)
 
 > The single source of truth for what we're building and how. If a task doesn't
 > serve this, don't do it. Supersedes scattered goal statements.
 
 ## What it is
-A memory you can question. SOMA senses your day through cheap, always-on
+A memory you can question. TRACE senses your day through cheap, always-on
 perception, turns everything into **words the instant it happens** — never keeping
 one frame of video or one second of audio — and at night **thinks over those
 words**, binding scattered facts into understanding. Later you ask anything; it

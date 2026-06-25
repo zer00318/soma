@@ -11,7 +11,7 @@ final class LiveTranscriber {
 
     func run() throws {
         guard let recognizer = speechRecognizer, recognizer.isAvailable else {
-            throw NSError(domain: "SOMA", code: 1, userInfo: [NSLocalizedDescriptionKey: "Speech recognizer unavailable"])
+            throw NSError(domain: "TRACE", code: 1, userInfo: [NSLocalizedDescriptionKey: "Speech recognizer unavailable"])
         }
 
         let group = DispatchGroup()

@@ -9,8 +9,8 @@ turns the redundancy into confidence:
   * each frame is answered from ITS OWN local OCR (spatial adjacency — a name and the
     dates beneath it — is preserved; that binding is what a flattened bag-of-lines
     destroys),
-  * truncated reads ("188") are folded into the complete read ("1881 - 1945") by
-    substring clustering instead of competing with it,
+  * truncated reads are folded into the complete read by token-aligned clustering
+    instead of competing with it,
   * the majority non-refusal answer wins; refusals never vote,
   * a value must be agreed by >= `minrep` frames (a date NNNN-NNNN may pass on one
     clean sighting — it is structurally not a misread) or the memory stays SILENT.
@@ -62,6 +62,18 @@ def is_noise(line: str) -> bool:
 
 def _norm(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
+
+
+def _token_aligned_contains(needle: str, host: str) -> bool:
+    nt = needle.split()
+    ht = host.split()
+    if not nt or len(nt) > len(ht):
+        return False
+    if all(t.isdigit() for t in nt):
+        if any(not t.isdigit() for t in ht):
+            return False
+        return ht[:len(nt)] == nt
+    return any(ht[i:i + len(nt)] == nt for i in range(len(ht) - len(nt) + 1))
 
 
 def _ocr_lines(scene: dict) -> list[str]:
@@ -147,12 +159,12 @@ def consensus_read(
     if not tally:
         return {"answer": REFUSAL, "refused": True, "support": 0, "tally": {}}
 
-    # Fold truncated reads into the complete one: a shorter normalized answer that is
-    # a substring of a longer one is the SAME fact — sum their votes, keep the fullest.
+    # Fold truncated reads into the complete one only at token boundaries: a shorter
+    # normalized answer that appears as whole tokens in a longer one is the SAME fact.
     merged: collections.Counter = collections.Counter()
     canon_rep: dict[str, str] = {}
     for k in sorted(tally, key=len, reverse=True):
-        host = next((c for c in merged if k in c), None)
+        host = next((c for c in merged if _token_aligned_contains(k, c)), None)
         if host is None:
             merged[k] = tally[k]
             canon_rep[k] = reps[k]

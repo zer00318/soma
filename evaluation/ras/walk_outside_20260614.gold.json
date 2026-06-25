@@ -349,10 +349,10 @@
     },
     "24": {
       "q": "prompt written but not sent?",
-      "gold": "YES — an unsent draft existed: the SOMA hand-over prompt beginning \"You're taking over SOMA, a perception-to-text wearable-memory project. Working repo: /Users/zer00/Documents/VLM ...\"",
+      "gold": "YES — an unsent draft existed: the TRACE hand-over prompt beginning \"You're taking over TRACE, a perception-to-text wearable-memory project. Working repo: /Users/zer00/Documents/VLM ...\"",
       "accept": [
-        "you're taking over soma",
-        "taking over soma",
+        "you're taking over trace",
+        "taking over trace",
         "perception-to-text",
         "working repo",
         "unsent draft",

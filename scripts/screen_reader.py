@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SOMA Screen-Reader Specialist.
+"""TRACE Screen-Reader Specialist.
 
 Identifies laptop/screen frames in keyframe memory (t ≈ 0-29s), re-reads
 those JPEGs at high fidelity using crop+upscale + Apple Vision OCR ("accurate"
@@ -55,7 +55,7 @@ SCREEN_CAPTION_PATTERNS = re.compile(
 )
 
 SCREEN_OCR_PATTERNS = re.compile(
-    r"(claude|satoshi|soma|vlm|session|routines|customize|cowork|input|"
+    r"(claude|satoshi|trace|vlm|session|routines|customize|cowork|input|"
     r"welcome|fable|opus|command|option|chat)", re.IGNORECASE,
 )
 
@@ -532,7 +532,7 @@ def _self_test(kf: list[dict], kf_path: str, model: str, host: str,
 
             # Quality check: new OCR should contain legible Claude UI words
             legible_markers = [
-                "audio transcription", "soma", "vlm", "new session",
+                "audio transcription", "trace", "vlm", "new session",
                 "routines", "customize", "cowork",
             ]
             found = [m for m in legible_markers if m in new_txt.lower()]

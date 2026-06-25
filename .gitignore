@@ -22,9 +22,9 @@ build/
 
 ## Runtime state and generated logs
 data/
-soma_logs/
-.soma_backlog/
-.soma_supervisor/
+trace_logs/
+.trace_backlog/
+.trace_supervisor/
 *.log
 *.db
 *.sqlite
@@ -37,8 +37,8 @@ external/
 yolo11n.pt
 models/asr/
 tools/whisper-stream
-soma-native-fastvlm/FastVLM/model/
-soma-native-fastvlm/FastVLM App/Generated/BuildStamp.swift
+trace-native-fastvlm/FastVLM/model/
+trace-native-fastvlm/FastVLM App/Generated/BuildStamp.swift
 *.bin
 *.ggml
 *.gguf
@@ -50,10 +50,10 @@ soma-native-fastvlm/FastVLM App/Generated/BuildStamp.swift
 .coverage
 coverage/
 
-## SOMA supervisor runtime state
+## TRACE supervisor runtime state
 .ralph/
 .ralphrc
-.soma_supervisor/
+.trace_supervisor/
 
 # large capture media (durable on disk, not in git)
 data/walks/**/*.mov
@@ -85,7 +85,7 @@ data/walks/*.mov
 
 ## Archived corrupt object store (forensic only) + legacy dead-code data
 archive/git-corrupt-*/
-archive/soma_hub_legacy/data/
+trace_hub/data/
 
 ## Cockpit runtime state (pids, locks, heartbeats, jsonl logs, rescore
 ## checkpoints) — written continuously by background processes; not source.
@@ -97,3 +97,10 @@ ops/cockpit/
 ## .git — never let them be committed. (Proper fix: move the repo out of iCloud.)
 * [0-9].*
 * [0-9]
+
+# local secrets (frontier text-egress key, never committed)
+.secrets/
+
+# never commit bundled model weights (GBs)
+trace-native-fastvlm/FastVLM/model/*.safetensors
+models/**/*.safetensors

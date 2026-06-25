@@ -49,6 +49,7 @@ table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}td{borde
 </div>
 <div class="wrap">
   <div id="hero"></div>
+  <div id="pitch"></div>
   <h2>What I'm doing right now</h2><div class="card" id="now"></div>
   <h2>Live rescoring: both videos</h2><div class="row" id="liveboth"></div>
   <h2>The evidence behind the bar</h2>
@@ -122,6 +123,22 @@ function paintHero(){
     +'<span class="chip on">Workflow '+pct+'% · active</span><span class="chip off">Product quality: '+esc(p.quality_state||"UNPROVEN")+'</span>'
     +(p.progress_basis?'<div class="dim" style="margin-top:8px">'+esc(p.progress_basis)+'</div>':'')
     +traj+'</div>';
+}
+function paintPitch(){
+  var p=S.pitch||{}, ms=p.milestones||[];
+  if(!ms.length){$("pitch").innerHTML='';return;}
+  var pct=p.percent||0;
+  var rows=ms.map(function(m){
+    var ic=m.state==="done"?'<span style="color:var(--good)">✓</span>':(m.state==="now"?'<span style="color:var(--amber)">▶</span>':'<span class="dim">○</span>');
+    var sty=m.state==="now"?' style="color:var(--amber);font-weight:600"':(m.state==="done"?'':' class="muted"');
+    return '<div style="padding:2px 0;font-size:14px">'+ic+' <span'+sty+'>'+esc(m.label)+'</span>'+(m.note?' <span class="dim">— '+esc(m.note)+'</span>':'')+'</div>';
+  }).join("");
+  $("pitch").innerHTML='<div class="card" style="border:1px solid var(--amber)">'
+    +'<div class="muted">🚀 PITCH PROTOTYPE'+(p.headline?' — '+esc(p.headline):'')+'</div>'
+    +'<div class="big" style="margin:4px 0">'+pct+'%</div>'
+    +'<div class="bar"><div class="fill" style="width:'+pct+'%">'+pct+'%</div></div>'
+    +'<div style="margin-top:10px">'+rows+'</div>'
+    +(p.updated?'<div class="dim" style="margin-top:8px">updated '+esc(p.updated)+'</div>':'')+'</div>';
 }
 function paintNow(){
   var st=S.status||{}, el=S.eval_live||{}, out="";
@@ -220,7 +237,7 @@ function paintSB(){
   $("sb").innerHTML=led+tbl;
 }
 function paintBody(){
-  [paintHero,paintNow,paintLiveBoth,paintClipTog,paintEv,paintAsks,paintMsgs,paintCritic,paintMap,paintSB].forEach(function(f){try{f();}catch(e){}});
+  [paintHero,paintPitch,paintNow,paintLiveBoth,paintClipTog,paintEv,paintAsks,paintMsgs,paintCritic,paintMap,paintSB].forEach(function(f){try{f();}catch(e){}});
 }
 
 function steer(kind){

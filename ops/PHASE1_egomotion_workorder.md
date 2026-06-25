@@ -4,7 +4,7 @@
 ## The key finding
 **The pose pipeline already exists end-to-end; the hero clip just predates it.** Not a
 greenfield build — a re-capture + small wiring.
-- `soma-native-fastvlm/FastVLM App/CaptureMode.swift` already writes
+- `trace-native-fastvlm/FastVLM App/CaptureMode.swift` already writes
   `capture_<ts>/{video.mov, poses.ndjson, meta.json}`; each pose line =
   `{t, transform[16], intrinsics[9], tracking_state}` at ~10 Hz, sharing the video clock
   (`firstFrameTimestamp`, CaptureMode.swift:333-347).
@@ -84,7 +84,7 @@ GPS heading; with `egomotion.json` removed, both fall back to honest refusal —
 was earned from real pose, not confabulated. Spatial-class hallucination stays 0 either way.
 
 ## Key files
-- `soma-native-fastvlm/FastVLM App/CaptureMode.swift` (capture; add GPS+audio; pose at 89-101, 333-347)
+- `trace-native-fastvlm/FastVLM App/CaptureMode.swift` (capture; add GPS+audio; pose at 89-101, 333-347)
 - `scripts/walk_select_sharp_frames.py` (reuse pose parsers, 29-87)
 - `scripts/ask_home.py` (brain: SPATIAL_REFUSAL ~1432; channel dict ~1097)
 - `scripts/ingest_walk_world.py` (object xyz already emitted, 97-117)

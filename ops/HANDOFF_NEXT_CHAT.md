@@ -25,7 +25,17 @@ A **wearable continuous context engine**, `HELPERS → INJECTION → LLM`:
 Privacy: no raw media stored/leaves; derived text free; PII scrubbed at the storage seam (wired+tested).
 The moat is **honesty** (binds/reads-or-refuses, fenced world knowledge), never confident fabrication.
 
-## ███ CURRENT VERIFIED STATE (2026-06-25) ███ — the loop is DEPLOYED and WORKS
+## ⚠️ REALITY CHECK (2026-06-25, later) — NOT demo-ready; core perception is UNRELIABLE
+The loop is deployed and the pieces connect, but on REAL on-phone captures the perception is
+garbage: the on-device VLM (FastVLM) echoes its prompt template, stuffs "yes", hallucinates
+attributes (Pringles→"Metal spoon"), and reads on-screen text (incl. our own messages, a YouTube
+video) as world facts; the flat-string memory has no quality floor, so the brain answers from the
+garbage (e.g. "spoon: yes, metal" — invented). "Demo-ready" is RETRACTED. Active overhaul: make the
+tiny VLM do loose perception only, build a Mac-side INJECT layer (structure/bind/quality-gate +
+screen-content filter), restructure ask-time for speed, then measure honestly. See the cycle-14
+plan in ops/SOVEREIGN_STATE.md.
+
+## ███ DEPLOYED STATE (the loop connects, pieces in place) ███
 1. **Native multi-modal app: BUILT + INSTALLED on the iPhone** (`de.zer00.trace`, iPhone 17, Xcode 26.3,
    team K84R7AX3YW, automatic signing). Source: `trace-native-fastvlm/` (scheme **"FastVLM App"**, NOT
    the shared "FastVLM" scheme which builds only the framework). **Xcode/deploy is NOT blocked** — the

@@ -51,10 +51,14 @@ _REFUSAL_CUES = (
     "no data", "no record", "not recorded", "didn't record", "didn't capture",
     "i don't know", "i dont know", "don't know",
     "not sure", "can't tell", "cannot tell", "can't say", "cannot say",
+    "can't answer", "cannot answer", "couldn't answer", "could not answer",
+    "unable to answer",
     "unanswerable", "didn't see", "did not see", "didn't read enough",
     "no idea", "unable to", "not able to", "i don't recall", "don't recall",
     "can't confirm", "cannot confirm", "couldn't confirm", "could not confirm",
     "can't determine", "cannot determine", "couldn't determine", "could not determine",
+    "doesn't specify", "does not specify", "not specified",
+    "doesn't mention", "does not mention", "not mentioned",
     "wasn't detected whether", "was not detected whether", "not detected whether",
 )
 

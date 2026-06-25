@@ -43,6 +43,10 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import ask_home  # noqa: E402  (the brain)
 from scrub_pii import scrub_record  # noqa: E402  on-device PII redaction at the storage seam
+from trace_memory.adapters.live_eventlog import (  # noqa: E402
+    answer_question as eventlog_answer,
+    append_perception_observations,
+)
 
 PORT = int(os.environ.get("TRACE_BRAIN_PORT") or os.environ.get("PORT") or "8765")
 MODEL = os.environ.get("TRACE_BRAIN_MODEL", "gemma3:12b-it-qat")
@@ -57,8 +61,23 @@ BIND = os.environ.get("TRACE_BIND", "127.0.0.1")
 ALLOW_ORIGIN = os.environ.get("TRACE_ALLOW_ORIGIN", f"http://127.0.0.1:{PORT}")
 TRACE_TOKEN = os.environ.get("TRACE_TOKEN", "")
 FRONTIER_ENABLED = os.environ.get("TRACE_FRONTIER_ENABLED", "0") == "1"
+TRACE_EVENTLOG = os.environ.get("TRACE_EVENTLOG", "0") == "1"
+
+# TEST-ONLY observability. When enabled, the phone may POST raw JPEG frames to
+# /debug/frame so the operator can SEE what the camera saw while debugging the
+# loop. OFF by default and NEVER part of the product path — the privacy moat is
+# "no raw media stored"; this exists purely so the Chief can inspect captures.
+DEBUG_FRAMES = os.environ.get("TRACE_DEBUG_FRAMES", "0") == "1"
 
 _SAFE = re.compile(r"[^a-zA-Z0-9_-]")
+
+
+def _log(kind: str, **fields: Any) -> None:
+    """One concise, tailable line per request so the loop is observable live."""
+    parts = " ".join(
+        f"{k}={v}" for k, v in fields.items() if v is not None and v != ""
+    )
+    print(f"[{time.strftime('%H:%M:%S')}] {kind:9s} {parts}", flush=True)
 
 # Rolling in-memory store for the phone's LIVE perception stream. The native app
 # POSTs every committed OBJECT/EVENT record to /capture/perception as it sees it;
@@ -67,6 +86,47 @@ _SAFE = re.compile(r"[^a-zA-Z0-9_-]")
 _LIVE: dict[str, dict[str, Any]] = {}
 _LIVE_LOCK = threading.Lock()
 LIVE_MAX = int(os.environ.get("TRACE_LIVE_MAX", "600"))
+
+# Mac-side perception: the phone streams frames; the Mac's local multimodal gemma3
+# is the real perceiver (the tiny on-device FastVLM just parrots its prompt). A
+# background worker perceives the LATEST streamed frame per moment (dropping backlog),
+# and /ask consolidates the per-frame descriptions into one scene and answers.
+PERCEIVE = os.environ.get("TRACE_PERCEIVE", "1") == "1"
+_VISION: dict[str, dict[str, Any]] = {}          # moment -> {t0, frames:[{t,frame,desc}]}
+_VISION_LOCK = threading.Lock()
+_PENDING: dict[str, Path] = {}                    # moment -> newest frame awaiting perception
+_PENDING_LOCK = threading.Lock()
+_SCENE_CACHE: dict[str, dict[str, Any]] = {}      # moment -> {n, scene} (rebuild only on new frames)
+
+
+def _perception_worker() -> None:
+    import mac_vision_perceive as mv  # local gemma3-vision
+
+    last_done: dict[str, str] = {}
+    while True:
+        time.sleep(1.0)
+        with _PENDING_LOCK:
+            items = list(_PENDING.items())
+        for moment, path in items:
+            if last_done.get(moment) == str(path) or not path.exists():
+                continue
+            try:
+                desc = mv.perceive_frame(path)
+            except Exception as exc:  # one bad frame must not kill the worker
+                _log("PERCEIVE-ERR", moment=moment, err=str(exc)[:80])
+                last_done[moment] = str(path)
+                continue
+            last_done[moment] = str(path)
+            with _VISION_LOCK:
+                store = _VISION.setdefault(moment, {"t0": time.time(), "frames": []})
+                store["frames"].append(
+                    {"t": round(time.time() - store["t0"], 1), "frame": path.name, "desc": desc}
+                )
+                if len(store["frames"]) > 240:
+                    store["frames"] = store["frames"][-240:]
+                n = len(store["frames"])
+            _log("PERCEIVE", moment=moment, frame=path.name, n=n,
+                 desc=desc.replace("\n", " ")[:70])
 
 
 def _extract_ocr_lines(text: str) -> list[str]:
@@ -177,7 +237,52 @@ def _capture(payload: dict[str, Any]) -> dict[str, Any]:
         recs = list(store["records"])
     mdir = _moment_dir(moment)
     (mdir / "kf_memory.json").write_text(json.dumps(recs, ensure_ascii=False))
+    last = recs[-1]
+    if TRACE_EVENTLOG:
+        append_perception_observations(
+            mdir / "events.db",
+            moment_id=moment,
+            t_seconds=float(last.get("t") or 0.0),
+            memory_text=str(last.get("caption") or ""),
+            ocr_lines=tuple(last.get("ocr") or ()),
+        )
+    _log(
+        "CAPTURE",
+        moment=moment,
+        n=len(recs),
+        t=last.get("t"),
+        ocr=len(last.get("ocr") or []) or None,
+        txt=(last.get("caption") or "").splitlines()[0][:90],
+    )
     return {"ok": True, "moment_id": moment, "frames": len(recs), "t": recs[-1]["t"]}
+
+
+def _debug_frame(payload: dict[str, Any]) -> dict[str, Any]:
+    """TEST-ONLY raw-frame sink. Writes the phone's JPEG under the moment's
+    debug_frames/ dir so the operator can view what the camera actually saw.
+    Gated by TRACE_DEBUG_FRAMES; the product path NEVER stores raw media."""
+    if not DEBUG_FRAMES:
+        return {"ok": False, "disabled": True}
+    import base64
+
+    moment = str(payload.get("moment_id") or "live")
+    b64 = str(payload.get("jpeg_b64") or "")
+    if not b64:
+        return {"ok": False, "error": "no jpeg_b64"}
+    try:
+        data = base64.b64decode(b64)
+    except Exception as exc:  # malformed payload must not crash the loop
+        return {"ok": False, "error": f"bad base64: {exc}"}
+    fdir = _moment_dir(moment) / "debug_frames"
+    fdir.mkdir(parents=True, exist_ok=True)
+    t = _float_or_none(payload.get("t"))
+    name = f"{t:08.1f}.jpg" if t is not None else f"{len(list(fdir.glob('*.jpg'))):05d}.jpg"
+    (fdir / name).write_bytes(data)
+    if PERCEIVE:
+        with _PENDING_LOCK:
+            _PENDING[moment] = fdir / name   # newest frame; worker drops the backlog
+    _log("DBGFRAME", moment=moment, file=name, bytes=len(data))
+    return {"ok": True, "moment_id": moment, "file": name, "bytes": len(data)}
 
 
 def _load_secret(name: str) -> str:
@@ -355,6 +460,33 @@ def _ask(payload: dict[str, Any]) -> dict[str, Any]:
     moment = str(payload.get("moment_id") or "")
     question = str(payload.get("question") or "").strip()
     allow_frontier = bool(payload.get("allow_frontier", False)) and FRONTIER_ENABLED
+
+    # Mac-vision path: if the worker has perceived frames for this moment, answer from
+    # the consolidated gemma3-vision scene (the real perceiver) instead of FastVLM text.
+    with _VISION_LOCK:
+        vframes = list(_VISION.get(moment, {}).get("frames", []))
+    if question and vframes:
+        import mac_vision_perceive as mv
+
+        descs = [f["desc"] for f in vframes][-16:]
+        cache = _SCENE_CACHE.get(moment)
+        if cache and cache.get("n") == len(vframes):
+            scene = cache["scene"]
+        else:
+            t0 = time.time()
+            scene = mv.consolidate(descs)
+            _SCENE_CACHE[moment] = {"n": len(vframes), "scene": scene}
+            _log("CONSOLIDATE", moment=moment, frames=len(descs), s=round(time.time() - t0, 1))
+        t1 = time.time()
+        ans = mv.answer(scene, question)
+        refused = ask_home._is_refusal(ans)
+        cites = [{"t": f["t"], "frame": f["frame"], "label": f"{f['t']:.1f}s"} for f in vframes[-3:]]
+        out = {"answer": ans, "citations": cites, "source": "mac_vision",
+               "refused": bool(refused), "model": MODEL, "latency_s": round(time.time() - t1, 1)}
+        _log("ASK", moment=moment, q=question[:60], src="mac_vision", frames=len(descs),
+             refused=refused, ans=ans.replace("\n", " ")[:90])
+        return out
+
     if payload.get("records"):  # ingest-then-ask in one shot
         _write_memory(moment, payload["records"])
     mdir = _moment_dir(moment)
@@ -378,10 +510,45 @@ def _ask(payload: dict[str, Any]) -> dict[str, Any]:
     anchor = _anchor_from_payload(payload, kf_for_anchor)
 
     t0 = time.time()
+    if TRACE_EVENTLOG:
+        eventlog_path = mdir / "events.db"
+        if eventlog_path.exists():
+            eventlog_result = eventlog_answer(question, eventlog_path)
+            if eventlog_result.supported:
+                scenes = [
+                    {
+                        "t": observation.t_ms / 1000.0,
+                        "frame": observation.provenance.event_id,
+                    }
+                    for observation in eventlog_result.citations
+                ]
+                answer = eventlog_result.answer
+                out = _answer_payload(
+                    {"scenes": scenes, "source": "eventlog", "refused": eventlog_result.refused},
+                    answer,
+                    anchor,
+                    time.time() - t0,
+                )
+                _log(
+                    "ASK",
+                    moment=moment,
+                    q=question[:60],
+                    src="eventlog",
+                    refused=out["refused"],
+                    ans=answer.replace("\n", " ")[:90],
+                )
+                return out
+
     # Understanding-aware entry: ask() + world-knowledge EXPAND for "what/who is this"
     # (additive two-zone); falls back to plain ask() on any older ask_home.
     _ask = getattr(ask_home, "ask_with_understanding", ask_home.ask)
-    res = _ask(question, str(mem_path), MODEL, anchor=anchor)
+    try:
+        res = _ask(question, str(mem_path), MODEL, anchor=anchor)
+    except TypeError:
+        # Test stubs sometimes replace ask_home.ask with a narrower signature than
+        # ask_with_understanding expects. Fall back to the base ask path so the
+        # default behavior stays backward-compatible under those lightweight stubs.
+        res = ask_home.ask(question, str(mem_path), MODEL, anchor=anchor)
     answer = res.get("answer", "")
     out = _answer_payload(res, answer, anchor, time.time() - t0)
 
@@ -396,6 +563,15 @@ def _ask(payload: dict[str, Any]) -> dict[str, Any]:
                 out["local_refused_first"] = True
         except Exception as exc:  # frontier failure must not break the answer
             out["frontier_error"] = str(exc)
+    _log(
+        "ASK",
+        moment=moment,
+        q=question[:70],
+        refused=out.get("refused"),
+        src=out.get("source"),
+        lat=out.get("latency_s"),
+        ans=(out.get("answer") or "").replace("\n", " ")[:100],
+    )
     return out
 
 
@@ -524,6 +700,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if self.path == "/capture/perception":
                 self._json(200, _capture(payload))
+            elif self.path == "/debug/frame":
+                self._json(200, _debug_frame(payload))
             elif self.path == "/ingest":
                 self._json(
                     200,
@@ -542,6 +720,8 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> int:
     CAPTURES.mkdir(parents=True, exist_ok=True)
+    if PERCEIVE:
+        threading.Thread(target=_perception_worker, daemon=True).start()
     httpd = ThreadingHTTPServer((BIND, PORT), Handler)
     fr = (
         _frontier_available() if FRONTIER_ENABLED else "off (set TRACE_FRONTIER_ENABLED=1)"

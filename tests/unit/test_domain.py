@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-from soma.domain import Attribute, Binding, Confidence, Entity, Observation, Provenance, Query
+from trace_memory.domain import (
+    Attribute,
+    Binding,
+    Confidence,
+    Entity,
+    Observation,
+    Provenance,
+    Query,
+)
 
 
 def test_observation_accepts_open_vocabulary_text() -> None:

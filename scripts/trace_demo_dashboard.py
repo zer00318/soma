@@ -21,12 +21,12 @@ from urllib.parse import parse_qs, urlparse
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from soma_hub.crypto import EncryptedTextCodec
-from soma_hub.graph import RelationalMemoryGraph
-from soma_hub.recall import RecallFirewall
-from soma_hub.storage import MemoryStore
+from trace_hub.crypto import EncryptedTextCodec
+from trace_hub.graph import RelationalMemoryGraph
+from trace_hub.recall import RecallFirewall
+from trace_hub.storage import MemoryStore
 
-DB = ROOT / "data" / "soma_hub.sqlite3"
+DB = ROOT / "data" / "trace_hub.sqlite3"
 PORT = 8777
 
 _codec = EncryptedTextCodec.from_env_or_file(DB.parent)

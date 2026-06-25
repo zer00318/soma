@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from soma_hub.service import SomaHub
+from trace_hub.service import TraceHub
 
 
 MEDIA_SUFFIXES = {".wav", ".mp3", ".mp4", ".mov", ".avi", ".mkv", ".jpg", ".jpeg", ".png"}
@@ -21,7 +21,7 @@ def requirement(name: str, passed: bool, details: object) -> dict:
 
 def main() -> int:
     with tempfile.TemporaryDirectory() as temp_dir:
-        hub = SomaHub(Path(temp_dir))
+        hub = TraceHub(Path(temp_dir))
         hub.ingest_perception(
             {
                 "timestamp": "2026-06-05T10:00:00+00:00",
@@ -35,7 +35,7 @@ def main() -> int:
                         "OBJECT | gray shirt | upper-body clothing | worn by visible person | likely",
                         "OBJECT | bottle | blue detector-tracked object; tracked for 4 detector frames | lower right frame; medium visible object; detector stream | likely",
                         'OBJECT | visible sign/board | OCR text: "Garching-Forschungszentrum" | above visible person; GPS 48.25588, 11.60994, accuracy ~35m | likely',
-                        'EVENT | nearby speech | transcript: "SOMA test relation graph" | spoken near visible person | likely',
+                        'EVENT | nearby speech | transcript: "TRACE test relation graph" | spoken near visible person | likely',
                     ]
                 ),
                 "location_hint": "GPS 48.25588, 11.60994, accuracy ~35m | Garching-Forschungszentrum",
@@ -58,7 +58,7 @@ def main() -> int:
         stale_people = [row for row in graph["recent_entities"] if row["label"] == "visible person" and row["status"] == "stale"]
         media_files = [path for path in Path(temp_dir).rglob("*") if path.is_file() and path.suffix.lower() in MEDIA_SUFFIXES]
 
-        with sqlite3.connect(Path(temp_dir) / "soma_hub.sqlite3") as conn:
+        with sqlite3.connect(Path(temp_dir) / "trace_hub.sqlite3") as conn:
             evidence_rows = conn.execute("SELECT evidence_cipher FROM graph_observations").fetchall()
         evidence_blob = "\n".join(row[0] for row in evidence_rows)
 

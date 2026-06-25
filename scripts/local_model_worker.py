@@ -21,7 +21,7 @@ from typing import Iterable
 SYSTEM_PROMPTS = {
     "scout": textwrap.dedent(
         """
-        You are a local scout model working inside the SOMA product monorepo.
+        You are a local scout model working inside the TRACE product monorepo.
         Your job is to inspect bounded context and return concise, grounded notes.
 
         Rules:
@@ -34,7 +34,7 @@ SYSTEM_PROMPTS = {
     ).strip(),
     "implement": textwrap.dedent(
         """
-        You are a local implementation worker for the SOMA monorepo.
+        You are a local implementation worker for the TRACE monorepo.
         You are drafting bounded changes for a lead engineer who will review
         and integrate the result.
 
@@ -51,7 +51,7 @@ SYSTEM_PROMPTS = {
     ).strip(),
     "critic": textwrap.dedent(
         """
-        You are a local review worker for the SOMA monorepo.
+        You are a local review worker for the TRACE monorepo.
         Review the provided material like a careful product engineer.
 
         Rules:

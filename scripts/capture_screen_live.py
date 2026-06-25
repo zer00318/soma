@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SOMA Live-Digital Substrate — Screen Frame Sampler.
+"""TRACE Live-Digital Substrate — Screen Frame Sampler.
 
 Simulates glasses by periodically sampling the screen while a video plays,
 producing a replayable, oracle-able frame sequence for the live-perception
@@ -213,7 +213,7 @@ def _parse_region(s: str) -> Tuple[int, int, int, int]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="SOMA screen sampler — capture frames off a live screen.",
+        description="TRACE screen sampler — capture frames off a live screen.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--session", help="Session name (output directory key)")

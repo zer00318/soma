@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Counting specialist for SOMA walk memory.
+"""Counting specialist for TRACE walk memory.
 
 Answers questions of the form "how many <category> did you see?" by
 clustering keyframes that depict the SAME real-world instance (rather
@@ -13,7 +13,7 @@ than re-counting per-frame appearances).  Uses:
   3. Gemma reasoning pass (optional): for ambiguous cluster pairs gemma
      decides merge vs. split.
 
-HARD RULES (inherited from SOMA spec):
+HARD RULES (inherited from TRACE spec):
   - Refusal-default: if the category is absent, say so honestly.
   - Never invent counts or names not grounded in kf_memory.
   - Cite timestamps, e.g. "(read at 63.5s)".
@@ -860,7 +860,7 @@ def _self_test(kf_path: str, model: str, host: str, timeout: int) -> bool:
 # ---------------------------------------------------------------------------
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Counting specialist for SOMA walk memory.")
+    ap = argparse.ArgumentParser(description="Counting specialist for TRACE walk memory.")
     ap.add_argument("--self-test", action="store_true",
                     help="Run self-test on real walk memory and print PASS/FAIL.")
     ap.add_argument("--kf", default=None, help="Path to kf_memory.json (for --self-test).")

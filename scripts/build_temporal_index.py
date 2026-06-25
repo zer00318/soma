@@ -66,7 +66,7 @@ CLASS_RULES = [
             "claude", "code or text", "code editor", "terminal",
         ],
         "ocr_kw": [
-            "claude", "soma", "command", "prompt", "$ ", "sudo", "python",
+            "claude", "trace", "command", "prompt", "$ ", "sudo", "python",
             "welcome", "http",
         ],
         "ocr_re": [],

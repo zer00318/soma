@@ -11,13 +11,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from soma_hub.crypto import EncryptedTextCodec
-from soma_hub.graph import RelationalMemoryGraph
-from soma_hub.importer import import_whatsapp
-from soma_hub.recall import RecallFirewall
-from soma_hub.storage import MemoryStore
+from trace_hub.crypto import EncryptedTextCodec
+from trace_hub.graph import RelationalMemoryGraph
+from trace_hub.importer import import_whatsapp
+from trace_hub.recall import RecallFirewall
+from trace_hub.storage import MemoryStore
 
-_TEST_KEY = b"soma-test-key-for-unit-tests-xyz"
+_TEST_KEY = b"trace-test-key-for-unit-tests-xyz"
 
 _CHAT = """\
 12.5.2026, 09:15 - Alice Tester: Good morning, did you see the grant slides?
@@ -32,10 +32,10 @@ class TestRecallProvenance(unittest.TestCase):
     def setUp(self) -> None:
         # Fixture dates are fixed; pin the commitment recency window so the
         # test does not start failing once the dates age past the default.
-        os.environ["SOMA_COMMITMENT_WINDOW_DAYS"] = "36500"
+        os.environ["TRACE_COMMITMENT_WINDOW_DAYS"] = "36500"
         self._tmp = tempfile.TemporaryDirectory()
         tmp = Path(self._tmp.name)
-        db = tmp / "soma_hub.sqlite3"
+        db = tmp / "trace_hub.sqlite3"
         chat = tmp / "_chat.txt"
         chat.write_text(_CHAT, encoding="utf-8")
         codec = EncryptedTextCodec(_TEST_KEY)
@@ -46,7 +46,7 @@ class TestRecallProvenance(unittest.TestCase):
         self.recall = RecallFirewall(self.store, self.graph)
 
     def tearDown(self) -> None:
-        os.environ.pop("SOMA_COMMITMENT_WINDOW_DAYS", None)
+        os.environ.pop("TRACE_COMMITMENT_WINDOW_DAYS", None)
         self._tmp.cleanup()
 
     def _assert_provenance(self, result: dict, expected_source: str = "whatsapp") -> None:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SOMA felt-moment demo: import personal data, then ask it real questions.
+"""TRACE felt-moment demo: import personal data, then ask it real questions.
 
 Two modes:
 
@@ -9,9 +9,9 @@ Two modes:
       python3 scripts/demo_felt_moment.py
 
   Real data — point at an existing hub DB (uses the production key from
-  SOMA_HUB_KEY or <db dir>/.soma_hub_key) and optionally name a person:
+  TRACE_HUB_KEY or <db dir>/.trace_hub_key) and optionally name a person:
 
-      python3 scripts/demo_felt_moment.py --db data/soma_hub.sqlite3 --person "Maria"
+      python3 scripts/demo_felt_moment.py --db data/trace_hub.sqlite3 --person "Maria"
 
 Every answer is printed with its provenance (source, timestamp, confidence)
 to show recall is sealed: graph-grounded, cited, never a raw-log dump.
@@ -26,11 +26,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from soma_hub.crypto import EncryptedTextCodec
-from soma_hub.graph import RelationalMemoryGraph
-from soma_hub.importer import import_ics, import_whatsapp
-from soma_hub.recall import RecallFirewall
-from soma_hub.storage import MemoryStore
+from trace_hub.crypto import EncryptedTextCodec
+from trace_hub.graph import RelationalMemoryGraph
+from trace_hub.importer import import_ics, import_whatsapp
+from trace_hub.recall import RecallFirewall
+from trace_hub.storage import MemoryStore
 
 # Realistic shape: one export file per 1:1 chat (group chats drop the
 # user's own commitments because the addressee is ambiguous).
@@ -53,9 +53,9 @@ _FIXTURE_CHATS = {
 _FIXTURE_ICS = """\
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//SOMA demo//EN
+PRODID:-//TRACE demo//EN
 BEGIN:VEVENT
-UID:demo-grant-review@soma
+UID:demo-grant-review@trace
 DTSTART:20260612T140000Z
 DTEND:20260612T150000Z
 SUMMARY:EXIST grant review with Maria Keller
@@ -145,20 +145,20 @@ def main() -> int:
             return 0
         recall = RecallFirewall(MemoryStore(db, codec), graph)
         person = args.person or "someone"
-        print(f"SOMA recall on {db} — asking about: {person}")
+        print(f"TRACE recall on {db} — asking about: {person}")
         run_sequence(recall, person)
         return 0
 
     # Fixture dates are fixed; pin the commitment window so the demo
     # keeps working as the fixture ages.
-    os.environ.setdefault("SOMA_COMMITMENT_WINDOW_DAYS", "36500")
+    os.environ.setdefault("TRACE_COMMITMENT_WINDOW_DAYS", "36500")
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
-        db = tmp_path / "soma_hub.sqlite3"
+        db = tmp_path / "trace_hub.sqlite3"
         ics = tmp_path / "calendar.ics"
         ics.write_text(_FIXTURE_ICS, encoding="utf-8")
 
-        codec = EncryptedTextCodec(b"soma-demo-key-not-for-real-data!")
+        codec = EncryptedTextCodec(b"trace-demo-key-not-for-real-data!")
         graph = RelationalMemoryGraph(db, codec)  # creates schema
         for name, content in _FIXTURE_CHATS.items():
             chat = tmp_path / name

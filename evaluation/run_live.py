@@ -21,10 +21,13 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
+import signal
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -34,9 +37,33 @@ sys.path.insert(0, str(ROOT / "evaluation"))
 import ask_home  # noqa: E402
 import auto_score as A  # noqa: E402
 from run_ras import _load_questions  # noqa: E402
-from soma.adapters.legacy_ask_home import LegacyAskHome  # noqa: E402
-from soma.application import Recall  # noqa: E402
-from soma.domain import Query  # noqa: E402
+from trace_memory.adapters.legacy_ask_home import LegacyAskHome  # noqa: E402
+from trace_memory.application import Recall  # noqa: E402
+from trace_memory.domain import Query  # noqa: E402
+
+
+@contextlib.contextmanager
+def _deadline(seconds: float | None):
+    if not seconds or seconds <= 0 or not hasattr(signal, "SIGALRM"):
+        yield
+        return
+
+    def _handle_timeout(signum, frame):  # pragma: no cover - trivial signal shim
+        raise TimeoutError(f"answer timed out after {seconds:.0f}s")
+
+    previous = signal.getsignal(signal.SIGALRM)
+    signal.signal(signal.SIGALRM, _handle_timeout)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+
+
+def _query_with_timeout(recall: Recall, query: Query, memory: str, timeout_s: float) -> Any:
+    with _deadline(timeout_s):
+        return recall.execute(query, memory)
 
 
 def _tally(rows):
@@ -117,6 +144,7 @@ def main():
                     help="independent grading model (defaults to answer model for legacy direct runs)")
     ap.add_argument("--checkpoint", default=None)
     ap.add_argument("--status", default=None)
+    ap.add_argument("--answer-timeout", type=float, default=120.0)
     args = ap.parse_args()
     answer_model = args.answer_model or args.model
     judge_model = args.judge_model or answer_model
@@ -170,7 +198,25 @@ def main():
         else:
             t0 = time.time()
             try:
-                answer = recall.execute(Query(q["question"]), args.memory).text
+                answer = _query_with_timeout(
+                    recall, Query(q["question"]), args.memory, args.answer_timeout
+                ).text
+            except TimeoutError as exc:
+                dt = time.time() - t0
+                row = {
+                    "i": i, "question": q["question"], "answer": "",
+                    "verdict": "miss", "pending": False, "latency_s": round(dt, 1),
+                    "answer_model": answer_model, "judge_model": judge_model,
+                    "grading": {"method": "answer_timeout", "error": str(exc)},
+                    "needs_review": False,
+                }
+                _append_row(ckpt, row)
+                rows.append(row)
+                _write_status(status_path, total, rows, None, clip,
+                              answer_model=answer_model, judge_model=judge_model,
+                              message=f"Q{i} timed out and was counted as miss")
+                print(f"[Q{i}] timeout: {exc}", file=sys.stderr)
+                continue
             except Exception as exc:
                 dt = time.time() - t0
                 row = {

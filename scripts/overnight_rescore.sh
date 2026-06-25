@@ -8,7 +8,7 @@ while true; do
     destination="/tmp/overnight_world_${timestamp}.json"
     
     # Pull device world json
-    xcrun devicectl device copy from --device D3A506B2-8923-5313-B8A3-FF769ABBA228 --domain-type appDataContainer --domain-identifier de.zer00.soma --source 'Library/Application Support/SOMA/spatial_world.json' --destination "${destination}" || {
+    xcrun devicectl device copy from --device D3A506B2-8923-5313-B8A3-FF769ABBA228 --domain-type appDataContainer --domain-identifier de.zer00.trace --source 'Library/Application Support/TRACE/spatial_world.json' --destination "${destination}" || {
         echo "failure at $(date): pull failed" >> /tmp/overnight_rescore.log
         continue
     }

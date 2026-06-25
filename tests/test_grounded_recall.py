@@ -29,12 +29,12 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from soma_hub.crypto import EncryptedTextCodec
-from soma_hub.graph import RelationalMemoryGraph
-from soma_hub.recall import RecallFirewall
-from soma_hub.storage import MemoryStore
+from trace_hub.crypto import EncryptedTextCodec
+from trace_hub.graph import RelationalMemoryGraph
+from trace_hub.recall import RecallFirewall
+from trace_hub.storage import MemoryStore
 
-_TEST_KEY = b"soma-test-key-for-unit-tests-xyz"
+_TEST_KEY = b"trace-test-key-for-unit-tests-xyz"
 _NOW = datetime.now(timezone.utc).isoformat()
 
 
@@ -56,7 +56,7 @@ class GroundedRecallTestCase(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
         codec = EncryptedTextCodec(_TEST_KEY)
-        self.db = self.tmp / "soma_hub.sqlite3"
+        self.db = self.tmp / "trace_hub.sqlite3"
         self.graph = RelationalMemoryGraph(self.db, codec)
         self.store = MemoryStore(self.db, codec)
 

@@ -72,10 +72,10 @@ def _answer_fn(args):
                     "confidence": 1.0 if scenes else 0.0}
         return "ask_home", fn
 
-    from soma_hub.crypto import EncryptedTextCodec
-    from soma_hub.graph import RelationalMemoryGraph
-    from soma_hub.recall import RecallFirewall
-    from soma_hub.storage import MemoryStore
+    from trace_hub.crypto import EncryptedTextCodec
+    from trace_hub.graph import RelationalMemoryGraph
+    from trace_hub.recall import RecallFirewall
+    from trace_hub.storage import MemoryStore
     db = Path(args.db)
     codec = EncryptedTextCodec.from_env_or_file(db.parent)
     firewall = RecallFirewall(MemoryStore(db, codec), RelationalMemoryGraph(db, codec))
@@ -172,7 +172,7 @@ def main() -> None:
     ask.add_argument("--memory", default="data/walks/home_capture_20260613/memory/memory_full.json",
                      help="ask_home engine: path to the scene-memory JSON")
     ask.add_argument("--model", default="gemma3:12b-it-qat", help="ask_home engine: ollama model")
-    ask.add_argument("--db", default=str(ROOT / "data" / "soma_hub.sqlite3"))
+    ask.add_argument("--db", default=str(ROOT / "data" / "trace_hub.sqlite3"))
     ask.add_argument("--out", default=None, help="output scoring sheet (default: <questions>.answers.json)")
     ask.set_defaults(func=cmd_ask)
     score = sub.add_parser("score", help="compute RAS from a filled scoring sheet")

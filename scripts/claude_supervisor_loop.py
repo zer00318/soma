@@ -25,7 +25,7 @@ CONTROL_RE = re.compile(r"CONTROL:\s*(\{.*\})\s*$", re.MULTILINE)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the SOMA Claude supervisor loop.")
+    parser = argparse.ArgumentParser(description="Run the TRACE Claude supervisor loop.")
     parser.add_argument(
         "--project-root",
         default="/Users/zer00/Documents/VLM",
@@ -43,12 +43,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--session-name",
-        default="soma-supervisor",
+        default="trace-supervisor",
         help="Friendly Claude session name.",
     )
     parser.add_argument(
         "--state-dir",
-        default="/Users/zer00/Documents/VLM/.soma_supervisor",
+        default="/Users/zer00/Documents/VLM/.trace_supervisor",
         help="Directory for persistent supervisor state.",
     )
     parser.add_argument(
@@ -137,11 +137,11 @@ def build_turn_prompt(state: dict[str, Any]) -> str:
     if state.get("turn_count", 0) == 0:
         return (
             "Start autonomous execution now. Audit current repo state, choose the cheapest competent "
-            "execution structure, set up delegation if useful, and begin moving SOMA forward immediately."
+            "execution structure, set up delegation if useful, and begin moving TRACE forward immediately."
         )
     return (
         "Continue from your existing state. Do not restart from scratch. "
-        "Advance SOMA, delegate aggressively, and return control quickly if local workers or waiting states "
+        "Advance TRACE, delegate aggressively, and return control quickly if local workers or waiting states "
         "mean Claude is not needed right now."
     )
 
@@ -197,7 +197,7 @@ def run_claude(args: argparse.Namespace, state: dict[str, Any], prompt_text: str
 
 
 def wait_for_user_ack(request_file: Path, ack_file: Path, poll_seconds: int = 30) -> None:
-    notify("SOMA needs a test", request_file.read_text(encoding="utf-8")[:200])
+    notify("TRACE needs a test", request_file.read_text(encoding="utf-8")[:200])
     while True:
         if ack_file.exists():
             try:
@@ -271,7 +271,7 @@ def main() -> int:
                 last_summary="Claude usage limit hit; sleeping until reset window.",
                 phase="sleeping_for_limit_reset",
             )
-            notify("SOMA supervisor sleeping", state["last_summary"])
+            notify("TRACE supervisor sleeping", state["last_summary"])
             time.sleep(args.reset_sleep_seconds)
             continue
 
@@ -283,7 +283,7 @@ def main() -> int:
                 last_summary=stderr.strip()[:400] or "Claude returned an error.",
                 phase="sleeping_after_error",
             )
-            notify("SOMA supervisor error", state["last_summary"])
+            notify("TRACE supervisor error", state["last_summary"])
             time.sleep(args.idle_sleep_seconds)
             continue
 
@@ -328,20 +328,20 @@ def main() -> int:
             request_file.write_text(user_request or summary or "User test requested.", encoding="utf-8")
             ack_file.write_text("", encoding="utf-8")
             update_state(state_path, state, phase="waiting_for_user_test")
-            notify("SOMA needs you", user_request or summary or "User test requested.")
+            notify("TRACE needs you", user_request or summary or "User test requested.")
             wait_for_user_ack(request_file, ack_file)
             time.sleep(5)
             continue
 
         if status == "blocked":
             update_state(state_path, state, phase="blocked_wait")
-            notify("SOMA supervisor blocked", summary or "Blocked.")
+            notify("TRACE supervisor blocked", summary or "Blocked.")
             time.sleep(max(5 * 60, sleep_seconds))
             continue
 
         if status == "complete":
             update_state(state_path, state, phase="complete")
-            notify("SOMA supervisor complete", summary or "SOMA reported complete.")
+            notify("TRACE supervisor complete", summary or "TRACE reported complete.")
             return 0
 
         update_state(state_path, state, phase="sleeping_fallback")

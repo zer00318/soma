@@ -1,6 +1,6 @@
 {
   "asked_at": "2026-06-11T14:20:25.731074+00:00",
-  "db": "/Users/zer00/Documents/VLM/data/soma_hub.sqlite3",
+  "db": "/Users/zer00/Documents/VLM/data/trace_hub.sqlite3",
   "answers": [
     {
       "category": "places",

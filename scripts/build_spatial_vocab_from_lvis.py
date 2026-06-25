@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-cache", type=Path, default=DEFAULT_BATCH_CACHE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--server", default="http://127.0.0.1:1234")
-    parser.add_argument("--model", default="soma-local-worker")
+    parser.add_argument("--model", default="trace-local-worker")
     parser.add_argument("--provider", choices=["lmstudio", "ollama"], default="lmstudio")
     parser.add_argument("--batch-size", type=int, default=60)
     parser.add_argument("--timeout", type=int, default=240)

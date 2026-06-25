@@ -75,7 +75,7 @@ def main() -> int:
     req = urllib.request.Request(
         f"{args.hub}/capture/perception",
         data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json", "X-SOMA-Token": "dev-token"},
+        headers={"Content-Type": "application/json", "X-TRACE-Token": "dev-token"},
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=10) as resp:

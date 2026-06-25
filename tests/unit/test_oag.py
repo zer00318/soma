@@ -4,7 +4,7 @@ import ast
 import json
 from pathlib import Path
 
-from soma.eval.oag import calculate
+from trace_memory.eval.oag import calculate
 
 
 def test_oag_counts_every_non_correct_oracle_item_as_a_gap(tmp_path: Path) -> None:
@@ -45,8 +45,8 @@ def test_oag_counts_every_non_correct_oracle_item_as_a_gap(tmp_path: Path) -> No
 
 
 def test_eval_package_does_not_import_engine_internals() -> None:
-    eval_root = Path("src/soma/eval")
-    forbidden = ("ask_home", "soma.application", "soma.adapters")
+    eval_root = Path("src/trace_memory/eval")
+    forbidden = ("ask_home", "trace_memory.application", "trace_memory.adapters")
     for path in eval_root.glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         imported = [

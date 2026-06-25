@@ -4,7 +4,41 @@
 and the memory index. Author: the Chief (Claude). Founder: Satoshi (KIT student, thesis at
 Max Planck IPP Garching). Branch: `chief/p0-honesty-sprint` (pushed to origin `zer00318/soma`).*
 
-## ACTIVE WORKSTREAM (2026-06-23, pick up here) — bigger trustworthy capture
+## ARCHITECTURE COMPLETED (2026-06-23 PM) — the injection layer + standing-ground contract
+The founder's full-architecture mandate (`HELPERS->INJECTION->LLM`, total sovereignty) is now
+specified end-to-end. The prior generate phase built the helpers + memory (Phase-1 matrix,
+Phase-2 blueprint, compiler audit, coverage matrix) but LEFT OUT the two pieces the founder
+described in his own words: the INJECTION layer that live-expands raw helper output with external
+knowledge, and an LLM that STANDS ITS GROUND on a false premise. Both are now built in
+`ops/CONTEXT_ENGINE_PHASE2B_INJECTION_LAYER_2026-06-23.md`:
+- **Injection = I0 FUSE -> I1 LINK -> I2 EXPAND -> I3 TIER -> I4 COMPILE.** EXPAND is privacy-safe
+  (query the redacted typed span never the pixels; local-cache-first; text-only logged egress behind
+  the existing `TRACE_FRONTIER_ENABLED` gate). Output is a TWO-ZONE packet: personal_evidence (citable,
+  the only basis for personal claims) vs world_context (explains referents, never a personal fact).
+  The `089 289 112` IPP-notice example (the founder's own image) is traced end-to-end.
+- **Standing-ground = a deterministic premise gate -> 3 modes (ANSWER / CORRECT / REFUSE)** chosen
+  BEFORE generation. Structural, not prompt-hope: current benchmarks show NO frontier LLM corrects
+  >30% of false premises (Claude-3.5 19.8%, Cancer-Myth), so the gate decides and the model phrases.
+- Plugs into real seams: `build_evidence_dossier` (ask_home.py:1510) -> two zones; new `premise_gate()`
+  before `COMMIT_ASSEMBLER_PROMPT` (ask_home.py:2282, rewrite to 3-mode); `tier` field on the
+  observation contract; new `inject_link.py`/`inject_expand.py`. Bounded build order + falsifiable eval
+  (expansion safety: zero personal-claim bleed; false-premise correction rate beats the ~20-30% baseline)
+  are in §7-8. **NOTE: the four prior arch docs' "reading-first / do not broaden" headers are SUPERSEDED**
+  (founder PM sanction) — Phase-1/Phase-2 headers patched; this is the active architecture alongside the sprint.
+
+## ACTIVE (2026-06-23 PM, pick up here) — Context Engine blueprint + multi-modal sprint
+**Founder directive (sovereign): build the `HELPERS → INJECTION → LLM` continuous context engine** — injection
+fuses + live web-EXPANDS helper outputs; the LLM stands its ground on false premises. Product = broad CONTEXT, not OCR.
+→ **Read `ops/CONTEXT_ENGINE_HANDOFF_2026-06-23.md` FIRST.** Phase-1 grounding + the 195-parameter matrix are
+DONE + persisted (`ops/CONTEXT_ENGINE_GROUNDING_2026-06-23.md`, `ops/CONTEXT_ENGINE_MATRIX_RAW_2026-06-23.md`);
+the cross-lens synthesis + Phase 2 (resolve + injection deep-dive + the blueprint) remain — do the synthesis
+INLINE, agents burn the plan's limits fast. The 5 concrete build-gaps + the verified `089 289 112` finding
+(TUM Garching campus fire line on an IPP poster — the thesis proven on the founder's own photo) are in the
+handoff. The native app `trace-native-fastvlm` is already a multi-modal context engine (Munich 2026-06-04);
+it builds GREEN after a `ContentView.swift` fix; sprint board WS0–WS7 in `ops/CONTEXT_SPRINT_2026-06-23.md`.
+The OCR-narrowing section below is SUPERSEDED by this directive — keep its honesty lessons, drop its scope limit.
+
+## ARCHIVED WORKSTREAM (2026-06-23 AM) — bigger trustworthy capture
 Building the ~50-question Munich-walk eval so the honest number is bettable (n=15 was too small).
 - **Video (BEST pick):** YouTube `bpPdGx6Soa4` — "MUNICH Downtown & Marienplatz Walking Tour 2024",
   daytime, German signage (founder-verifiable), text-rich. Downloaded 1080p60 video-only (format 299)
@@ -12,13 +46,20 @@ Building the ~50-question Munich-walk eval so the honest number is bettable (n=1
   360p; use `--extractor-args "youtube:player_client=android_vr"` to get the 60fps DASH formats
   (cookies-from-browser is TCC-blocked on this Mac). yt-dlp installed in `.venv`; cv2 4.10 reads the mp4
   (NO ffmpeg needed/installed).
-- **Pipeline:** `evaluation/build_walk_eval.py` — frames@2fps -> Apple-Vision OCR all -> select text-rich
-  key frames (temporally spread) -> gemma writes reading Qs -> emits `gold_review_walk.html` (embeds the
-  YouTube player with per-question "watch at MM:SS" seek + the extracted frame; founder confirms gold vs
-  the video, Exports JSON). Run AFTER download:
-  `.venv/bin/python evaluation/build_walk_eval.py --video data/walks/munich_text/source.mp4 --outdir data/walks/munich_text/work --yt bpPdGx6Soa4 --fps 2 --n 45 --qper 1`
-- **Then:** founder fills the page -> save gold JSON -> point `ocr_recall.py` at the new
-  `data/walks/munich_text/work/ocr_memory.json` + gold + question timestamps (anchors) -> honest number.
+- **Pipeline (CURRENT, fixed 2026-06-23):** `evaluation/build_clip_eval.py` is the live tool (the older
+  frame-pinned `build_walk_eval.py` is retired — it pinned each Q to a single frame and produced
+  hallucinated premises). The clip builder reuses the cached `ocr_memory.json` and:
+  (a) fuzzy-dedups OCR variants of the same sign (difflib ratio>=0.72) so one real sign = one question;
+  (b) anchors each question to the frame where the sign reads MOST COMPLETELY (best-frame, not the
+  far-away first glimpse) — the candidate is a verbatim line from THAT frame, so what's shown always
+  matches; (c) gemma phrases a SPECIFIC question for readable signs and a time-anchored "what did the
+  sign around MM:SS say?" for garbled OCR (never echoes garble as a fake name). Emits `gold_clip.html`
+  (40 cards: frame + editable gold box + YouTube seek; verdicts correct/fix/not-in-clip/bad). Regenerate:
+  `.venv/bin/python evaluation/build_clip_eval.py --work data/walks/munich_text/work --yt bpPdGx6Soa4 --n 40`
+  Verified: 40/40 frames contain their candidate (was 6/22), 0 dup signs (was 3 poultry triplicates),
+  0 vague "that sign/shop" Qs. The earlier "frames don't coincide with the questions" disaster is FIXED.
+- **Then:** founder opens `gold_clip.html` (served at http://127.0.0.1:8899/...) -> confirm/fix each box ->
+  Export JSON -> point `ocr_recall.py` at `ocr_memory.json` + gold + the per-Q `t` anchors -> honest number.
 - **COCKPIT IS LIVE** at http://127.0.0.1:8788 (`scripts/ops_cockpit.py`, started userland). Founder
   glances at `ops/cockpit/chief.json` (now/next/waiting_on_you) + `pitch_progress.json` instead of asking.
   Keep these two files current as the status surface.

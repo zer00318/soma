@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""build_sleep_bind.py — SOMA sleep-pass binder.
+"""build_sleep_bind.py — TRACE sleep-pass binder.
 
 Reads ALL channel logs from a walk memory directory, builds a condensed
 evidence dossier, calls gemma3:12b-it-qat (via local ollama) to cross-link

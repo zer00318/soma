@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEVICE_ID="${SOMA_DEVICE_ID:-D3A506B2-8923-5313-B8A3-FF769ABBA228}"
-BUNDLE_ID="${SOMA_BUNDLE_ID:-de.zer00.soma}"
+DEVICE_ID="${TRACE_DEVICE_ID:-D3A506B2-8923-5313-B8A3-FF769ABBA228}"
+BUNDLE_ID="${TRACE_BUNDLE_ID:-de.zer00.trace}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT_DIR="${1:-/tmp/spatial_pull/${STAMP}}"
@@ -39,11 +39,11 @@ pull_app_file() {
   fi
 }
 
-pull_app_file "Library/Application Support/SOMA/spatial_world.json" "spatial_world.json"
-pull_app_file "Library/Application Support/SOMA/spatial_diag.ndjson" "spatial_diag.ndjson"
-pull_app_file "Library/Application Support/SOMA/vocab_misses.ndjson" "vocab_misses.ndjson"
-pull_app_file "Library/Application Support/SOMA/perception_spool.ndjson" "perception_spool.ndjson"
-pull_app_file "Library/Application Support/SOMA/spatial_world.arexperience" "spatial_world.arexperience"
+pull_app_file "Library/Application Support/TRACE/spatial_world.json" "spatial_world.json"
+pull_app_file "Library/Application Support/TRACE/spatial_diag.ndjson" "spatial_diag.ndjson"
+pull_app_file "Library/Application Support/TRACE/vocab_misses.ndjson" "vocab_misses.ndjson"
+pull_app_file "Library/Application Support/TRACE/perception_spool.ndjson" "perception_spool.ndjson"
+pull_app_file "Library/Application Support/TRACE/spatial_world.arexperience" "spatial_world.arexperience"
 
 if curl -fsS "http://127.0.0.1:8777/api/world" -o "$OUT_DIR/world.json"; then
   echo "pulled dashboard world.json"
@@ -99,6 +99,6 @@ else
   echo "vocab_misses.ndjson is empty or missing; no vocab report yet"
 fi
 
-echo "$OUT_DIR" > /tmp/soma_latest_spatial_pull.txt
-echo "latest pull marker: /tmp/soma_latest_spatial_pull.txt"
+echo "$OUT_DIR" > /tmp/trace_latest_spatial_pull.txt
+echo "latest pull marker: /tmp/trace_latest_spatial_pull.txt"
 echo "done"

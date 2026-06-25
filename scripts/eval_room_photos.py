@@ -61,7 +61,7 @@ def describe_photo(path: str, describer: Callable[[str], Set[str]] = None) -> Se
 def world_labels(api_url: str = 'http://127.0.0.1:8777/api/world', token: str = 'dev-token') -> Dict[str, Dict]:
     req = urllib.request.Request(
         url=api_url,
-        headers={"X-SOMA-Token": token},
+        headers={"X-TRACE-Token": token},
         method="GET"
     )
 

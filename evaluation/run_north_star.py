@@ -28,9 +28,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from soma_hub.crypto import EncryptedTextCodec
-from soma_hub.graph import RelationalMemoryGraph
-from soma_hub.importer import import_whatsapp
+from trace_hub.crypto import EncryptedTextCodec
+from trace_hub.graph import RelationalMemoryGraph
+from trace_hub.importer import import_whatsapp
 
 DEFAULT_CASES = [
     {
@@ -86,13 +86,13 @@ def _slot_source(profile: dict, key: str) -> str:
 def run_case(case: dict) -> list[tuple[str, bool, str]]:
     """Returns a list of (fact_label, passed, detail)."""
     results: list[tuple[str, bool, str]] = []
-    os.environ["SOMA_USER_NAME"] = case.get("user", "user").lower()
-    os.environ["SOMA_COMMITMENT_WINDOW_DAYS"] = "36500"
+    os.environ["TRACE_USER_NAME"] = case.get("user", "user").lower()
+    os.environ["TRACE_COMMITMENT_WINDOW_DAYS"] = "36500"
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
-        db = tmp_path / "soma_hub.sqlite3"
-        codec = EncryptedTextCodec(b"soma-eval-key-not-for-real-data!")
+        db = tmp_path / "trace_hub.sqlite3"
+        codec = EncryptedTextCodec(b"trace-eval-key-not-for-real-data!")
         graph = RelationalMemoryGraph(db, codec)
         for fname, content in case["chats"].items():
             chat = tmp_path / fname

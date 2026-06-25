@@ -23,12 +23,12 @@ DEFAULT_VOCAB = ROOT / "ops" / "spatial_vocab.txt"
 DEFAULT_CHECKPOINT = ROOT / "models" / "mobileclip" / "mobileclip_s0.pt"
 DEFAULT_OUTPUT = (
     ROOT
-    / "soma-native-fastvlm"
+    / "trace-native-fastvlm"
     / "FastVLM App"
     / "Resources"
     / "vocab_embeddings.json"
 )
-DEFAULT_IMAGE_MODEL_DIR = ROOT / "soma-native-fastvlm" / "FastVLM App"
+DEFAULT_IMAGE_MODEL_DIR = ROOT / "trace-native-fastvlm" / "FastVLM App"
 APPLE_S0_CHECKPOINT_URL = (
     "https://docs-assets.developer.apple.com/ml-research/datasets/mobileclip/mobileclip_s0.pt"
 )

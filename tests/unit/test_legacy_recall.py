@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from soma.adapters.legacy_ask_home import LegacyAskHome
-from soma.application import Recall
-from soma.domain import Query
+from trace_memory.adapters.legacy_ask_home import LegacyAskHome
+from trace_memory.application import Recall
+from trace_memory.domain import Query
 
 
 class FakeAskHome:

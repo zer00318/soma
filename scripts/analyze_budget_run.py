@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Analyze a perception worker log for the all-day budget proof.
 
-    python3 scripts/analyze_budget_run.py /tmp/soma_budget_run.json
+    python3 scripts/analyze_budget_run.py /tmp/trace_budget_run.json
 
 Reports per-hour enrichment counts vs the ceiling, salience distribution,
 and scheduler counters — the moat metric is steady all-day operation with

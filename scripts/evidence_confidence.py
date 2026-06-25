@@ -62,7 +62,24 @@ def load_observations(mdir):
         kf = _jsonl("kf_memory.json") or _jsonl("kf_memory.json.ckpt.ndjson")
     for r in kf or []:
         t = r.get("t")
-        obs.append((t, "caption", r.get("caption") or r.get("description") or ""))
+        cap = r.get("caption") or r.get("description") or ""
+        # Channel reliability: a structured object DETECTOR hit (YOLO / native
+        # detector) is an INDEPENDENT, more-reliable signal than a free-form VLM
+        # caption — so a thing the detector saw AND the caption described is
+        # corroborated across channels (real), not a single-channel phantom. An
+        # explicit per-record "channel" wins; else detector sources map to "world".
+        ch = r.get("channel")
+        if not ch:
+            src = str(r.get("source") or "").lower()
+            if "speech" in src or "asr" in src:
+                ch = "speech"
+            elif "ocr" in src:
+                ch = "ocr"
+            elif "detector" in src or "yolo" in src or "vision" in src or "classif" in src:
+                ch = "world"   # structured on-device detector (Apple Vision / YOLO)
+            else:
+                ch = "caption"  # free-form VLM caption (fastvlm_*) or legacy sourceless data
+        obs.append((t, ch, cap))
         ocr = r.get("ocr") or r.get("_ocr_txt") or []
         obs.append((t, "ocr", " ".join(ocr) if isinstance(ocr, list) else str(ocr)))
     sm = _j("screen_memory.json") or []
@@ -104,6 +121,22 @@ def term_confidence(d):
     if len(chans) >= 2:
         base = min(1.0, base + 0.20)  # corroborated across independent channels
     return round(base, 3)
+
+
+def presence_confidence(noun, sup):
+    """How confident we are a (possibly GENERIC) presence noun was really there.
+
+    score_claim() strips generic nouns (people/person/sign/car) as non-distinctive,
+    returning 0.0 — correct for "what is the distinctive answer", WRONG for "is this
+    thing grounded". A noun directly attested in a reliable channel (a detector's
+    'world' hit, OCR, speech) IS grounded even when generic; a caption-only mention
+    stays low. Used by the phantom-presence floor so 'I saw people' passes when the
+    on-device detector saw them, but a single VLM caption phantom does not."""
+    conf = score_claim(noun, sup).get("confidence", 0.0)
+    key = (noun or "").lower()
+    if key in sup:
+        conf = max(conf, term_confidence(sup[key]))
+    return conf
 
 
 def score_claim(claim, sup):

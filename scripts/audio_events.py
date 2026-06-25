@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""SOMA Audio-Event Specialist — non-speech sound event detector.
+"""TRACE Audio-Event Specialist — non-speech sound event detector.
 
-This module is the "hearing" channel of the SOMA specialist society.
+This module is the "hearing" channel of the TRACE specialist society.
 Whisper covers speech-to-text; this module handles everything Whisper
 cannot: crying, yelling, bangs, alarms, music, crowd noise, etc.
 
@@ -410,7 +410,7 @@ def _self_test() -> bool:
 # ──────────────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="SOMA audio-event specialist")
+    parser = argparse.ArgumentParser(description="TRACE audio-event specialist")
     parser.add_argument("--self-test", action="store_true",
                         help="Run the self-test suite and exit")
     parser.add_argument("--audio", default=WALK_AUDIO,

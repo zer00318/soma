@@ -1,0 +1,33 @@
+{
+  "schema": "trace.planck-device-audit.v1",
+  "audited_at": "2026-06-22T15:00:46+02:00",
+  "device": "paired iPhone (identifier redacted)",
+  "bundle_id": "de.zer00.trace",
+  "application_support": {
+    "files": [
+      {"path": "spatial_world.json", "bytes": 1792},
+      {"path": "vocab_misses.ndjson", "bytes": 16854, "lines": 155},
+      {"path": "spatial_diag.ndjson", "bytes": 21436, "lines": 62},
+      {"path": "perception_spool.ndjson", "bytes": 133847, "lines": 147},
+      {"path": "trace_native_text.ndjson", "bytes": 378266, "lines": 1964},
+      {"path": "spatial_world.arexperience", "bytes": 445337}
+    ],
+    "observed_loopback_post_failure": true,
+    "contains_plaintext_precise_location_context": true
+  },
+  "documents": {
+    "capture_directory": "capture_20260622_094645",
+    "files": [
+      {"path": "meta.json", "bytes": 2914},
+      {"path": "poses.ndjson", "bytes": 131354, "lines": 304},
+      {"path": "audio.m4a", "bytes": 545853, "raw_media": true},
+      {"path": "video.mov", "bytes": 12942323, "raw_media": true}
+    ]
+  },
+  "raw_media_audit": {
+    "files_checked": 10,
+    "raw_media_files": 2,
+    "passed": false
+  },
+  "redaction": "No captured content, coordinates, address, speech, or media retained in this manifest."
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SOMA capture-time audio-event detector (RELATIVE / adaptive).
+"""TRACE capture-time audio-event detector (RELATIVE / adaptive).
 
 WHY THIS WAS REWRITTEN
 ----------------------
@@ -238,7 +238,7 @@ def _run_apple_subprocess(wav_path: str, timeout: float = 60.0) -> Optional[List
         "        xi=np.linspace(0,len(data)-1,n)\n"
         "        data=np.interp(xi,np.arange(len(data)),data).astype(np.float32)\n"
         "    sr=44100\n"
-        "tmp=os.path.join(tempfile.gettempdir(),'soma_sa_%d.wav'%os.getpid())\n"
+        "tmp=os.path.join(tempfile.gettempdir(),'trace_sa_%d.wav'%os.getpid())\n"
         "sf.write(tmp,data,sr,subtype='PCM_16')\n"
         "req,err=SA.SNClassifySoundRequest.alloc().initWithClassifierIdentifier_error_(SA.SNClassifierIdentifierVersion1,None)\n"
         "if req is None:\n"
@@ -471,7 +471,7 @@ def detect(audio_path: str, frame_s: float = FRAME_S, hop_s: float = HOP_S,
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="SOMA capture-time audio-event detector (relative/adaptive)")
+    ap = argparse.ArgumentParser(description="TRACE capture-time audio-event detector (relative/adaptive)")
     ap.add_argument("--audio", type=str, default="", help="Path to audio .wav")
     ap.add_argument("--out", type=str, default="", help="Output audio_events.json path")
     ap.add_argument("--frame", type=float, default=FRAME_S, help="Window length (seconds)")
@@ -491,7 +491,7 @@ def main() -> None:
             json.dump(result, f, indent=2)
 
     print("=" * 60)
-    print("SOMA audio-event detector (relative/adaptive)")
+    print("TRACE audio-event detector (relative/adaptive)")
     print("=" * 60)
     print(f"  audio        : {args.audio}")
     print(f"  duration     : {result['duration_s']}s")

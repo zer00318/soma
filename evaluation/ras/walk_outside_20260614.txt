@@ -1,6 +1,6 @@
 # Outdoor walk (walk_outside_20260614, Test.MOV — 92s, WITH AUDIO).
 # Founder's BLIND battery, written 2026-06-14 before seeing the memory.
-# First SOMA test on a moving outdoor walk AND the first with an audio channel.
+# First TRACE test on a moving outdoor walk AND the first with an audio channel.
 # Verdicts (lead, vs video+audio ground truth): correct | wrong | miss.
 # Categories tag which specialist SHOULD own each Q (the founder's "society of
 # specialists" thesis): text=OCR, other=audio-event/speech, places=spatial.

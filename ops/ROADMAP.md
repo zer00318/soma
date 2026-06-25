@@ -1,22 +1,21 @@
-# TRACE — Implementation Spec & Macro Roadmap (CANONICAL)
+# Trace - Implementation Spec and Macro Roadmap
 *Chief's plan · v2 · 2026-06-17 · supersedes scattered goal statements*
 
-> **This is the single source of truth.** Every session STARTS by reading this and
-> ENDS by updating it. If a task doesn't serve this, it doesn't get done.
+> This is a working roadmap, not evidence. The executable, tests, signed evaluation
+> artifacts, and `PLANCK_PHASE2_ABSOLUTE_AUDIT.md` override narrative status claims.
 > `ops/OPERATING_PROTOCOL.md` is superseded (it pointed at a dead "3D world" goal).
 > `ops/NORTH_STAR.md` remains valid background; this file governs execution.
 
 ## 0. Prime directive
-**Reconstruct lived experience as lossless context, then make it answerable.** Every
-choice serves one question: *did the brain have everything it needed, as if the video
-and audio were still present?* Raw pixels/audio are discarded the instant they're
-converted to text; the derived context is what must be lossless.
+**Maximize future answerability under irreversible compression, then measure the loss.**
+Text cannot be lossless with respect to unknown future visual/audio questions. Every
+choice must show which facts survived, which disappeared, and which answers are unsupported.
 
 ## 1. Problem / who it's for
-The valuable artifact was never the footage — it was the bound, queryable *meaning*.
-TRACE captures meaning and discards the medium. **This prototype's audience is one
-person: the angel.** Its job is to prove the **moat** (architecturally incapable of
-surveillance) and the **market** (empty quadrant, named acquirers). It is NOT a
+The valuable artifact may be the bound, queryable *meaning*, but that remains the hypothesis.
+Trace attempts to capture meaning and discard the medium. **This prototype's audience is one
+person: the angel.** Its job is to test useful no-raw recall and the narrower local-first
+market cell. The current binary is not architecturally incapable of surveillance. It is NOT a
 recorder, an assistant, a 3D renderer, or "answer anything at 50%."
 
 ## 2. The central hypothesis (UNVALIDATED — this is the whole game)
@@ -133,6 +132,31 @@ text-egress); moat only as strong as it is provable (→ software proof panel no
 hardware attestation post-prototype).
 
 ## 12. Status log (append every session; newest first)
+- 2026-06-22 (LIVE SPRINT — Brave POV walk → local VLM → brain, end-to-end verified) — Built the
+  Mac-side live spine `scripts/trace_live_feed.py`: captures ONE dedicated Brave window (matched by the
+  TRACE-profile PID via Quartz, so it works across Mission-Control spaces and NEVER touches the
+  founder's personal tabs) → local **gemma3:12b** per-frame derived text (SCENE/OBJECTS/TEXT/PEOPLE) →
+  POST `/capture/perception` → pixels discarded in memory (0 raw media BY CONSTRUCTION). Live world =
+  "Walking in Tokyo, Shibuya Scramble" POV walk in a chromeless `--app` Brave window. **Verified:**
+  160s run → 18-record live timeline; read THE BODY SHOP / PANDORA / BURGER KING and **Japanese OCR
+  verbatim** (カラオケ, カラオケ館). `/proof` + filesystem audit = **0 raw media files, moat_intact**.
+  **Brain ask (gemma3:27b, local) core set: 6/7 correct, RAS 85.7, 0 hallucination**, cited answers +
+  honest refusals (incl. honest "no audio channel for this walk" and "SHIBUYA is a district name, not
+  coordinates") — vs the recorded-clip baseline RAS 40.0/27.3% halluc. **Shatter set (8 false-premise
+  traps): 6/8, RAS 62.5.** Two diagnosed (B) cracks: (1) **HALLUCINATION** — "what was I shopping for?"
+  → invented the ACTIVITY "I was shopping at The Body Shop…" from store PRESENCE; the GATE_PROMPT
+  validates names/numbers/occupancy-states but has NO activity/intent-inference clause. (2) **systematic
+  OVER-REFUSAL** — open-ended "describe the place" and "crowded or empty?" demoted to GROUNDED_REFUSAL
+  by the gate's uniform crowded/empty + aggregate-description block, even though PEOPLE counts /
+  "bustling" / "crowd" explicitly support them. **Frontier hatch:** wiring verified (refusal→fallback
+  fires and fails gracefully) but `ANTHROPIC_API_KEY` returns **HTTP 401** → needs a valid key (founder
+  action). **Codex (gpt-5.5)** wrote `ops/PITCH_DEMO_SCRIPT.md` (5-min script + 15Q adversarial bank +
+  A/B triage), verified. Restored deleted `scripts/trace_app.py` (phone web app) from dedc055. **Cockpit
+  55%→75% (9/12).** NEXT (tracked, NOT shipped this session to protect the proven 0-halluc property):
+  give the gate (a) an activity/intent-inference demote clause, (b) a promote-only path for
+  scene-description + occupancy when PEOPLE/"crowd"/"bustling" are explicit — both regression-tested vs
+  `walk_outside` + `day_in_life` before shipping; provide a valid frontier key; wire the phone NATIVE
+  app to POST live perception to :8765 (Mac spine already proves the loop).
 - 2026-06-18 (COLD TEST + ROOT CAUSE + PROMPT-TUNING DEAD-END) — Founder dropped a cold clip
   `day_in_life_20260618` (58s montage: speech, a lecture screen, a game HUD, food, brands,
   self-attributes) = the Phase-4 anti-overfit gate. Built full ingest (added the missing SPEECH

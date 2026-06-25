@@ -32,7 +32,7 @@ start_if_missing() {
   if [[ "$(uname -s)" == "Darwin" ]] && command -v launchctl >/dev/null 2>&1; then
     local label safe_name cmd arg
     safe_name="$(printf "%s" "$name" | tr -cs '[:alnum:]' '-' | tr '[:upper:]' '[:lower:]' | sed 's/^-//;s/-$//')"
-    label="com.soma.trace.${safe_name}"
+    label="com.trace.trace.${safe_name}"
     launchctl remove "$label" >/dev/null 2>&1 || true
   fi
   PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" nohup "$@" >> "$log" 2>&1 &
@@ -41,9 +41,9 @@ start_if_missing() {
 
 start_if_missing \
   "hub :8765" \
-  "soma_hub.api.*--port 8765" \
-  "/tmp/soma_hub.log" \
-  "$PY" -m soma_hub.api --host 0.0.0.0 --port 8765
+  "trace_hub.api.*--port 8765" \
+  "/tmp/trace_hub.log" \
+  "$PY" -m trace_hub.api --host 0.0.0.0 --port 8765
 
 start_if_missing \
   "dashboard :8777" \
@@ -53,12 +53,12 @@ start_if_missing \
 
 start_if_missing \
   "enricher" \
-  "soma_perception.enricher.*data/soma_hub.sqlite3" \
-  "/tmp/soma_enricher.log" \
-  "$PY" -m soma_perception.enricher --db data/soma_hub.sqlite3
+  "trace_perception.enricher.*data/trace_hub.sqlite3" \
+  "/tmp/trace_enricher.log" \
+  "$PY" -m trace_perception.enricher --db data/trace_hub.sqlite3
 
 sleep 2
-hub_code="$(curl -s -H "X-SOMA-Token: dev-token" -o /dev/null -w "%{http_code}" "http://127.0.0.1:8765/health" || true)"
+hub_code="$(curl -s -H "X-TRACE-Token: dev-token" -o /dev/null -w "%{http_code}" "http://127.0.0.1:8765/health" || true)"
 echo "http://127.0.0.1:8765/health -> $hub_code"
 for url in "http://127.0.0.1:8777/" "http://127.0.0.1:8777/world"; do
   code="$(curl -s -o /dev/null -w "%{http_code}" "$url" || true)"

@@ -1,5 +1,5 @@
 {
-  "schema": "soma.oag-datasets.v2",
+  "schema": "trace.oag-datasets.v2",
   "frozen_at": "2026-06-20",
   "oracle_rule": "A founder-reviewed gold answer from raw media is oracle-answerable unless explicitly marked unanswerable.",
   "datasets": [

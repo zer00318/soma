@@ -29,6 +29,19 @@ class StructuralEvaluatorTest(unittest.TestCase):
         )
         self.assertEqual(decision.verdict, "miss")
 
+    def test_refusal_with_accept_token_does_not_score_correct(self) -> None:
+        decision = score.grade_answer(
+            "How many calories were in the breakfast I ate, and what did I eat?",
+            "Scrambled eggs, diced breakfast potatoes/home fries, and ketchup; roughly 495-695 kcal total.",
+            ["eggs", "scrambled", "potatoes", "home fries", "ketchup", "500", "600", "700", "495", "695", "calorie"],
+            ["pancakes", "cereal", "1500", "2000 calories", "pizza", "salad"],
+            "The dossier mentions BREAKFAST multiple times, but it does not specify the contents "
+            "of the breakfast or its calorie count. Therefore, I cannot answer this question.",
+            "judge-model",
+        )
+        self.assertEqual(decision.verdict, "miss")
+        self.assertEqual(decision.method, "structural_refusal")
+
     def test_reject_phrase_dominates_broad_accept_token(self) -> None:
         decision = score.deterministic_grade(
             "Yes, a child yelled.", ["child"], ["no child"], "No child was present."
@@ -45,8 +58,8 @@ class StructuralEvaluatorTest(unittest.TestCase):
 
     def test_clearly_different_long_quote_is_wrong(self) -> None:
         decision = score.deterministic_grade(
-            'The draft began "You are taking over SOMA, a perception-to-text project."',
-            ["taking over soma"], [],
+            'The draft began "You are taking over TRACE, a perception-to-text project."',
+            ["taking over trace"], [],
             'The draft was "I am outside and need a prompt for a completely new chat."',
         )
         self.assertEqual(decision.verdict, "wrong")
@@ -117,6 +130,38 @@ class StructuralEvaluatorTest(unittest.TestCase):
             live = json.loads(status.read_text())
             self.assertEqual(live["state"], "needs_review")
             self.assertEqual(live["done"], 0)
+
+    def test_live_runner_turns_answer_timeout_into_miss(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            questions = root / "questions.txt"
+            gold = root / "gold.json"
+            memory = root / "world_memory.json"
+            checkpoint = root / "checkpoint.jsonl"
+            status = root / "status.json"
+            questions.write_text("objects: Which poster was it?\n")
+            gold.write_text(json.dumps({"items": {"1": {
+                "q": "Which poster was it?", "gold": "The Meissner poster.",
+                "accept": ["meissner"], "reject": [],
+            }}}))
+            memory.write_text("[]")
+            argv = [
+                "run_live.py", "--questions", str(questions), "--gold", str(gold),
+                "--memory", str(memory), "--checkpoint", str(checkpoint),
+                "--status", str(status), "--model", "answer-12b",
+                "--judge-model", "judge-27b", "--answer-timeout", "1",
+            ]
+            with mock.patch.object(sys, "argv", argv), \
+                    mock.patch.object(run_live, "_query_with_timeout",
+                                      side_effect=TimeoutError("answer timed out after 1s")), \
+                    mock.patch("cockpit_beat.beat"):
+                result = run_live.main()
+            self.assertEqual(result, 0)
+            row = json.loads(checkpoint.read_text().strip())
+            self.assertEqual(row["verdict"], "miss")
+            self.assertEqual(row["grading"]["method"], "answer_timeout")
+            live = json.loads(status.read_text())
+            self.assertEqual(live["miss"], 1)
 
 
 if __name__ == "__main__":

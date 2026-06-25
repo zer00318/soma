@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TRACE — live memory, no raw media</title>
+<style>
+  :root{
+    --bg:#0a0d12; --panel:#11161f; --panel2:#0e131b; --line:#1f2935;
+    --ink:#e8eef6; --dim:#8a99ab; --faint:#5b6b7d;
+    --safe:#37d39b; --safe-bg:#0d2a22; --accent:#5aa0ff; --amber:#f4b860; --amber-bg:#2a2210;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.45}
+  a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:20px}
+  .brand{font-size:30px;font-weight:800;letter-spacing:-.5px}
+  .brand .dot{color:var(--safe)}
+  .tag{color:var(--dim);font-size:14px;margin-top:4px;max-width:560px}
+  .status{font-family:var(--mono);font-size:12px;color:var(--dim);text-align:right}
+  .live{display:inline-flex;align-items:center;gap:6px;color:var(--safe);font-weight:600}
+  .pulse{width:8px;height:8px;border-radius:50%;background:var(--safe);box-shadow:0 0 0 0 rgba(55,211,155,.6);
+    animation:p 1.8s infinite}
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(55,211,155,.5)}70%{box-shadow:0 0 0 8px rgba(55,211,155,0)}100%{box-shadow:0 0 0 0 rgba(55,211,155,0)}}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:880px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px}
+  .panel h2{margin:0 0 4px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 12px}
+
+  /* perception stream */
+  .stream{max-height:520px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}
+  .rec{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 11px;animation:fade .4s}
+  @keyframes fade{from{opacity:0;transform:translateY(-4px)}to{opacity:1}}
+  .rec .t{font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:700}
+  .rec .scene{font-size:14px;margin:3px 0}
+  .rec .meta{font-size:12px;color:var(--dim)}
+  .rec .ocr{display:inline-block;margin-top:6px;font-family:var(--mono);font-size:12px;color:#cfe;
+    background:#0c2030;border:1px solid #14384f;border-radius:6px;padding:2px 7px}
+  .discard{color:var(--faint);font-size:11px;margin-top:8px;font-style:italic}
+
+  /* proof tiles */
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+  .tile{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+  .tile .n{font-size:30px;font-weight:800;font-family:var(--mono);line-height:1}
+  .tile .l{font-size:11px;color:var(--dim);margin-top:6px;letter-spacing:.03em}
+  .tile.ok{border-color:#1c4f3e;background:var(--safe-bg)}
+  .tile.ok .n{color:var(--safe)}
+  .proofnote{color:var(--dim);font-size:13px}
+  .proofnote b{color:var(--ink)}
+  details{margin-top:8px}summary{cursor:pointer;color:var(--accent);font-size:12px}
+  pre{font-family:var(--mono);font-size:11px;color:var(--dim);background:#0b0f15;border:1px solid var(--line);
+    border-radius:8px;padding:10px;overflow:auto;margin:8px 0 0}
+
+  /* ask */
+  .askrow{display:flex;gap:8px}
+  input[type=text]{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--ink);
+    padding:11px 12px;font-size:14px;font-family:var(--sans)}
+  input[type=text]:focus{outline:none;border-color:var(--accent)}
+  button{background:var(--accent);color:#04111f;border:0;border-radius:9px;padding:0 16px;font-weight:700;
+    font-size:14px;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .chip{font-size:12px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:20px;
+    padding:4px 10px;cursor:pointer}
+  .chip:hover{border-color:var(--accent);color:var(--ink)}
+  .answer{margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;display:none}
+  .answer.show{display:block}
+  .answer.refused{border-color:#5a4a1e;background:var(--amber-bg)}
+  .answer .txt{font-size:15px}
+  .answer .cites{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .cite{font-family:var(--mono);font-size:11px;color:var(--accent);background:#0c1726;border:1px solid #1d3146;
+    border-radius:6px;padding:2px 7px}
+  .answer .src{font-size:11px;color:var(--faint);margin-top:8px;font-family:var(--mono)}
+  .badge{font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;margin-bottom:8px;display:inline-block}
+  .badge.ans{color:var(--safe);background:var(--safe-bg)}
+  .badge.ref{color:var(--amber);background:var(--amber-bg)}
+  .thinking{color:var(--dim);font-size:13px}.thinking .pulse{display:inline-block;vertical-align:middle;margin-right:6px}
+
+  /* market */
+  .market{margin-top:18px}
+  table{border-collapse:collapse;width:100%;margin-top:8px;font-size:13px}
+  th,td{border:1px solid var(--line);padding:10px 12px;text-align:center;vertical-align:middle}
+  th{color:var(--faint);font-weight:600;font-size:12px}
+  td.trace{background:var(--safe-bg);border-color:#1c4f3e;color:var(--safe);font-weight:800}
+  td.dim{color:var(--faint)}
+  .acq{margin-top:10px;color:var(--dim);font-size:13px}
+  .acq b{color:var(--ink)}
+  footer{margin-top:26px;color:var(--faint);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">TRACE<span class="dot">.</span></div>
+      <div class="tag">A queryable memory of lived experience — built so surveillance is <b>structurally impossible</b>. Raw pixels become text on-device, then are discarded. Only the meaning is kept.</div>
+    </div>
+    <div class="status">
+      <div class="live"><span class="pulse"></span> LIVE</div>
+      <div id="st">connecting…</div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: what TRACE is perceiving -->
+    <section class="panel">
+      <h2>① What TRACE is perceiving</h2>
+      <p class="sub">A first-person walk through Shibuya stands in for the live world. Each sampled frame is turned into the text below by a <b>local</b> vision model — then the image is thrown away.</p>
+      <div class="stream" id="stream"><div class="sub">waiting for the live feed…</div></div>
+    </section>
+
+    <!-- RIGHT: proof + ask -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <section class="panel">
+        <h2>② The no-raw-media proof</h2>
+        <div class="tiles">
+          <div class="tile ok"><div class="n" id="raw">–</div><div class="l">RAW MEDIA FILES</div></div>
+          <div class="tile"><div class="n" id="recs">–</div><div class="l">TEXT RECORDS</div></div>
+          <div class="tile ok"><div class="n" id="moat">–</div><div class="l">MOAT</div></div>
+        </div>
+        <p class="proofnote">The store holds <b>only text</b>. There is no footage to replay, leak, or subpoena. We don't <i>promise</i> not to look — there is nothing to look at.</p>
+        <details><summary>audit the store</summary><pre id="proofjson">…</pre></details>
+      </section>
+
+      <section class="panel">
+        <h2>③ Ask it anything</h2>
+        <p class="sub">Answered only from the text above, with timestamps. If TRACE never perceived it, it says so — an honest “I don’t know” is the product working.</p>
+        <div class="askrow">
+          <input type="text" id="q" placeholder="e.g. Did I pass any stores?" autocomplete="off">
+          <button id="askbtn">Ask</button>
+        </div>
+        <div class="chips" id="suggest"></div>
+        <div class="answer" id="answer"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- MARKET -->
+  <section class="panel market">
+    <h2>④ The market: one unproven trust architecture</h2>
+    <p class="sub">Halo is the direct concept competitor, but uses a cloud agent and encrypted server-side memory. Trace is testing the narrower cell: <b>local durable derived memory, grounded recall, and no retained raw media</b>.</p>
+    <table>
+      <tr><th></th><th>Keeps raw footage</th><th>Zero retained raw media</th></tr>
+      <tr><th>No persistent memory</th><td class="dim">cloud cameras, dashcams</td><td class="dim">ephemeral capture apps</td></tr>
+      <tr><th>Persistent structured memory</th><td class="dim">recorders / cloud-memory products</td><td class="trace">Trace target; proof pending</td></tr>
+    </table>
+    <p class="acq">The claim to prove is not "nobody else exists." It is that local-first visual memory remains useful after raw media is irreversibly deleted.</p>
+  </section>
+
+  <footer id="foot">TRACE pitch prototype · local-first brain · served by trace_brain_server</footer>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const MOMENT = params.get("moment") || "tokyo_walk";
+const SUGGEST = [
+  "Did I pass any stores?",
+  "Was it day or night?",
+  "Did I see anywhere to sing karaoke?",
+  "What is the exact GPS coordinate where I was?"
+];
+
+function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+
+async function refresh(){
+  try{
+    const [tl, pr] = await Promise.all([
+      fetch(`/timeline?moment_id=${encodeURIComponent(MOMENT)}`).then(r=>r.json()),
+      fetch(`/proof?moment_id=${encodeURIComponent(MOMENT)}`).then(r=>r.json())
+    ]);
+    // status
+    document.getElementById("st").innerHTML =
+      `moment <b>${esc(tl.moment_id)}</b> · ${tl.count} frames · brain ${esc(tl.model||"")}`;
+    // proof tiles
+    document.getElementById("raw").textContent = pr.raw_media_files;
+    document.getElementById("recs").textContent = pr.text_records;
+    document.getElementById("moat").textContent = pr.moat_intact ? "INTACT" : "BROKEN";
+    document.getElementById("proofjson").textContent = JSON.stringify(pr, null, 2);
+    // stream (newest first)
+    const s = document.getElementById("stream");
+    if(!tl.records.length){ s.innerHTML = '<div class="sub">no perception yet — start scripts/trace_live_feed.py</div>'; return; }
+    s.innerHTML = tl.records.slice().reverse().map(r=>{
+      const t = (r.t==null)?"":(Number(r.t).toFixed(1)+"s");
+      const ocr = (r.text && r.text.toUpperCase()!=="NONE") ? `<div><span class="ocr">OCR read: ${esc(r.text)}</span></div>` : "";
+      const ppl = (r.people && r.people.toUpperCase()!=="NONE") ? ` · 👥 ${esc(r.people)}` : "";
+      const obj = r.objects ? esc(r.objects) : "";
+      return `<div class="rec"><div class="t">${t}</div>
+        <div class="scene">${esc(r.scene||r.raw||"")}</div>
+        <div class="meta">${obj}${ppl}</div>${ocr}
+        <div class="discard">frame discarded — only this text was kept</div></div>`;
+    }).join("");
+  }catch(e){ document.getElementById("st").textContent = "brain unreachable"; }
+}
+
+async function ask(q){
+  const box = document.getElementById("answer");
+  const btn = document.getElementById("askbtn");
+  box.className = "answer show";
+  box.innerHTML = `<div class="thinking"><span class="pulse"></span>thinking — local brain reasoning over the text (can take ~30–60s)…</div>`;
+  btn.disabled = true;
+  try{
+    const res = await fetch("/ask",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({moment_id:MOMENT, question:q, allow_frontier:false})}).then(r=>r.json());
+    const refused = !!res.refused;
+    const cites = (res.citations||[]).map(c=>`<span class="cite">${esc(c.label||((c.t!=null)?c.t+"s":""))}</span>`).join("");
+    box.className = "answer show" + (refused?" refused":"");
+    box.innerHTML =
+      `<span class="badge ${refused?'ref':'ans'}">${refused?'HONEST REFUSAL — a win':'ANSWERED FROM MEMORY'}</span>`+
+      `<div class="txt">${esc(res.answer||"")}</div>`+
+      (cites?`<div class="cites">${cites}</div>`:"")+
+      `<div class="src">source: ${esc(res.source||"")}${res.latency_s?(" · "+res.latency_s+"s"):""}${res.local_refused_first?" · recovered via frontier text-hatch":""}</div>`;
+  }catch(e){
+    box.className="answer show"; box.innerHTML = `<div class="txt">brain unreachable — is trace_brain_server running?</div>`;
+  }
+  btn.disabled = false;
+}
+
+document.getElementById("askbtn").onclick = ()=>{const q=document.getElementById("q").value.trim(); if(q) ask(q);};
+document.getElementById("q").addEventListener("keydown",e=>{if(e.key==="Enter"){const q=e.target.value.trim(); if(q) ask(q);}});
+document.getElementById("suggest").innerHTML = SUGGEST.map(s=>`<span class="chip">${esc(s)}</span>`).join("");
+[...document.querySelectorAll("#suggest .chip")].forEach(c=>c.onclick=()=>{document.getElementById("q").value=c.textContent; ask(c.textContent);});
+
+refresh(); setInterval(refresh, 3000);
+</script>
+</body>
+</html>

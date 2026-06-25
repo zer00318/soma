@@ -5,7 +5,7 @@ budget-governed VLM enrichment. "Coarse passerby / fine fixation."
 
 ## Placement
 
-In-process library (`soma_perception/scheduler.py`), no server. The phone is
+In-process library (`trace_perception/scheduler.py`), no server. The phone is
 the compute node; the Python implementation drives the mac simulator and the
 algorithm must be portable to Swift 1:1 (no Python-only dependencies in the
 core logic).
@@ -49,6 +49,6 @@ core logic).
 ## Build order
 
 1. `scheduler.py` with injected clock + fake detector (pure-logic unittests).
-2. Wire into `soma_perception/worker.py` mac loop behind a flag.
+2. Wire into `trace_perception/worker.py` mac loop behind a flag.
 3. Budget proof: 8h mac run, log enrichments/hour + facts-novel rate.
 4. Port to Swift in FastVLM app once Python numbers hold.

@@ -3,13 +3,13 @@
 
 M1 (worn-POV walk): outdoors the iPhone has no route to the Mac hub, so the
 app appends every undeliverable perception packet to
-Application Support/SOMA/perception_spool.ndjson. After the walk:
+Application Support/TRACE/perception_spool.ndjson. After the walk:
 
   1. Pull the spool from the device (phone unlocked, cable attached):
      xcrun devicectl device copy from \
        --device D3A506B2-8923-5313-B8A3-FF769ABBA228 \
-       --domain-type appDataContainer --domain-identifier de.zer00.soma \
-       --source "Library/Application Support/SOMA/perception_spool.ndjson" \
+       --domain-type appDataContainer --domain-identifier de.zer00.trace \
+       --source "Library/Application Support/TRACE/perception_spool.ndjson" \
        --destination /tmp/perception_spool.ndjson
 
   2. Replay (timestamps are preserved — ingest_packet honors the packet's
@@ -17,7 +17,7 @@ Application Support/SOMA/perception_spool.ndjson. After the walk:
      python3 scripts/replay_perception_spool.py /tmp/perception_spool.ndjson
 
 For large replays, stop the hub/enricher daemons first to avoid SQLite
-write contention (pkill -f soma_hub.api; pkill -f soma_perception.enricher).
+write contention (pkill -f trace_hub.api; pkill -f trace_perception.enricher).
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from soma_hub.service import SomaHub  # noqa: E402
+from trace_hub.service import TraceHub  # noqa: E402
 
 
 def main() -> None:
@@ -38,7 +38,7 @@ def main() -> None:
     parser.add_argument("--data-dir", default=str(ROOT / "data"))
     args = parser.parse_args()
 
-    hub = SomaHub(Path(args.data_dir))
+    hub = TraceHub(Path(args.data_dir))
     ingested = skipped = failed = 0
     entities = events = observations = 0
 

@@ -1,0 +1,306 @@
+{
+  "generated_at": "2026-06-23",
+  "product": "Trace",
+  "decision": "context_compiler",
+  "rule": "A question is supported only when every required helper class has evidence in the observation log or the pitch fixture explicitly simulates that helper output.",
+  "helper_classes": [
+    "ocr",
+    "asr",
+    "sound_event",
+    "object_detector",
+    "vlm_scene_action",
+    "attribute_state",
+    "face_person",
+    "speaker_identity",
+    "hand_pose_ownership",
+    "spatial_scene_graph",
+    "location_place",
+    "screen_ui_semantics",
+    "transaction_order",
+    "calendar_message_import",
+    "entity_registry_reid",
+    "relation_extractor",
+    "episode_segmenter",
+    "behavior_ledger",
+    "confidence_refusal_gate"
+  ],
+  "current_repo_summary": {
+    "strong_or_partial": [
+      "ocr",
+      "asr",
+      "sound_event",
+      "object_detector",
+      "vlm_scene_action",
+      "attribute_state",
+      "location_place",
+      "calendar_message_import",
+      "entity_registry_reid",
+      "relation_extractor",
+      "episode_segmenter",
+      "confidence_refusal_gate"
+    ],
+    "weak_or_missing": [
+      "speaker_identity",
+      "hand_pose_ownership",
+      "spatial_scene_graph",
+      "screen_ui_semantics",
+      "transaction_order",
+      "behavior_ledger"
+    ],
+    "architectural_gap": "Existing helpers do not all emit one typed observation contract, and recall is split between sidecar files, ask_home specialists, trace_hub graph, and the newer trace_memory event-log boundary."
+  },
+  "questions": [
+    {
+      "id": "physical_current_left_of_me",
+      "user_question": "What's left of me?",
+      "required_helpers": ["object_detector", "spatial_scene_graph", "entity_registry_reid", "confidence_refusal_gate"],
+      "required_facts": ["current_self_anchor", "current_object_instances", "egocentric_left_relation", "recency"],
+      "current_support": "partial",
+      "gap": "Frame-region detections exist, but egocentric current-scene relations and durable instance IDs are not first-class.",
+      "pitch_strategy": "simulate spatial_scene_graph observations over live detector/OCR records"
+    },
+    {
+      "id": "physical_duplicate_items",
+      "user_question": "Are there duplicate items here?",
+      "required_helpers": ["object_detector", "vlm_scene_action", "entity_registry_reid", "relation_extractor", "confidence_refusal_gate"],
+      "required_facts": ["same_class_instances", "co_presence", "appearance_fingerprints", "merge_split_decision"],
+      "current_support": "partial",
+      "gap": "World memory and counting specialists exist offline, but duplicate-aware live instance memory does not.",
+      "pitch_strategy": "inject two co-present mug entities and one repeated sighting to prove non-recounting"
+    },
+    {
+      "id": "physical_last_put_keys",
+      "user_question": "Where did I last put my keys?",
+      "required_helpers": ["object_detector", "hand_pose_ownership", "spatial_scene_graph", "episode_segmenter", "entity_registry_reid", "confidence_refusal_gate"],
+      "required_facts": ["key_entity", "put_down_event", "surface_or_container", "latest_location"],
+      "current_support": "weak",
+      "gap": "Object/location can be stored, but handoff/placement events are not reliable typed facts.",
+      "pitch_strategy": "simulate picked_up and put_down relation observations with timestamps"
+    },
+    {
+      "id": "physical_bag_zipped",
+      "user_question": "Which bag was zipped?",
+      "required_helpers": ["object_detector", "attribute_state", "entity_registry_reid", "relation_extractor", "confidence_refusal_gate"],
+      "required_facts": ["bag_instances", "closure_state_per_instance", "same_frame_binding"],
+      "current_support": "partial",
+      "gap": "Bag zipper attribute helper exists in a narrow offline form; no general live object-state ledger.",
+      "pitch_strategy": "simulate two bag instances with one closure_state=zipped observation"
+    },
+    {
+      "id": "physical_connected_cable",
+      "user_question": "Was the laptop cable connected?",
+      "required_helpers": ["object_detector", "attribute_state", "relation_extractor", "confidence_refusal_gate"],
+      "required_facts": ["laptop_entity", "cable_entity", "connected_to_relation", "visibility_confidence"],
+      "current_support": "partial",
+      "gap": "Laptop/cable attribute scripts exist, but not as universal live state observations.",
+      "pitch_strategy": "use typed connected_to observation in fixture"
+    },
+    {
+      "id": "speech_who_said",
+      "user_question": "Who said they would send the notes?",
+      "required_helpers": ["asr", "speaker_identity", "face_person", "entity_registry_reid", "calendar_message_import", "confidence_refusal_gate"],
+      "required_facts": ["speech_segment", "commitment_text", "said_by_relation", "person_identity"],
+      "current_support": "weak",
+      "gap": "ASR and person memory exist; active speaker/speaker identity binding does not.",
+      "pitch_strategy": "simulate said_by relation between ASR segment and known contact"
+    },
+    {
+      "id": "speech_nearby_topic",
+      "user_question": "What were people talking about near me?",
+      "required_helpers": ["asr", "episode_segmenter", "confidence_refusal_gate"],
+      "required_facts": ["nearby_speech_segments", "conversation_episode", "topic_summary"],
+      "current_support": "partial",
+      "gap": "Speech rows can be ingested; robust conversation episodes are not first-class.",
+      "pitch_strategy": "use transcript segments grouped into one conversation episode"
+    },
+    {
+      "id": "speech_remember_name",
+      "user_question": "What was that person's name?",
+      "required_helpers": ["asr", "face_person", "entity_registry_reid", "relation_extractor", "confidence_refusal_gate"],
+      "required_facts": ["name_mention", "visible_person_entity", "addressed_or_introduced_as_relation"],
+      "current_support": "partial",
+      "gap": "Self/person name extraction exists, but generic person-name binding is incomplete.",
+      "pitch_strategy": "simulate introduced_as relation from transcript to visible person"
+    },
+    {
+      "id": "screen_active_chat",
+      "user_question": "Which chat was open?",
+      "required_helpers": ["ocr", "screen_ui_semantics", "episode_segmenter", "confidence_refusal_gate"],
+      "required_facts": ["app_name", "screen_title", "active_chat_or_thread", "visible_timestamp"],
+      "current_support": "partial",
+      "gap": "Screen OCR specialist can answer some hardcoded cases; general UI semantic state is missing.",
+      "pitch_strategy": "simulate UI state observation app=Claude active_thread=..."
+    },
+    {
+      "id": "screen_unsent_text",
+      "user_question": "Was there text waiting to be sent?",
+      "required_helpers": ["ocr", "screen_ui_semantics", "confidence_refusal_gate"],
+      "required_facts": ["active_input_field", "field_text_or_placeholder", "draft_status"],
+      "current_support": "partial",
+      "gap": "One specialist handles an example; no general active-field model.",
+      "pitch_strategy": "simulate input_field status with placeholder vs draft distinction"
+    },
+    {
+      "id": "screen_restaurant_favorite",
+      "user_question": "Was that restaurant marked as a favorite?",
+      "required_helpers": ["screen_ui_semantics", "transaction_order", "entity_registry_reid", "confidence_refusal_gate"],
+      "required_facts": ["restaurant_entity", "app_state", "favorite_marker", "timestamp"],
+      "current_support": "missing",
+      "gap": "No restaurant/order UI semantic helper.",
+      "pitch_strategy": "simulate favorite_in_app relation from screen helper"
+    },
+    {
+      "id": "commerce_usual_order",
+      "user_question": "What is my usual order?",
+      "required_helpers": ["transaction_order", "location_place", "screen_ui_semantics", "behavior_ledger", "entity_registry_reid", "confidence_refusal_gate"],
+      "required_facts": ["merchant_entity", "order_events", "item_normalization", "frequency", "recency", "favorite_or_reorder_signal"],
+      "current_support": "missing",
+      "gap": "No order history, receipt, delivery app, merchant, or behavior ledger helper.",
+      "pitch_strategy": "simulate five order events plus one favorite UI observation and aggregate"
+    },
+    {
+      "id": "commerce_last_bought",
+      "user_question": "When did I last buy coffee?",
+      "required_helpers": ["transaction_order", "location_place", "behavior_ledger", "confidence_refusal_gate"],
+      "required_facts": ["purchase_event", "item_category", "merchant", "timestamp"],
+      "current_support": "missing",
+      "gap": "No transaction/purchase channel.",
+      "pitch_strategy": "simulate purchase_event observations"
+    },
+    {
+      "id": "commerce_spent_at_place",
+      "user_question": "How much did I spend at that restaurant last month?",
+      "required_helpers": ["transaction_order", "location_place", "entity_registry_reid", "behavior_ledger", "confidence_refusal_gate"],
+      "required_facts": ["merchant_entity", "order_or_card_events", "amounts", "date_range"],
+      "current_support": "missing",
+      "gap": "No commerce ledger.",
+      "pitch_strategy": "simulate order/payment events and date-range aggregation"
+    },
+    {
+      "id": "habit_usual_route",
+      "user_question": "Is this my usual route?",
+      "required_helpers": ["location_place", "episode_segmenter", "behavior_ledger", "confidence_refusal_gate"],
+      "required_facts": ["route_episode", "historical_route_frequency", "current_route_similarity"],
+      "current_support": "weak",
+      "gap": "Location hints exist, but route behavior ledger does not.",
+      "pitch_strategy": "simulate commute episodes and compare"
+    },
+    {
+      "id": "habit_usual_arrival",
+      "user_question": "Do I usually arrive here this late?",
+      "required_helpers": ["location_place", "episode_segmenter", "behavior_ledger", "confidence_refusal_gate"],
+      "required_facts": ["place_arrival_events", "time_distribution", "current_arrival_time"],
+      "current_support": "missing",
+      "gap": "No behavior ledger over visits.",
+      "pitch_strategy": "simulate place_visit episodes"
+    },
+    {
+      "id": "people_recent_contacts",
+      "user_question": "Who have I been talking to recently?",
+      "required_helpers": ["calendar_message_import", "behavior_ledger", "confidence_refusal_gate"],
+      "required_facts": ["contact_entities", "message_counts", "last_contact_at"],
+      "current_support": "partial",
+      "gap": "WhatsApp/iMessage import exists; behavior abstraction should be formalized.",
+      "pitch_strategy": "use existing importer-style graph attributes"
+    },
+    {
+      "id": "people_open_commitments",
+      "user_question": "What did I promise to do?",
+      "required_helpers": ["calendar_message_import", "asr", "episode_segmenter", "confidence_refusal_gate"],
+      "required_facts": ["commitment_text", "committed_by_self", "recipient", "due_date_or_recency"],
+      "current_support": "partial",
+      "gap": "Message commitment extraction exists; live speech commitments need same schema.",
+      "pitch_strategy": "simulate commitment observations from messages plus speech"
+    },
+    {
+      "id": "place_where_am_i",
+      "user_question": "Where am I?",
+      "required_helpers": ["location_place", "ocr", "screen_ui_semantics", "confidence_refusal_gate"],
+      "required_facts": ["gps_or_place_hint", "visible_sign_text", "place_entity", "confidence"],
+      "current_support": "partial",
+      "gap": "GPS/place and OCR exist; place resolver should combine them under one evidence contract.",
+      "pitch_strategy": "use place candidate plus visible sign corroboration"
+    },
+    {
+      "id": "place_last_seen_person",
+      "user_question": "Where did I last see Alex?",
+      "required_helpers": ["face_person", "asr", "location_place", "entity_registry_reid", "episode_segmenter", "confidence_refusal_gate"],
+      "required_facts": ["person_entity", "encounter_episode", "place", "last_seen_at"],
+      "current_support": "weak",
+      "gap": "Recent people and places exist, but identity binding across face/name/contact is incomplete.",
+      "pitch_strategy": "simulate encounter episode for known person"
+    },
+    {
+      "id": "document_visible_id",
+      "user_question": "What was the ID on that document?",
+      "required_helpers": ["ocr", "entity_registry_reid", "relation_extractor", "confidence_refusal_gate"],
+      "required_facts": ["document_entity", "visible_text", "same_surface_binding", "repeat_support"],
+      "current_support": "partial",
+      "gap": "OCR consensus and structured recall exist; needs general text_surface binding.",
+      "pitch_strategy": "use typed contains_text observations"
+    },
+    {
+      "id": "object_attribute_change",
+      "user_question": "Did the cup move?",
+      "required_helpers": ["object_detector", "spatial_scene_graph", "entity_registry_reid", "episode_segmenter", "confidence_refusal_gate"],
+      "required_facts": ["same_cup_entity", "old_location", "new_location", "movement_event"],
+      "current_support": "weak",
+      "gap": "No generalized object state/change ledger.",
+      "pitch_strategy": "simulate location_changed relation"
+    },
+    {
+      "id": "sound_what_was_noise",
+      "user_question": "What was that loud noise?",
+      "required_helpers": ["sound_event", "asr", "episode_segmenter", "confidence_refusal_gate"],
+      "required_facts": ["sound_event_class", "time_span", "nearby_context"],
+      "current_support": "partial",
+      "gap": "Audio event offline detector exists; live sound event observations need to feed same contract.",
+      "pitch_strategy": "simulate sound_event with nearby scene context"
+    },
+    {
+      "id": "mixed_why_did_i_go_there",
+      "user_question": "Why did I go to the pharmacy?",
+      "required_helpers": ["location_place", "calendar_message_import", "screen_ui_semantics", "transaction_order", "episode_segmenter", "confidence_refusal_gate"],
+      "required_facts": ["place_visit", "preceding_intent_signal", "purchase_or_message_or_calendar_evidence"],
+      "current_support": "missing",
+      "gap": "Requires intent inference across messages, place visit, and purchase. No unified episode planner.",
+      "pitch_strategy": "simulate message intent plus pharmacy purchase event"
+    },
+    {
+      "id": "mixed_what_changed_since_last_time",
+      "user_question": "What changed since I was last here?",
+      "required_helpers": ["object_detector", "spatial_scene_graph", "location_place", "entity_registry_reid", "behavior_ledger", "confidence_refusal_gate"],
+      "required_facts": ["place_entity", "previous_scene_inventory", "current_scene_inventory", "diff"],
+      "current_support": "weak",
+      "gap": "Inventory exists offline but not place-indexed current-vs-prior diff.",
+      "pitch_strategy": "simulate place-indexed inventory snapshots"
+    },
+    {
+      "id": "mixed_current_task_recovery",
+      "user_question": "What was I doing?",
+      "required_helpers": ["screen_ui_semantics", "location_place", "vlm_scene_action", "asr", "episode_segmenter", "confidence_refusal_gate"],
+      "required_facts": ["current_episode", "app_or_scene_action", "recent_speech_or_screen_context"],
+      "current_support": "partial",
+      "gap": "Context snapshots/digests exist, but current task episode is not a typed durable concept.",
+      "pitch_strategy": "simulate current_task episode from screen + speech + place"
+    },
+    {
+      "id": "mixed_should_i_reply",
+      "user_question": "Who do I need to reply to?",
+      "required_helpers": ["calendar_message_import", "screen_ui_semantics", "behavior_ledger", "confidence_refusal_gate"],
+      "required_facts": ["unanswered_message", "contact_importance_or_recency", "open_commitment_or_need_input"],
+      "current_support": "weak",
+      "gap": "Messages can be imported, but reply-needed state and app notifications are not formalized.",
+      "pitch_strategy": "simulate notification and unread/reply-needed observations"
+    },
+    {
+      "id": "meta_missing_context",
+      "user_question": "Why don't you know?",
+      "required_helpers": ["confidence_refusal_gate"],
+      "required_facts": ["missing_helper_class", "missing_time_window", "last_available_evidence"],
+      "current_support": "weak",
+      "gap": "Refusals exist, but they do not consistently explain which context class was absent.",
+      "pitch_strategy": "make coverage gate return missing_helper_classes"
+    }
+  ]
+}

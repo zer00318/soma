@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from soma.application import EgressGuard, PrivacyViolationError
-from soma.domain import TextEgress
+from trace_memory.application import EgressGuard, PrivacyViolationError
+from trace_memory.domain import TextEgress
 
 
 def test_egress_guard_accepts_only_provenance_bearing_text() -> None:

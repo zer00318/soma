@@ -55,7 +55,7 @@ logged; I tune thresholds from this data, not from impressions.
 
 ## 6. Report (one line is enough)
 
-`echo "step1 PASS/FAIL, step2 PASS/FAIL, step3 PASS/FAIL, step4 yes/no, notes: ..." > /tmp/soma_founder_reply.txt`
+`echo "step1 PASS/FAIL, step2 PASS/FAIL, step3 PASS/FAIL, step4 yes/no, notes: ..." > /tmp/trace_founder_reply.txt`
 
 Honest misses are worth more than polite passes — wrong words and
 never-named objects are exactly what grows the vocabulary tomorrow.

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from soma_hub.graph_audit import GraphAuditor
+from trace_hub.graph_audit import GraphAuditor
 
 
 class GraphAuditTests(unittest.TestCase):

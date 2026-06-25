@@ -1,0 +1,442 @@
+[
+  {
+    "key": "day:1",
+    "clip": "day",
+    "q": "Whose lectures was I listening to?",
+    "gold": "Old lectures by Mr. Ryan Maccombs (lecturer name shown on the lecture video/screen).",
+    "channel": "screen/OCR",
+    "ans": "I was listening to Mr. Ryan Maccombs’ lectures. This is stated in the READ text at t=23.5s and again at t=1.0s.",
+    "verdict": "CORRECT",
+    "secs": 42.5
+  },
+  {
+    "key": "day:10",
+    "clip": "day",
+    "q": "How many calories were in the breakfast I ate, and what did I eat?",
+    "gold": "Scrambled eggs, diced breakfast potatoes/home fries, and ketchup; roughly 495-695 kcal total.",
+    "channel": "VLM food reasoning",
+    "ans": "I don't have that in my memory.",
+    "verdict": "MISS",
+    "secs": 25.7
+  },
+  {
+    "key": "day:11",
+    "clip": "day",
+    "q": "Who were at the table opposite to me?",
+    "gold": "Two women — one in a white t-shirt, the other in a white jacket / full-sleeve top.",
+    "channel": "caption/VLM",
+    "ans": "I don't have that — I didn't capture who that was. I may have overheard or read a name nearby, but nothing ties it to the specific person you're asking about.",
+    "verdict": "MISS",
+    "secs": 27.0
+  },
+  {
+    "key": "day:12",
+    "clip": "day",
+    "q": "What game was I playing, what was the highest speed I reached, and on what device was I playing?",
+    "gold": "Descenders; highest speed ~51 km/h; on Xbox (an Xbox controller was visible).",
+    "channel": "screen/HUD OCR + controller ID",
+    "ans": "I was playing a video game with a pink Xbox controller at 26 MPH (read at 29.0s). The game was displayed on a flat-screen TV (read at 29.0s and 31.0s).",
+    "verdict": "CORRECT",
+    "secs": 29.1
+  },
+  {
+    "key": "day:13",
+    "clip": "day",
+    "q": "I said hi to someone — what was he wearing?",
+    "gold": "Greeting was 'Whatsup?'. He wore a green t-shirt and black shorts.",
+    "channel": "caption + ASR (greeting)",
+    "ans": "During the detected dressing event, the wearer had dark pants, white crocs, green shirt.",
+    "verdict": "CORRECT",
+    "secs": 6.4
+  },
+  {
+    "key": "day:14",
+    "clip": "day",
+    "q": "Where can I buy the macbook skin, and what phone do I use?",
+    "gold": "The skin is a topographic/contour-line map design (closest dbrand match 'Area 51' but really a topographic-map skin). Phone: a black iPhone Pro Max, likely the 16.",
+    "channel": "VLM + world knowledge",
+    "ans": "The laptop is described as silver/gray at t=26.5s and black at t=26.7s. A smartphone is seen in a person's hand during the physics lecture at t=47.5s, with a blue and white screen.",
+    "verdict": "MISS",
+    "secs": 25.4
+  },
+  {
+    "key": "day:15",
+    "clip": "day",
+    "q": "What university was I going to?",
+    "gold": "Michigan State University (seen partially as 'chigan State' on a sign/logo).",
+    "channel": "OCR",
+    "ans": "I didn't see anything about university going in what I read.",
+    "verdict": "MISS",
+    "secs": 0.1
+  },
+  {
+    "key": "day:16",
+    "clip": "day",
+    "q": "Where did I leave my keys?",
+    "gold": "On the table that has a black tablecloth/cover (last seen there).",
+    "channel": "caption/VLM",
+    "ans": "I don't have that in my memory. There are no mentions of keys in the dossier.",
+    "verdict": "MISS",
+    "secs": 23.0
+  },
+  {
+    "key": "day:17",
+    "clip": "day",
+    "q": "When did the physics lecture conclude?",
+    "gold": "At 13:30 (left the class around 13:32-13:36) — a clock/timestamp reading.",
+    "channel": "OCR (clock)",
+    "ans": "The physics lecture concluded at 1:32 PM, as indicated by the READ line \"PHYSICS LECTURE; 1:32 PM\" (t=51.7s).",
+    "verdict": "MISS",
+    "secs": 22.4
+  },
+  {
+    "key": "day:18",
+    "clip": "day",
+    "q": "What was the logo on the mate I fist-bumped?",
+    "gold": "Turks & Caicos Islands.",
+    "channel": "caption/logo recognition",
+    "ans": "I don't have that in my memory — I didn't read enough to be sure.",
+    "verdict": "MISS",
+    "secs": 22.2
+  },
+  {
+    "key": "day:19",
+    "clip": "day",
+    "q": "What was the model of the blue vehicle I saw?",
+    "gold": "Most likely a Ford F-150 (blue pickup truck).",
+    "channel": "caption/vehicle recognition",
+    "ans": "I don't have that in my memory.",
+    "verdict": "MISS",
+    "secs": 22.3
+  },
+  {
+    "key": "day:2",
+    "clip": "day",
+    "q": "Which example problem was I on?",
+    "gold": "Example 1.6 (physics example on the screen; content was about a field due to a charge, 'Z can be anything it wants').",
+    "channel": "screen/OCR",
+    "ans": "Repeated visible labels identify: 1.6.",
+    "verdict": "CORRECT",
+    "secs": 0.0
+  },
+  {
+    "key": "day:3",
+    "clip": "day",
+    "q": "What was the colour of my bedsheets and blanket?",
+    "gold": "Bedsheets: black-and-white stripe pattern (thick white stripes, thin black stripes). Blanket: light grey on the outside, dark blueish-brown on the inside.",
+    "channel": "caption/VLM",
+    "ans": "The bedsheets were light-colored with dark gray horizontal stripes (t=38.0s), and the blankets were striped, beige with thin brown stripes (t=4.7s) and gray (t=57.3s).",
+    "verdict": "CORRECT",
+    "secs": 24.3
+  },
+  {
+    "key": "day:4",
+    "clip": "day",
+    "q": "Did I have any accessories that were visible when I was in bed, and where were they?",
+    "gold": "Yes — a band/bracelet on the RIGHT hand/wrist.",
+    "channel": "caption/self-perception",
+    "ans": "I had a bracelet on my left wrist while in bed at 9:23 AM and was holding a gray pillow. (read at 5.0s, read at 4.7s)",
+    "verdict": "CORRECT",
+    "secs": 22.1
+  },
+  {
+    "key": "day:5",
+    "clip": "day",
+    "q": "Do I wear eyewear or glasses?",
+    "gold": "Maybe — a glasses holder/case was on the table while putting on the crocs (no glasses clearly worn).",
+    "channel": "caption/VLM",
+    "ans": "Yes, I wore black glasses at t=14.3s and t=13.7s. The person wearing the pink \"BREAKFAST CLUB\" shirt is described as wearing black glasses (t=14.3s). Another line states a woman with shoulder-length hair, wearing a pink t-shirt with the text \"CLUB\" and \"FAST\" printed on it, is wearing glasses (t=13.7s).",
+    "verdict": "CORRECT",
+    "secs": 24.6
+  },
+  {
+    "key": "day:6",
+    "clip": "day",
+    "q": "What outfit was I wearing?",
+    "gold": "Green t-shirt, dark blue sweatpants, and white crocs.",
+    "channel": "caption/self-perception",
+    "ans": "During the detected dressing event, the wearer had dark pants, white crocs, green shirt.",
+    "verdict": "CORRECT",
+    "secs": 0.0
+  },
+  {
+    "key": "day:7",
+    "clip": "day",
+    "q": "Was I wearing a watch?",
+    "gold": "Yes — a watch with a dark blue band.",
+    "channel": "caption/self-perception",
+    "ans": "Yes, I was wearing a watch. Multiple lines mention a watch on my left wrist throughout the day, including at 9.0s, 6.7s, 38.0s, 42.5s, 44.3s, 55.3s, and 49.7s.",
+    "verdict": "CORRECT",
+    "secs": 23.7
+  },
+  {
+    "key": "day:8",
+    "clip": "day",
+    "q": "What is my name?",
+    "gold": "Joe (April said it: 'Okay, Joe, see you').",
+    "channel": "ASR/speech",
+    "ans": "I don't have that — I never captured anything that ties a name to you. A name I read on a sign nearby is the world's, not necessarily yours.",
+    "verdict": "MISS",
+    "secs": 31.6
+  },
+  {
+    "key": "day:9",
+    "clip": "day",
+    "q": "What was the name of the person who checked my card, and what details do you know about her?",
+    "gold": "April. She wore a pink 'The Breakfast Club' t-shirt, black glasses/specs, is blonde, and may be right-handed.",
+    "channel": "caption + ASR (name)",
+    "ans": "I can read the detail, but I can't tell which one you mean — it could belong to more than one thing I saw, so I won't guess which it was.",
+    "verdict": "MISS",
+    "secs": 33.5
+  },
+  {
+    "key": "walk:1",
+    "clip": "walk",
+    "q": "child crying or yelling?",
+    "gold": "YES — a child AUDIBLY yelled near the END of the clip (a non-speech vocalization; NOT a 'spoken word', so Q21 'no words' stays correct). Founder GT 2026-06-17: AUDIO, not visual.",
+    "channel": "",
+    "ans": "I didn't hear it. The transcript mentions \"a message about audio transcription,\" but does not include any mention of a child crying or yelling.",
+    "verdict": "CORRECT",
+    "secs": 3.7
+  },
+  {
+    "key": "walk:10",
+    "clip": "walk",
+    "q": "whose name on this blue poster?",
+    "gold": "Meißner (founder wrote 'E. Meißner'; the Garching street/physicist is Walther Meißner)",
+    "channel": "",
+    "ans": "Wilhelm Conrad Röntgen's name is on the blue poster. The text \"WILHELM CONRAD RÖNTGEN\" appears multiple times on the poster, first at t=64.0s and again at t=63.5s.",
+    "verdict": "WRONG",
+    "secs": 21.0
+  },
+  {
+    "key": "walk:11",
+    "clip": "walk",
+    "q": "where is the lift vs me?",
+    "gold": "LEFT side, after a few steps (founder GT). ANSWERABLE from the visible pan/tilt.",
+    "channel": "",
+    "ans": "I didn't see anything about lift in what I read.",
+    "verdict": "MISS",
+    "secs": 0.1
+  },
+  {
+    "key": "walk:12",
+    "clip": "walk",
+    "q": "station crowded?",
+    "gold": "No — empty/not crowded",
+    "channel": "",
+    "ans": "I don't have that in my memory — I didn't read enough to be sure.",
+    "verdict": "MISS",
+    "secs": 27.6
+  },
+  {
+    "key": "walk:13",
+    "clip": "walk",
+    "q": "what was the molecule?",
+    "gold": "A porphyrin/dipyrromethene-class molecule (Hans Fischer's Nobel work: haemin/chlorophyll synthesis via pyrroles). Founder gave a specific tetramethyl-diethyl-dipyrromethene structure (unsure).",
+    "channel": "",
+    "ans": "The molecule was chlorophyll. This is supported by multiple lines reading \"Chlorophyll\" and descriptions of a molecular structure diagram resembling a chlorophyll molecule, seen at t=83.0s, t=85.0s, and t=82.0s.",
+    "verdict": "CORRECT",
+    "secs": 31.7
+  },
+  {
+    "key": "walk:14",
+    "clip": "walk",
+    "q": "who named on the molecule poster?",
+    "gold": "Hans Fischer",
+    "channel": "",
+    "ans": "Hans Fischer is named on the molecule poster. The text \"HANS FISCHER\" appears prominently at the top of several posters and signs describing the chlorophyll molecule (read at 81.5s, 82.0s, 79.0s).",
+    "verdict": "CORRECT",
+    "secs": 29.6
+  },
+  {
+    "key": "walk:15",
+    "clip": "walk",
+    "q": "years on each poster?",
+    "gold": "Röntgen 1845-1923; Hans Fischer 1881-1945; Robert Sauer 1898-1970",
+    "channel": "",
+    "ans": "1881 - 1945",
+    "verdict": "CORRECT",
+    "secs": 4.0
+  },
+  {
+    "key": "walk:16",
+    "clip": "walk",
+    "q": "how many posters total?",
+    "gold": "THREE posters clearly identified (Roentgen, Fischer, Sauer) + up to ~2 more distant/unclear -> 3 to ~5.",
+    "channel": "",
+    "ans": "I counted 4 distinct poster/display viewing episodes.",
+    "verdict": "CORRECT",
+    "secs": 0.0
+  },
+  {
+    "key": "walk:17",
+    "clip": "walk",
+    "q": "bag zip open or closed?",
+    "gold": "OPEN (founder-confirmed)",
+    "channel": "",
+    "ans": "The bag's state is not mentioned in the dossier. I don't have that in my memory.",
+    "verdict": "MISS",
+    "secs": 21.6
+  },
+  {
+    "key": "walk:18",
+    "clip": "walk",
+    "q": "colour of the bag?",
+    "gold": "PALE BLUE / light blue (founder GT 2026-06-17). The muffled recording WASHED IT OUT to near-white (pixel saturation 6-15/255; 4-bit VLM read 'white'; a faint blue tint surfaced only at t=30s) -> a CAPTURE-QUALITY (A) gap, not a pure model error. Honest engine answer ~ 'pale/light, a washed-out blue'.",
+    "channel": "",
+    "ans": "The bag is light-colored. This is visible at t=2.5s and t=18.5s, where it's described as a \"light-colored sleeve.\"",
+    "verdict": "WRONG",
+    "secs": 26.1
+  },
+  {
+    "key": "walk:19",
+    "clip": "walk",
+    "q": "iPhone connected to laptop?",
+    "gold": "Could NOT confirm: a cable/wire was present but NO iPhone was visible -> insufficient context to claim it's connected. Honest answer = 'no iPhone seen / can't confirm'.",
+    "channel": "",
+    "ans": "The dossier states a MacBook Pro is open and placed on a metal cart, and it appears to be \"connected to a…\" but does not specify an iPhone. Therefore, I don't have that in my memory.",
+    "verdict": "MISS",
+    "secs": 23.4
+  },
+  {
+    "key": "walk:2",
+    "clip": "walk",
+    "q": "german sign translate to?",
+    "gold": "Elevator/lift MACHINE-ROOM access signs — 'only authorized persons allowed' (TWO signs: first yellow, then white; German Triebwerksraum/Aufzugmaschinenraum, Zutritt nur fuer Befugte).",
+    "channel": "",
+    "ans": "The German signs read \"Am Coulombwall\" and \"Walther-Meißner-Str., Boltzmannstr.\" (read at 44.5s).",
+    "verdict": "MISS",
+    "secs": 28.7
+  },
+  {
+    "key": "walk:20",
+    "clip": "walk",
+    "q": "train in station or empty?",
+    "gold": "Empty — no train (the blue thing was a WALL MURAL)",
+    "channel": "",
+    "ans": "The platform is consistently described as empty, with no people visible. Several lines state \"There are no people visible in the image\" and \"The platform appears empty.\" (read at 35.0s, 36.5s, 37.5s, 38.0s, 38.5s, 50.5s, 53.5s, 63.0s, 63.5s, 77.0s, 77.5s).",
+    "verdict": "CORRECT",
+    "secs": 31.3
+  },
+  {
+    "key": "walk:21",
+    "clip": "walk",
+    "q": "what words were said?",
+    "gold": "No clear speech — audio near-silent (~-47 dB)",
+    "channel": "",
+    "ans": "I didn't hear any words spoken; the transcript describes clothing and screen content like \"The person is wearing a red shirt\" and \"The screen displays a welcome message for 'Satoshi'\".",
+    "verdict": "MISS",
+    "secs": 4.5
+  },
+  {
+    "key": "walk:22",
+    "clip": "walk",
+    "q": "which chat was asking for input?",
+    "gold": "'Audio transcription and video critique' (founder-confirmed)",
+    "channel": "",
+    "ans": "I don't have that in my memory — I didn't read enough to be sure.",
+    "verdict": "MISS",
+    "secs": 28.1
+  },
+  {
+    "key": "walk:23",
+    "clip": "walk",
+    "q": "colour of the input notification?",
+    "gold": "Yellow (founder-confirmed)",
+    "channel": "",
+    "ans": "I don't have that in my memory — I didn't read enough to be sure.",
+    "verdict": "MISS",
+    "secs": 29.2
+  },
+  {
+    "key": "walk:24",
+    "clip": "walk",
+    "q": "prompt written but not sent?",
+    "gold": "YES — an unsent draft existed: the TRACE hand-over prompt beginning \"You're taking over TRACE, a perception-to-text wearable-memory project. Working repo: /Users/zer00/Documents/VLM ...\"",
+    "channel": "",
+    "ans": "The prompt was written. (t=23.5s)",
+    "verdict": "MISS",
+    "secs": 35.1
+  },
+  {
+    "key": "walk:25",
+    "clip": "walk",
+    "q": "yellow poster + concept?",
+    "gold": "Robert Sauer; flow/streamline diagram (gas dynamics); sun-like radiating arrows",
+    "channel": "",
+    "ans": "The poster features a blue background with a pattern of white dots resembling stars or snowflakes, and a circular design element on the left side. It also displays the name \"WILHELM CONRAD RÖNTGEN\" (read at 63.5s) and an X-ray image of a hand with a ring on the ring finger (read at 63.5s).",
+    "verdict": "MISS",
+    "secs": 23.7
+  },
+  {
+    "key": "walk:3",
+    "clip": "walk",
+    "q": "two or three signs on the door?",
+    "gold": "About 2 (no-entry + authorised-personnel-only)",
+    "channel": "",
+    "ans": "There are two signs on the door. One is yellow with black text, and another is white with a red sign. (read at 61.0s, read at 58.0s)",
+    "verdict": "CORRECT",
+    "secs": 29.3
+  },
+  {
+    "key": "walk:4",
+    "clip": "walk",
+    "q": "name on the X-Ray thing?",
+    "gold": "Wilhelm Conrad Röntgen",
+    "channel": "",
+    "ans": "WILHELM CONRAD RÖNTGEN is named on the poster at 63.5s, 64.0s and 65.5s.",
+    "verdict": "CORRECT",
+    "secs": 26.4
+  },
+  {
+    "key": "walk:5",
+    "clip": "walk",
+    "q": "colour of the X-Ray thing?",
+    "gold": "blue (light-blue panel, blue/white X-ray)",
+    "channel": "",
+    "ans": "The X-ray image is in shades of blue and white. (read at 63.5s, seen at 64.0s, seen at 65.5s)",
+    "verdict": "CORRECT",
+    "secs": 24.3
+  },
+  {
+    "key": "walk:6",
+    "clip": "walk",
+    "q": "where located?",
+    "gold": "Garching-Forschungszentrum U-Bahn station, Munich",
+    "channel": "",
+    "ans": "The location is Garching, as read on a sign at t=48.0s.",
+    "verdict": "CORRECT",
+    "secs": 27.8
+  },
+  {
+    "key": "walk:7",
+    "clip": "walk",
+    "q": "time on laptop vs posters?",
+    "gold": "Posters were in view LONGER than the laptop",
+    "channel": "",
+    "ans": "The laptop is present from 0.0s to 29.5s, while the poster appears from 35.5s to 49.5s and again from 63.5s to 92.0s.",
+    "verdict": "MISS",
+    "secs": 24.1
+  },
+  {
+    "key": "walk:8",
+    "clip": "walk",
+    "q": "which side is Max Planck Campus vs me?",
+    "gold": "RIGHT side (founder GT). ANSWERABLE from the visible camera pan/tilt laptop->campus — NOT a refuse pass.",
+    "channel": "",
+    "ans": "I remember what I saw and read, but not directions relative to where you were standing — I don't track left/right or which side of you things were on.",
+    "verdict": "WRONG",
+    "secs": 0.0
+  },
+  {
+    "key": "walk:9",
+    "clip": "walk",
+    "q": "the other blue poster — what is it?",
+    "gold": "The W. Meissner poster — about the MEISSNER-OCHSENFELD effect (superconductivity). [Corrects prior gold 'iceberg mural' = previous-session hallucination IN THE GOLD.]",
+    "channel": "",
+    "ans": "The other blue poster features a leaf-like pattern with a network of veins and \"CH₃\" chemical groups along the bottom edge, alongside text reading \"1881 - 1945; Nobelpreis für Chemie.\" (read at 86.5s).",
+    "verdict": "MISS",
+    "secs": 21.1
+  }
+]
