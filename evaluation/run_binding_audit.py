@@ -27,10 +27,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import inject_bind  # noqa: E402
 
-OUT = os.path.join(ROOT, "ops", "cockpit", "binding_audit.json")
+OUT = os.environ.get("AUDIT_OUT", os.path.join(ROOT, "ops", "cockpit", "binding_audit.json"))
 CLIPS = [
-    ("day", os.path.join(ROOT, "data/live_replay/day_in_life_20260618_live44/memory")),
-    ("walk", os.path.join(ROOT, "data/live_replay/walk_outside_20260614_live44/memory")),
+    ("day", os.environ.get("AUDIT_DAY_MEM",
+            os.path.join(ROOT, "data/live_replay/day_in_life_20260618_live44/memory"))),
+    ("walk", os.environ.get("AUDIT_WALK_MEM",
+             os.path.join(ROOT, "data/live_replay/walk_outside_20260614_live44/memory"))),
 ]
 MODEL = "gemma3:12b-it-qat"
 HOST = "http://127.0.0.1:11434"
