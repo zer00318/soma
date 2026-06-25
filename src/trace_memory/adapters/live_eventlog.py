@@ -65,6 +65,11 @@ _ATTRIBUTE_RE = re.compile(
     r"(?:is|are|was|were)\s+(?P<subject>.+?)\s*\??\s*$",
     re.IGNORECASE,
 )
+_LABEL_RE = re.compile(
+    r"^\s*what\s+(?P<attribute>label|brand|text|name)\s+"
+    r"(?:is|are|was|were)\s+(?:on|for)?\s*(?P<subject>.+?)\s*\??\s*$",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -271,6 +276,13 @@ def _parse_question(question: str) -> _ParsedQuestion | None:
             subject=_clean_subject(match.group("subject")),
             attribute=attribute,
         )
+    match = _LABEL_RE.match(normalized)
+    if match:
+        return _ParsedQuestion(
+            intent="attribute",
+            subject=_clean_subject(match.group("subject")),
+            attribute="label",
+        )
     return None
 
 
@@ -328,12 +340,14 @@ def _attribute_answer(
         return _colour_value(object_matches)
     if attribute == "flavour":
         return _flavour_value(object_matches, observations)
+    if attribute == "label":
+        return _label_value(object_matches, observations)
     return None
 
 
 def _colour_value(object_matches: Sequence[Observation]) -> str | None:
     for observation in object_matches:
-        text = _detail_text(observation)
+        text = _detail_attribute_text(observation)
         for colour in _COLOR_WORDS:
             if re.search(rf"\b{re.escape(colour)}\b", text):
                 return colour
@@ -345,7 +359,7 @@ def _flavour_value(
     observations: Sequence[Observation],
 ) -> str | None:
     for observation in object_matches:
-        detail = _detail_text(observation)
+        detail = _detail_attribute_text(observation)
         value = _extract_flavour(detail)
         if value:
             return value
@@ -356,10 +370,38 @@ def _flavour_value(
     return None
 
 
+def _label_value(
+    object_matches: Sequence[Observation],
+    observations: Sequence[Observation],
+) -> str | None:
+    for observation in object_matches:
+        detail = _detail_attribute_text(observation)
+        value = _extract_label(detail)
+        if value:
+            return value
+        supporting_texts = _supporting_texts(observation, observations)
+        if supporting_texts:
+            return supporting_texts[0]
+    return None
+
+
 def _extract_flavour(text: str) -> str | None:
     patterns = (
         re.compile(r"\bflavou?r[:=]\s*([a-z0-9&' /-]+)", re.IGNORECASE),
         re.compile(r"\b([a-z0-9&' /-]+?)\s+flavou?r\b", re.IGNORECASE),
+    )
+    for pattern in patterns:
+        match = pattern.search(text)
+        if match:
+            value = re.sub(r"\s+", " ", match.group(1)).strip(" .,:;/-")
+            if value:
+                return value
+    return None
+
+
+def _extract_label(text: str) -> str | None:
+    patterns = (
+        re.compile(r"\b(?:label|brand|name|text)[:=]\s*([a-z0-9&' /-]+)", re.IGNORECASE),
     )
     for pattern in patterns:
         match = pattern.search(text)
@@ -382,7 +424,12 @@ def _supporting_texts(observation: Observation, observations: Sequence[Observati
 
 
 def _detail_text(observation: Observation) -> str:
-    values = [attribute.value.lower() for attribute in observation.attributes if attribute.name == "detail"]
+    values = [_detail_attribute_text(observation)]
     if observation.spatial_anchor:
         values.append(observation.spatial_anchor.lower())
+    return " ".join(value for value in values if value)
+
+
+def _detail_attribute_text(observation: Observation) -> str:
+    values = [attribute.value.lower() for attribute in observation.attributes if attribute.name == "detail"]
     return " ".join(values)

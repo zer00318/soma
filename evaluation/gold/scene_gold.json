@@ -1,0 +1,71 @@
+[
+  {
+    "moment": "pantry",
+    "question": "is there a water bottle",
+    "expect": "answer",
+    "must_contain": ["water bottle"]
+  },
+  {
+    "moment": "pantry",
+    "question": "how many water bottles",
+    "expect": "answer",
+    "must_contain": ["1 water bottle"]
+  },
+  {
+    "moment": "pantry",
+    "question": "what colour is the water bottle",
+    "expect": "answer",
+    "must_contain": ["blue"]
+  },
+  {
+    "moment": "pantry",
+    "question": "what flavour is the pringles",
+    "expect": "answer",
+    "must_contain": ["sour cream and onion"]
+  },
+  {
+    "moment": "pantry",
+    "question": "what label is on the cereal box",
+    "expect": "answer",
+    "must_contain": ["morning oats"]
+  },
+  {
+    "moment": "pantry",
+    "question": "is there a cereal box",
+    "expect": "answer",
+    "must_contain": ["cereal box"]
+  },
+  {
+    "moment": "desk",
+    "question": "is there a coffee mug",
+    "expect": "answer",
+    "must_contain": ["coffee mug"]
+  },
+  {
+    "moment": "desk",
+    "question": "what colour is the notebook",
+    "expect": "answer",
+    "must_contain": ["green"]
+  },
+  {
+    "moment": "desk",
+    "question": "how many coffee mugs",
+    "expect": "answer",
+    "must_contain": ["1 coffee mug"]
+  },
+  {
+    "moment": "pantry",
+    "question": "is there pesto",
+    "expect": "refuse"
+  },
+  {
+    "moment": "desk",
+    "question": "how many rings",
+    "expect": "refuse"
+  },
+  {
+    "moment": "pantry",
+    "question": "how many nutella jars",
+    "expect": "refuse"
+  }
+]
