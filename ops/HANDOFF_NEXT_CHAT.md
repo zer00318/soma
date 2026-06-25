@@ -1,121 +1,101 @@
 # HANDOFF — for the next Chief chat (resume here)
-*Written 2026-06-24, end of cycle 12. Branch `chief/p0-honesty-sprint`, cwd `/Users/zer00/Documents/VLM`.
-Read `ops/PRODUCT_NORTH_STAR.md` + `ops/ANTI_TUNNEL_LEASH.md` first, then this. The founder is Satoshi;
-you are the Chief (autonomous). The founder is near the Claude usage limit — preserve YOUR tokens, run
-LOCAL LLMs (ollama gemma3:12b/27b) majorly, Codex sparingly.*
+*Rewritten 2026-06-25. Branch `chief/p0-honesty-sprint`, cwd `/Users/zer00/Documents/VLM`. Founder =
+Satoshi (KIT; thesis at Max Planck IPP Garching). You are the Chief (autonomous). The founder is near
+the Claude usage limit — preserve YOUR tokens, run LOCAL LLMs (ollama gemma3:12b/27b) majorly.*
 
-## THE PRODUCT (don't re-derive)
-TRACE = open-domain QA over lived experience. **HELPERS extract → INJECT binds at capture → LLM thinks
-& refuses past the edge.** Capture PRIMARY (irreversible); world-reach BACKSTOP. Privacy: no raw MEDIA
-stored/leaves, derived TEXT free. Moat = binds/reads-or-refuses, never makes things up. Real platform =
-the phone; the Mac is a blindfolded proxy (no live vision).
+## ⛔ READ THIS FIRST — the recurring, founder-infuriating mistake (do NOT repeat it)
+**The product is NOT OCR. OCR is ONE channel of ~12, and the founder declared it "solved and closed"
+(twice, verbatim: "Are we building a glorified OCR scanner? No… Abandon OCR completely").** Two Chief
+instances (incl. me) tunnel-visioned back into OCR — building OCR-only eval harnesses and an OCR-only
+web app — and got the same furious correction each time. **If you find yourself optimizing OCR, OCR
+text recall, caption-density, or a browser/web capture page: STOP. You have tunnel-visioned. Re-read
+`ops/PRODUCT_NORTH_STAR.md` + `ops/ANTI_TUNNEL_LEASH.md`.**
 
-## WHAT'S DONE + COMMITTED THIS CYCLE (verified)
-1. **WS1 — self/world binding guard** (`scripts/self_world_guard.py`, wired into `ask_home.ask`, commit
-   `29d3030`). External text never binds to the wearer-self or a named co-present person without
-   `self_entity` corroboration. Killed all 3 day-clip hallucinations (60%→0%), 0 regressions. Verified 4
-   ways (30-case unit, 88-answer replay, live gemma, full re-score). NOT a name blocklist — structural.
-2. **WS2 — capture-time binder v0** (`scripts/inject_bind.py`, commit `40eebb9`). Deterministic
-   temporal/identity binding: groups observations into persistent ENTITIES across frames; confidence
-   from CORROBORATION (frequency/consensus), low-confidence ABSTAINS. Day clip: 328 obs → 51 confident
-   entities vs 139 garbles correctly abstained. 6/6 unit checks. **Spatial binding NOT built — no capture
-   has boxes; needs a fresh box-bearing founder capture.**
-3. **Cockpit v3** (`ops/cockpit/cockpit_ops.html` + `agent_plan.json`; backend in
-   `scripts/cockpit_ask_server.py`, commit `40eebb9`). Glance board: 🎯 distance-to-grail bar, the
-   HELPERS→INJECT→LLM engine with per-stage + per-helper health bars (red when weak), crew, tasks, a live
-   flight recorder (`ops/cockpit/activity.jsonl` via `scripts/clog.py`), honesty vitals. Machine-load
-   REMOVED (founder reads CPU from Activity Monitor). Founder verdict: "correct direction finally."
+## THE PRODUCT (the real thing, from the finalised blueprint)
+A **wearable continuous context engine**, `HELPERS → INJECTION → LLM`:
+- **HELPERS (on the PHONE, multi-modal):** FastVLM (SCENE caption) + YOLO (OBJECTS/detector) + Apple
+  Vision OCR + speech + GPS — fused into derived OBJECT/EVENT text. Proven live in Munich 2026-06-04.
+- **The phone is the INPUT DEVICE.** It perceives, keeps ONLY derived text (no raw media ever), and
+  POSTs to the Mac.
+- **BRAIN (on the MAC):** `scripts/ask_home.py` fuses ~12 specialists (scene/objects/temporal/spatial/
+  egomotion/audio/speech/entity-graph/counting/self-wearer/structured-recall/premise-gate/consensus) →
+  answers honestly (reads-or-refuses) → **INJECTION/EXPAND** attaches world knowledge → two-zone answer
+  (`personal_evidence` = what you saw, citable | `world_context` = world knowledge, fenced, never a
+  personal claim). "Ask on the Mac" is the founder's chosen model — phone captures, Mac answers.
+Privacy: no raw media stored/leaves; derived text free; PII scrubbed at the storage seam (wired+tested).
+The moat is **honesty** (binds/reads-or-refuses, fenced world knowledge), never confident fabrication.
 
-## ███ RUNNING NOW (local-LLM job) ███
-`evaluation/run_binding_audit.py` — detached, checkpointed, on local gemma3:12b. Measures **binding
-precision**: of the 51+ CONFIDENT binds, what fraction are coherent real things vs OCR noise (replaces
-an ESTIMATE with a MEASUREMENT — the founder is skeptical of estimated %s, rightly).
-- Monitor: `ops/cockpit/binding_audit.json` (status/precision_pct per clip) + `tail /tmp/binding_audit.log`.
-- It clogs progress to the cockpit flight recorder. When done it writes `overall.precision_pct`.
-- Relaunch (to keep local LLMs grinding 24/7): `pkill -f run_binding_audit; PYTHONUNBUFFERED=1 nohup
-  caffeinate -is .venv/bin/python evaluation/run_binding_audit.py > /tmp/binding_audit.log 2>&1 & disown`
-- If the box gets sluggish, kill it (`pkill -f run_binding_audit`) to protect the machine.
+## ███ CURRENT VERIFIED STATE (2026-06-25) ███ — the loop is DEPLOYED and WORKS
+1. **Native multi-modal app: BUILT + INSTALLED on the iPhone** (`de.zer00.trace`, iPhone 17, Xcode 26.3,
+   team K84R7AX3YW, automatic signing). Source: `trace-native-fastvlm/` (scheme **"FastVLM App"**, NOT
+   the shared "FastVLM" scheme which builds only the framework). **Xcode/deploy is NOT blocked** — the
+   old `ios26-xcode-deploy-constraint` memory was STALE and caused the OCR-web-app detour.
+   - Build: `xcodebuild -project FastVLM.xcodeproj -scheme "FastVLM App" -destination
+     'platform=iOS,id=00008150-001460D83686401C' -allowProvisioningUpdates -configuration Debug
+     -derivedDataPath build/dd build` (from `trace-native-fastvlm/`).
+   - Install: `xcrun devicectl device install app --device D3A506B2-8923-5313-B8A3-FF769ABBA228
+     "build/dd/Build/Products/Debug-iphoneos/FastVLM App.app"`.
+   - The app POSTs to the Mac brain at `http://172.20.10.6:8765` (baked in `ContentView.swift:36`,
+     overridable in-app via the brain icon → set `http://<mac-lan-ip>:8765` if the WiFi IP changes).
+2. **Mac brain: LIVE** — `scripts/trace_brain_server.py` on `:8765` (`/health`, `/ingest`, `/ask`),
+   LAN-reachable at `172.20.10.6:8765`. Runs `ask_home.ask_with_understanding` (the 12-channel brain +
+   EXPAND). Launch: `TRACE_BIND=0.0.0.0 TRACE_BRAIN_PORT=8765 PYTHONUNBUFFERED=1 nohup caffeinate -is
+   .venv/bin/python scripts/trace_brain_server.py > /tmp/trace_brain.log 2>&1 & disown`.
+3. **The full loop VERIFIED end-to-end (Mac side, simulated capture):** ingest SCENE+OBJECTS+detector →
+   ask "what kind of place is this?" → grounded two-zone answer ("You saw a night street with a Swatch
+   store, McDonald's… / Swatch: a watch brand…"). The paradigm runs, on-device oracle, zero egress.
+4. **Cockpit:** `scripts/cockpit_ask_server.py` on `:8799` (`/ops` glance board, `/engine`). Data in
+   `ops/cockpit/*` (gitignored runtime state). Logger `scripts/clog.py` → flight recorder.
+5. **RETIRED — do NOT revive:** `scripts/trace_app.py` (an OCR-only LAN web app + `web/trace_app.html`,
+   `scripts/phone_perceive.py`) — the tunnel. The native app supersedes it entirely.
 
-## FOUNDER DIRECTIVES (latest, honor these)
-- **Numbers must be MEASURED, not estimated.** Founder disputes the cockpit progress %s — they are my
-  honest *estimates* of how-far-along (grail 50, HELPERS 50, INJECT 45, helper %s). The VITALS (0%
-  halluc, 15.9% recall, 45.5% ceiling) ARE measured (guarded re-score). **Separate the two on the
-  cockpit and replace estimates with measured signals wherever possible** (binding precision, real eval).
-- **Cockpit: more info, more interactable, much more** ("improve later" — not this cycle, but it's where
-  it's heading: clickable segments, drill-downs, live Q&A demo card, real measured numbers).
-- **Run local LLMs ~24/7; preserve Claude tokens; the Chief should chill** between launches.
-- **Actual progress**, not rambling. Glance-readable surfaces.
+## WHAT TO DO NEXT (real frontiers — verify the capture, then the substrate, then the number)
+1. **TEST THE REAL ON-PHONE CAPTURE** (the immediate next step; needs the founder to open the app).
+   Open TRACE on the iPhone → grant camera + trust the developer profile (Settings → General → VPN &
+   Device Management) → point at a scene → ask. Observe FastVLM/YOLO/OCR/speech quality + pace live.
+   Munich report flagged OCR-accept weak, vision/detector strong. Tune capture from what's actually weak.
+2. **Typed event-log substrate (blueprint CL-1).** Memory is still a flat string dossier; the blueprint's
+   root move is a typed append-only `Observation` event log (`src/trace_memory/domain/observation.py`
+   exists; `adapters/sqlite_eventlog.py` seed exists). Make it load-bearing. Enables binding + persistence.
+3. **Premise-gate 3-mode (ANSWER/CORRECT/REFUSE)** at the `build_evidence_dossier` seam + populate
+   `refutation_cue` (blueprint §4). The WS1 self/world guard (`scripts/self_world_guard.py`) is a
+   structural piece of this already.
+4. **The trustworthy number (the pitch gate):** n≥100 frozen human gold on REAL multi-modal captures
+   (not OCR-only), score the real `ask_home`, 95% CIs, target ≥40% correct / <10% halluc. Needs founder.
 
-## WHERE WE'RE HEADING (next moves, in order)
-1. **Read the binding-audit result** (when `binding_audit.json` status=done) → put the MEASURED binding
-   precision on the cockpit, replacing the INJECT estimate. Spot-check a few verdicts by hand.
-2. **Wire `inject_bind` into the brain** so "where did I see this before / what did I see repeatedly" is
-   answered from BOUND entities (currently the binder is built but unwired). Re-measure honestly.
-3. **The number is THE gate** (north star §8): n≥50 fresh held-out + human gold. BLOCKED on the founder
-   (a fresh capture + gold). Prep everything so it's one founder session away.
-4. **Spatial binding** (drink→person): BLOCKED on a fresh box-bearing capture. Either (a) founder captures
-   with per-observation boxes persisted, or (b) build Stage-1 localization to emit boxes first.
-5. **Cockpit v4**: interactivity + drill-downs + a live "see a place → know what it is" demo card; only
-   MEASURED numbers.
+## WHAT WAS BUILT THIS SPRINT — real vs dead-end (don't repeat the dead-ends)
+- **REAL, keep:** EXPAND/understanding layer (`inject_expand.py`, commit de7d581 — the paradigm "Prompt");
+  WS1 self/world binding guard (`self_world_guard.py`, 29d3030 — kills "a sign's name became my name");
+  temporal/identity binder (`inject_bind.py`, 40eebb9, validated 96.9% precision, wired for recurrence);
+  PII scrub at storage seams; the anti-tunnel leash.
+- **DEAD-ENDS, measured, do NOT repeat:** the OCR web app (346d6d5 — retire it); caption-enrichment
+  experiments on Mac OCR/caption-only memories — dense (43.2%/13.6%), merge (38.6%/15.0%), 27b
+  (40.9%/14.3%) all WORSE than base (45.5%/4.8%). **Lesson: more text/capacity WITHOUT binding raises
+  hallucination** (blueprint §5.1, measured 4 ways). Those Mac memories are a DEGENERATE single-channel
+  slice; the real capture is the native multi-modal one.
 
-## OPERATING RULES (hard-won)
+## HONEST NUMBERS (what they mean)
+- The 44-question battery on OCR/caption-only Mac memory caps ~45.5% correct / 4.8% halluc. That's the
+  BLINDFOLDED proxy (no live multi-modal capture). It is NOT the product number. The real number needs
+  the native multi-modal capture + n≥100 gold (above). Do NOT grind the 44 further — it's capped + it's
+  the wrong (OCR/caption-only) substrate.
+
+## OPERATING RULES
 - Local LLMs majorly; Codex sparingly + time-boxed; preserve Claude tokens.
-- Harness-tracked background jobs for work you must track; detached+caffeinate ONLY for the founder's
-  explicit "run 24/7" grind (this binding audit) — document monitoring so you don't go dark.
+- Harness-tracked background jobs (`run_in_background`) for work you must track — they NOTIFY you on
+  completion. Detached `nohup`+`caffeinate` ONLY for persistent services (brain/cockpit) — they go dark.
 - No raw media stored/leaves; personal_evidence vs world_context never merge; LLM self-confidence is
-  worthless — gate on geometry/corroboration (ZLORPTECH lesson).
+  worthless (gate on geometry/corroboration — the ZLORPTECH lesson).
 - Run the leash every cycle; every `[STATE_MANIFEST]` carries a `LEASH:` line. One demo ≠ verified.
-- Cockpit: restart `scripts/cockpit_ask_server.py` after SERVER-code edits (HTML/JSON are re-read live).
-  `pkill -f cockpit_ask_server; PYTHONUNBUFFERED=1 nohup python3 scripts/cockpit_ask_server.py >
-  ops/cockpit/cockpit_server.log 2>&1 & disown` then curl `/ops` for 200.
 
-## KEY PATHS
-- Brain: `scripts/ask_home.py` (`ask`, `ask_with_understanding`). Guard: `scripts/self_world_guard.py`.
-  Binder: `scripts/inject_bind.py`. Self channel: `scripts/self_entity.py`.
-- Cockpit: `http://127.0.0.1:8799/ops` (glance board) + `/engine` (product reality). Data:
-  `ops/cockpit/{agent_plan,engine,activity,binding_audit}.json`. Logger: `scripts/clog.py`.
-- Memories: `data/live_replay/{day_in_life_20260618,walk_outside_20260614}_live44/memory/` (blindfolded);
-  `data/walks/{...}/memory/` (caption-rich = ceiling). Eval: `evaluation/run_live.py`,
-  `evaluation/ras/live44_*_guarded.jsonl`.
-- Resume anchors: `ops/SOVEREIGN_STATE.md` (newest [STATE_MANIFEST] at bottom), this file.
-
----
-## CYCLE 12 UPDATE — the reframe + the build that matters (read this)
-**The founder corrected a lazy framing and was right:** do NOT call any of the 44 questions
-"unanswerable." The founder answered ALL 44 by watching the video, so the info IS in the
-moment. Every failure = a CAPABILITY WE HAVE NOT BUILT, not a dead question. When a question
-breaks, build the helper (north star §2/§5.3). The only honest "refuse" is when the moment
-truly lacks it (e.g. "no clear speech" — and even that should be a confident positive answer,
-not a blank refuse).
-
-**Root cause of most failures:** the vision captures were GENERIC scene-summaries ("a
-workspace setup..."), so question-relevant detail (a held glasses case, a game controller,
-people's clothing, a bag's zip, keys on a table) never reached the brain. **Under-extraction
-at capture.**
-
-**Capability build-roadmap (the 24 ceiling-fails, by what unlocks them):**
-- ~11 — DENSE vision extraction (people+clothing, devices, held/worn, surfaces) ← BUILDING NOW
-- ~5  — wire the binder + qualifier binding ("the YELLOW poster")
-- ~3  — world-EXPAND on observed referents (molecule→porphyrin, vehicle→model, place)
-- ~2  — egocentric heading (left/right from camera pan)
-- ~2  — fine screen/UI reading (active chat, notification colour)
-- ~1  — object last-seen tracking (keys)
-- ~1  — ASR silence as a positive answer ("near-silent, no speech")
-
-**RUNNING NOW (local compute):** dense re-caption of the day clip on MLX Qwen2.5-VL:
-`scripts/build_keyframe_memory.py --dense` (added CAPTION_PROMPT_DENSE + --dense flag).
-- cmd: `PYTHONUNBUFFERED=1 nohup caffeinate -is .venv/bin/python scripts/build_keyframe_memory.py
-  --frames-dir data/walks/day_in_life_20260618/work/run_frames
-  --out data/walks/day_in_life_20260618_dense/memory/kf_memory.json --dense > /tmp/dense_caption.log 2>&1 & disown`
-- ~13s/frame, 120 keyframes (~26 min), checkpointed/resumable. Monitor /tmp/dense_caption.log +
-  the .ckpt.ndjson. Early captions already show structured People/Devices — far richer.
-
-**NEXT (in order):**
-1. When the dense day memory is built → re-run the 44 vs it (run_ceiling.py with MEMORY pointed
-   at the _dense dir, or a quick ask loop) → MEASURE how many vision questions it unlocks.
-   Spot-check a few; watch hallucination doesn't rise (the dense prompt is text-blind, OCR
-   stays separate, so it shouldn't).
-2. Dense-pass the walk clip too. Then wire inject_bind (qualifier binding) for the poster/sign Qs.
-3. Build egocentric heading + the small helpers (ASR-silence, screen-state) for the rest.
-4. The n>=50 human-gold number remains THE gate (needs the founder).
-- Founder goal: the app must be tester-grade — answers the answerable, refuses honestly, zero lies.
+## KEY FILES / SERVICES
+- Brain: `scripts/ask_home.py` (`ask`, `ask_with_understanding`). EXPAND: `scripts/inject_expand.py`.
+  Guard: `scripts/self_world_guard.py`. Binder: `scripts/inject_bind.py`. Self: `scripts/self_entity.py`.
+- Phone↔Mac: `scripts/trace_brain_server.py` (:8765, /ingest + /ask). Native app: `trace-native-fastvlm/`.
+- Cockpit: `scripts/cockpit_ask_server.py` (:8799/ops). Logger: `scripts/clog.py`.
+- Architecture: `ops/PRODUCT_NORTH_STAR.md`, `ops/CONTEXT_ENGINE_BLUEPRINT_2026-06-23.md` (the spine),
+  `ops/ANTI_TUNNEL_LEASH.md`, `ops/SOVEREIGN_STATE.md` (newest [STATE_MANIFEST] at bottom), this file.
+- The full prior-session transcript (architecture finalisation) was at `/Users/zer00/Downloads/Claude
+  Code.mhtml` → extracted to `/tmp/sess_clean.txt`; the founder considers it canonical context.
+```
+```

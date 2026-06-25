@@ -353,3 +353,28 @@ A pitch-ready [Context → Prompt → Answer] ambient-memory prototype. Target =
   3. Prep the n>=50 human-gold pipeline (THE gate) so it's one founder session away; keep local LLMs grinding.
 - roadblock being cleared: the cockpit was rambling, not glanceable, and the binder (Stage 3) did not exist.
   Both addressed; the remaining honesty gap is replacing ESTIMATED progress with MEASURED numbers.
+
+---
+[STATE_MANIFEST]
+- cycle: 13 (2026-06-25) — RE-GROUNDED + DEPLOYED THE REAL PRODUCT (native multi-modal app + Mac brain loop)
+- LEASH: goal=deliverable #1 (the paradigm demo) — the multi-modal Context->Prompt->Answer loop is now ON the
+  phone, not an OCR slide. verified=native app BUILD SUCCEEDED + installed on the iPhone (de.zer00.trace);
+  Mac brain live on :8765 + LAN-reachable; full loop tested end-to-end (ingest SCENE+OBJECTS+detector -> ask
+  "what place is this?" -> grounded two-zone understanding answer w/ Swatch/McDonald's world knowledge).
+  founder-#1=YES (founder: "make the app", "the brain lives on the Mac, phone is the input device").
+- THE CORRECTION (owned, nth time): I tunnel-visioned to OCR AGAIN — built an OCR-only web app + ran OCR/
+  caption-only Mac experiments — the exact trap the founder already closed ("OCR is solved + closed"). Read the
+  ENTIRE prior session top-to-bottom; corrected. The product is the native MULTI-MODAL engine. OCR web app RETIRED.
+- KEY FACT CORRECTED: the native app is NOT blocked on Xcode/Metal (stale memory). Xcode 26.3 is installed, the
+  iPhone is connected, the model (1.7G) is present — it builds GREEN and is deployed.
+- what's live now: native app on iPhone; Mac brain trace_brain_server.py :8765; cockpit :8799. trace_app.py
+  (OCR web app) RETIRED.
+- next 3 autonomous actions (for the resuming chat):
+  1. Founder opens TRACE on the phone (camera + trust dev profile) -> test the REAL on-phone multi-modal capture
+     quality/pace (FastVLM/YOLO/OCR/speech). Tune what's actually weak.
+  2. Typed Observation event-log substrate (blueprint CL-1) — memory is still a flat string; make the typed log
+     load-bearing (enables binding + persistence).
+  3. The n>=100 trustworthy number on REAL multi-modal captures (the pitch gate; needs founder gold).
+- roadblock cleared: the product wasn't on the phone (and a Chief kept rebuilding the OCR corner). Now the real
+  multi-modal loop is deployed + verified; the next work is real-capture quality + the substrate + the number.
+- FULL RESUME: read ops/HANDOFF_NEXT_CHAT.md (rewritten this cycle) FIRST.
