@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 from trace_memory.adapters.sqlite_eventlog import SqliteEventLog
+from trace_memory.application.entity_binder import bind_entities
 from trace_memory.domain.confidence import Confidence
 from trace_memory.domain.observation import Attribute, Observation
 from trace_memory.domain.provenance import Provenance
@@ -126,8 +127,17 @@ def answer_question(question: str, db_path: str | Path) -> EventLogAnswer:
         )
 
     if parsed.intent == "count":
-        count = len(object_matches)
+        bound_entities = bind_entities(object_matches)
+        count = sum(entity.count for entity in bound_entities)
         noun = parsed.subject if count != 1 else _singularize_phrase(parsed.subject)
+        if bound_entities and all(entity.confidence == "low" for entity in bound_entities):
+            pronoun = "it" if count == 1 else "them"
+            return EventLogAnswer(
+                supported=True,
+                answer=f"I saw at least {count} {noun}, but I can't reliably count {pronoun} yet.",
+                refused=False,
+                citations=object_matches,
+            )
         return EventLogAnswer(
             supported=True,
             answer=f"I saw {count} {noun}.",
