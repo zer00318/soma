@@ -88,27 +88,44 @@ def _count_answer_from_consolidated(question: str, consolidated: dict | None) ->
     if not m:
         return None
     counts = consolidated.get("counts_by_type") or {}
-    if not counts:
-        return None
     noun = _singular(m.group("noun").split()[-1])  # last word, singularized
+
+    # 1) TYPE match (detector type, e.g. "jar", "bottle").
     info = counts.get(noun)
     if info is None:
-        # try a loose contains match against known types
         for ctype, cinfo in counts.items():
             if ctype in noun or noun in ctype:
                 info, noun = cinfo, ctype
                 break
-    if info is None:
-        return None
-    hedge = str(info.get("hedge", info.get("distinct", "")))
-    distinct = info.get("distinct")
-    if "-" in hedge:
-        ans = (f"I counted between {hedge} {noun}s across what I saw "
-               f"(I can't tell identical {noun}s apart without spatial depth, so it's a range).")
-    else:
-        ans = f"I counted {distinct} {noun}{'' if distinct == 1 else 's'} across what I saw."
-    return {"answer": ans, "source": "instance_graph_consolidated", "refused": False,
-            "consolidated_count": distinct, "hedge": hedge}
+    if info is not None:
+        hedge = str(info.get("hedge", info.get("distinct", "")))
+        distinct = info.get("distinct")
+        if "-" in hedge:
+            ans = (f"I counted between {hedge} {noun}s across what I saw "
+                   f"(I can't tell identical {noun}s apart without spatial depth, so it's a range).")
+        else:
+            ans = f"I counted {distinct} {noun}{'' if distinct == 1 else 's'} across what I saw."
+        return {"answer": ans, "source": "instance_graph_consolidated", "refused": False,
+                "consolidated_count": distinct, "hedge": hedge}
+
+    # 2) BRAND/TEXT match (e.g. "how many nutellas" — count consolidated instances
+    #    whose read text / brand / name / label contains the queried word).
+    query = m.group("noun").strip().lower()
+    qword = query.split()[-1]
+    qstem = qword[:-1] if qword.endswith("s") and len(qword) > 3 else qword
+    instances = consolidated.get("instances") or []
+    matches = []
+    for inst in instances:
+        blob = " ".join(str(inst.get(k, "")) for k in ("text", "brand", "name", "label", "type")).lower()
+        if qstem and qstem in blob:
+            matches.append(inst)
+    if matches:
+        n = len(matches)
+        label = qword
+        return {"answer": f"I counted {n} {label}{'' if n == 1 else 's'} across what I saw.",
+                "source": "instance_graph_consolidated", "refused": False,
+                "consolidated_count": n, "hedge": str(n)}
+    return None
 
 
 def answer_from_graph(question: str, moment: str, graphs_store: dict,
