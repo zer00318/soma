@@ -22,6 +22,7 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
     private var observedFrameCount = 0
     private var loggedFirstFrameState = false
     private var loggedTenFrameAnchorCount = false
+    private var framesContinuation: AsyncStream<CMSampleBuffer>.Continuation?
 
     nonisolated private static let worldMapURL: URL = {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -36,13 +37,7 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
     }
 
     /// Start (or resume) world tracking. Call on app foreground.
-    /// Disabled until AVCaptureSession camera-sharing is resolved (iOS won't give
-    /// the camera to both ARSession and AVCaptureSession simultaneously without
-    /// isMultiTaskingCameraAccessEnabled — enabling it here causes a black screen).
     func start() {
-        trackingStatus = "ARKit disabled (camera shared with capture pipeline)"
-        return
-        // swiftlint:disable:next unreachable_code
         guard ARWorldTrackingConfiguration.isSupported else {
             isTracking = false
             trackingStatus = "ARKit unsupported"
@@ -113,6 +108,15 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
     /// Current world position of an anchor for `label`, or nil if not yet anchored.
     func worldPosition(for label: String) -> simd_float3? {
         anchorMap[label]?.1
+    }
+
+    /// Mirror of CameraController.attach — ContentView feeds from ARKit frames instead of AVCaptureSession.
+    func attach(continuation: AsyncStream<CMSampleBuffer>.Continuation) {
+        framesContinuation = continuation
+    }
+
+    func detatch() {
+        framesContinuation = nil
     }
 
     /// Snapshot for inclusion in each frame's metadata POST to the Mac brain.
@@ -189,6 +193,29 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
             loggedTenFrameAnchorCount = true
             print("[TraceARKitEngine] anchor count after 10 frames: \(anchorMap.count)")
         }
+
+        // Feed the captured image into the ContentView frame pipeline (replaces AVCaptureSession).
+        if let continuation = framesContinuation,
+           let sampleBuffer = Self.makeSampleBuffer(from: frame.capturedImage) {
+            continuation.yield(sampleBuffer)
+        }
+    }
+
+    private static func makeSampleBuffer(from pixelBuffer: CVPixelBuffer) -> CMSampleBuffer? {
+        var formatDescription: CMFormatDescription?
+        CMVideoFormatDescriptionCreateForImageBuffer(
+            allocator: nil, imageBuffer: pixelBuffer, formatDescriptionOut: &formatDescription)
+        guard let formatDescription else { return nil }
+        var timingInfo = CMSampleTimingInfo(
+            duration: CMTime(value: 1, timescale: 30),
+            presentationTimeStamp: CMClockGetTime(CMClockGetHostTimeClock()),
+            decodeTimeStamp: .invalid)
+        var sampleBuffer: CMSampleBuffer?
+        CMSampleBufferCreateReadyWithImageBuffer(
+            allocator: nil, imageBuffer: pixelBuffer,
+            formatDescription: formatDescription,
+            sampleTiming: &timingInfo, sampleBufferOut: &sampleBuffer)
+        return sampleBuffer
     }
 
     private func handleTrackingStateChange(_ camera: ARCamera) {

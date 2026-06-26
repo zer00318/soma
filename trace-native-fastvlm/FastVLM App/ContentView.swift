@@ -213,13 +213,14 @@ struct ContentView: View {
             }
             .task {
                 appendNativeStatusLog(status: "local_runtime_status", extra: TraceLocalRuntime.statusPayload())
-                appendNativeStatusLog(status: "camera_start_requested")
-                camera.start()
-                locationContext.start()
-                audioContext.start()
+                appendNativeStatusLog(status: "arkit_start_requested")
+                // ARKit is the camera source — it provides frames via attach(continuation:)
+                // and also runs visual-inertial world tracking. Do NOT start AVCaptureSession.
                 await MainActor.run {
                     TraceARKitEngine.shared.start()
                 }
+                locationContext.start()
+                audioContext.start()
                 if ENABLE_LOCAL_DETECTOR_MEMORY {
                     detectorBridge.start()
                 } else {
@@ -1310,7 +1311,7 @@ struct ContentView: View {
     func distributeVideoFrames() async {
         // attach a stream to the camera -- this code will read this
         let frames = AsyncStream<CMSampleBuffer>(bufferingPolicy: .bufferingNewest(1)) {
-            camera.attach(continuation: $0)
+            TraceARKitEngine.shared.attach(continuation: $0)
         }
 
         let (framesToDisplay, framesToDisplayContinuation) = AsyncStream.makeStream(
@@ -1353,10 +1354,9 @@ struct ContentView: View {
                 }
             }
 
-            // detach from the camera controller and feed to the video view
             await MainActor.run {
                 self.framesToDisplay = nil
-                self.camera.detatch()
+                TraceARKitEngine.shared.detatch()
             }
 
             framesToDisplayContinuation.finish()
