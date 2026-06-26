@@ -103,7 +103,7 @@ PERCEIVE = os.environ.get("TRACE_PERCEIVE", "1") == "1"
 INSTANCE_PIPE = os.environ.get("TRACE_INSTANCE_PIPE", "0") == "1"
 _VISION: dict[str, dict[str, Any]] = {}          # moment -> {t0, frames:[{t,frame,desc}]}
 _VISION_LOCK = threading.Lock()
-_PENDING: dict[str, Path] = {}                    # moment -> newest frame awaiting perception
+_PENDING: dict[str, list[Path]] = {}              # moment -> FIFO queue of frames awaiting perception
 _PENDING_LOCK = threading.Lock()
 _SCENE_CACHE: dict[str, dict[str, Any]] = {}      # moment -> {n, scene} (rebuild only on new frames)
 _INSTANCE_GRAPHS: dict[str, dict[str, Any]] = {}  # moment -> scene graph from instance pipeline
@@ -151,19 +151,27 @@ def _inject_perceived_record(moment: str, desc: str, frame_name: str,
 def _perception_worker() -> None:
     import mac_vision_perceive as mv  # local gemma3-vision
 
-    last_done: dict[str, str] = {}
     while True:
-        time.sleep(1.0)
+        # Pop the oldest pending frame across all moments (FIFO drain — every
+        # streamed frame is perceived, none dropped for coverage).
+        next_item: tuple[str, Path] | None = None
         with _PENDING_LOCK:
-            items = list(_PENDING.items())
-        for moment, path in items:
-            if last_done.get(moment) == str(path) or not path.exists():
+            for moment, paths in _PENDING.items():
+                if paths:
+                    next_item = (moment, paths.pop(0))
+                    break
+        if next_item is None:
+            time.sleep(0.5)
+            continue
+        moment, path = next_item
+        if True:
+            if not path.exists():
                 continue
             if not _frame_is_usable(path):
                 _log("FRAME-SKIP", moment=moment, frame=path.name, reason="quality")
-                last_done[moment] = str(path)
                 if not DEBUG_FRAMES:
                     path.unlink(missing_ok=True)
+                    path.with_suffix(".pose.json").unlink(missing_ok=True)
                 continue
             pose_data: dict[str, Any] | None = None
             pose_file = path.with_suffix(".pose.json")
@@ -176,12 +184,10 @@ def _perception_worker() -> None:
                 desc = mv.perceive_frame(path)
             except Exception as exc:
                 _log("PERCEIVE-ERR", moment=moment, err=str(exc)[:80])
-                last_done[moment] = str(path)
                 if not DEBUG_FRAMES:
                     path.unlink(missing_ok=True)
                     pose_file.unlink(missing_ok=True)
                 continue
-            last_done[moment] = str(path)
             if INSTANCE_PIPE:
                 try:
                     import instance_brain_wire as ibw
@@ -401,7 +407,15 @@ def _receive_frame(payload: dict[str, Any]) -> dict[str, Any]:
         )
     if PERCEIVE:
         with _PENDING_LOCK:
-            _PENDING[moment] = fdir / name
+            # FIFO queue per moment: perceive EVERY frame (after-the-moment Q&A
+            # has no real-time constraint, so we never drop frames for coverage).
+            # A generous cap guards against runaway backlog.
+            q = _PENDING.setdefault(moment, [])
+            q.append(fdir / name)
+            if len(q) > 5000:
+                drop = q.pop(0)
+                drop.unlink(missing_ok=True)
+                drop.with_suffix(".pose.json").unlink(missing_ok=True)
     _log("FRAME", moment=moment, file=name, bytes=len(data))
     return {"ok": True, "moment_id": moment, "file": name, "bytes": len(data)}
 
