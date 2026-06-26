@@ -2,6 +2,7 @@
 import ARKit
 import Combine
 import CoreGraphics
+import CoreImage
 import Foundation
 import simd
 
@@ -201,10 +202,33 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         }
     }
 
+    private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+
     private static func makeSampleBuffer(from pixelBuffer: CVPixelBuffer) -> CMSampleBuffer? {
+        // ARKit's capturedImage is in landscape SENSOR orientation (YUV biplanar).
+        // The old AVCaptureSession path applied videoRotationAngle on its connection
+        // to deliver upright frames; ARKit frames bypass that. Rotate to portrait-up
+        // (.right) AND convert to BGRA so the VLM and display get a correct, upright
+        // image — this is the fix for the 90°-rotated frames seen in the first attempt.
+        let ci = CIImage(cvPixelBuffer: pixelBuffer).oriented(.right)
+        let w = Int(ci.extent.width.rounded())
+        let h = Int(ci.extent.height.rounded())
+        guard w > 0, h > 0 else { return nil }
+
+        var rotated: CVPixelBuffer?
+        let attrs: [CFString: Any] = [
+            kCVPixelBufferCGImageCompatibilityKey: true,
+            kCVPixelBufferCGBitmapContextCompatibilityKey: true,
+            kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary,
+        ]
+        CVPixelBufferCreate(kCFAllocatorDefault, w, h,
+                            kCVPixelFormatType_32BGRA, attrs as CFDictionary, &rotated)
+        guard let out = rotated else { return nil }
+        ciContext.render(ci, to: out)
+
         var formatDescription: CMFormatDescription?
         CMVideoFormatDescriptionCreateForImageBuffer(
-            allocator: nil, imageBuffer: pixelBuffer, formatDescriptionOut: &formatDescription)
+            allocator: nil, imageBuffer: out, formatDescriptionOut: &formatDescription)
         guard let formatDescription else { return nil }
         var timingInfo = CMSampleTimingInfo(
             duration: CMTime(value: 1, timescale: 30),
@@ -212,7 +236,7 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
             decodeTimeStamp: .invalid)
         var sampleBuffer: CMSampleBuffer?
         CMSampleBufferCreateReadyWithImageBuffer(
-            allocator: nil, imageBuffer: pixelBuffer,
+            allocator: nil, imageBuffer: out,
             formatDescription: formatDescription,
             sampleTiming: &timingInfo, sampleBufferOut: &sampleBuffer)
         return sampleBuffer

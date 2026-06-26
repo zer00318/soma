@@ -75,6 +75,10 @@ struct TracePerceptionRecord {
 }
 
 struct ContentView: View {
+    // Spatial mode: ARKit owns the camera (world tracking + anchors). Default OFF
+    // (proven AVCaptureSession path). Toggle in Hub Setup. iOS allows only one
+    // camera session, so this picks which one runs.
+    @AppStorage("spatialMode") private var spatialMode = false
     @State private var camera = CameraController()
     @State private var model = FastVLMModel()
     @StateObject private var audioContext = TraceAudioContextEngine()
@@ -213,13 +217,18 @@ struct ContentView: View {
             }
             .task {
                 appendNativeStatusLog(status: "local_runtime_status", extra: TraceLocalRuntime.statusPayload())
-                appendNativeStatusLog(status: "camera_start_requested")
-                // AVCaptureSession is the camera source (proven good: upright, exposed,
-                // rich frames). ARKit world tracking is NOT started here — without the
-                // multitasking-camera entitlement, ARKit + AVCaptureSession fight over
-                // the camera and produce black/rotated frames. ARKit P1 is parked until
-                // we either get that entitlement or build a tested ARKit-only frame path.
-                camera.start()
+                // Camera source is one OR the other — iOS gives the camera to a single
+                // session. spatialMode=ON → ARKit owns the camera (world tracking +
+                // anchors, frames rotated upright by TraceARKitEngine). spatialMode=OFF →
+                // proven AVCaptureSession path. Default OFF so the app never bricks; flip
+                // ON in Hub Setup to test the spatial path.
+                if spatialMode {
+                    appendNativeStatusLog(status: "arkit_camera_start_requested")
+                    TraceARKitEngine.shared.start()
+                } else {
+                    appendNativeStatusLog(status: "camera_start_requested")
+                    camera.start()
+                }
                 locationContext.start()
                 audioContext.start()
                 if ENABLE_LOCAL_DETECTOR_MEMORY {
@@ -1312,7 +1321,11 @@ struct ContentView: View {
     func distributeVideoFrames() async {
         // attach a stream to the camera -- this code will read this
         let frames = AsyncStream<CMSampleBuffer>(bufferingPolicy: .bufferingNewest(1)) {
-            camera.attach(continuation: $0)
+            if spatialMode {
+                TraceARKitEngine.shared.attach(continuation: $0)
+            } else {
+                camera.attach(continuation: $0)
+            }
         }
 
         let (framesToDisplay, framesToDisplayContinuation) = AsyncStream.makeStream(
@@ -1357,7 +1370,11 @@ struct ContentView: View {
 
             await MainActor.run {
                 self.framesToDisplay = nil
-                self.camera.detatch()
+                if spatialMode {
+                    TraceARKitEngine.shared.detatch()
+                } else {
+                    self.camera.detatch()
+                }
             }
 
             framesToDisplayContinuation.finish()
@@ -2931,6 +2948,7 @@ struct TraceHubSetupView: View {
     @Binding var hubURL: String
     @State private var ipInput: String = ""
     @AppStorage("traceDebugFrames") private var debugFramesEnabled = true
+    @AppStorage("spatialMode") private var spatialMode = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -2961,6 +2979,14 @@ struct TraceHubSetupView: View {
                     Text("Testing")
                 } footer: {
                     Text("TESTING ONLY: streams ~1 downscaled JPEG/sec to the Mac so the operator can see what the camera saw while debugging. Not part of the product — turn off when done.")
+                }
+
+                Section {
+                    Toggle("Spatial mode (ARKit)", isOn: $spatialMode)
+                } header: {
+                    Text("Spatial")
+                } footer: {
+                    Text("EXPERIMENTAL: ARKit owns the camera for world tracking + per-object world anchors (enables true counting). Restart the app after toggling. If the view misbehaves, turn this OFF to return to the standard camera.")
                 }
             }
             .navigationTitle("Trace Hub Setup")
