@@ -1,0 +1,61 @@
+{
+  "moment": "replace_with_capture_moment",
+  "how_to_use": [
+    "Copy this file, replace the example facts with what was truly visible in the captured scene, and keep every question grounded in that one events.db.",
+    "Use expect=answer/read/count with must_contain tokens for grounded answers, and expect=refuse or expect=ocr-only-refuse when the honest result should be a refusal."
+  ],
+  "items": [
+    {
+      "kind": "answer",
+      "question": "is there a water bottle",
+      "expect": "answer",
+      "must_contain": [
+        "yes",
+        "water bottle"
+      ],
+      "notes": "Example existence question."
+    },
+    {
+      "kind": "read",
+      "question": "what text is on the cereal box",
+      "expect": "read",
+      "must_contain": [
+        "morning oats"
+      ],
+      "notes": "Example OCR-backed read question."
+    },
+    {
+      "kind": "count",
+      "question": "how many water bottles",
+      "expect": "count",
+      "must_contain": [
+        "2",
+        "water bottle"
+      ],
+      "notes": "Example count question."
+    },
+    {
+      "kind": "answer",
+      "question": "what flavour is the pringles",
+      "expect": "answer",
+      "must_contain": [
+        "sour cream and onion"
+      ],
+      "notes": "Example attribute/detail question."
+    },
+    {
+      "kind": "refuse",
+      "question": "is there pesto",
+      "expect": "refuse",
+      "must_contain": [],
+      "notes": "Example absent-object refusal."
+    },
+    {
+      "kind": "ocr-only-refuse",
+      "question": "how many nutella jars",
+      "expect": "ocr-only-refuse",
+      "must_contain": [],
+      "notes": "Example OCR-only refusal: the word was read, but no jar object was actually grounded."
+    }
+  ]
+}
