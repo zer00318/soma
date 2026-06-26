@@ -7,21 +7,14 @@ import SwiftUI
 
 @main
 struct FastVLMApp: App {
-    @Environment(\.scenePhase) private var scenePhase
-
+    // NOTE: ARKit world-tracking lifecycle is intentionally NOT wired here.
+    // ARKit and the app's AVCaptureSession can't both own the camera without
+    // the multitasking-camera entitlement; running both produced black/rotated
+    // frames. TraceARKitEngine stays in the tree for a future, properly-tested
+    // ARKit-only frame path. See ContentView camera.start().
     var body: some Scene {
         WindowGroup {
             ContentView()
-        }
-        .onChange(of: scenePhase) { _, phase in
-            switch phase {
-            case .active:
-                TraceARKitEngine.shared.start()
-            case .background:
-                TraceARKitEngine.shared.saveWorldMap()
-            default:
-                break
-            }
         }
     }
 }
