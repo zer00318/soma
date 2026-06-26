@@ -82,7 +82,27 @@ _OPEN_SCENE_PATTERNS = (
     re.compile(r"^\s*describe what i saw\s*\??\s*$", re.IGNORECASE),
     re.compile(r"^\s*what(?:'s| is| was)\s+on\s+the\s+.+?\s*\??\s*$", re.IGNORECASE),
 )
+_TEMPORAL_FIRST_RE = re.compile(r"^\s*what did i see first\s*\??\s*$", re.IGNORECASE)
+_TEMPORAL_ORDER_RE = re.compile(
+    r"^\s*in what order(?:\s+did i see(?:\s+(?:things|objects))?)?\s*\??\s*$",
+    re.IGNORECASE,
+)
+_TEMPORAL_RELATIVE_RE = re.compile(
+    r"^\s*what came (?P<relation>before|after)\s+(?P<subject>.+?)\s*\??\s*$",
+    re.IGNORECASE,
+)
+_SPATIAL_RELATIVE_RE = re.compile(
+    r"^\s*which side was\s+(?P<subject>.+?)\s+relative to\s+(?P<reference>.+?)\s*\??\s*$",
+    re.IGNORECASE,
+)
+_SPATIAL_SIDE_OF_RE = re.compile(
+    r"^\s*what was to the\s+(?P<direction>left|right)\s+of\s+(?P<reference>.+?)\s*\??\s*$",
+    re.IGNORECASE,
+)
+_SPATIAL_SIDE_RE = re.compile(r"^\s*which side was\s+(?P<subject>.+?)\s*\??\s*$", re.IGNORECASE)
+_SPATIAL_WHERE_RE = re.compile(r"^\s*where was\s+(?P<subject>.+?)\s*\??\s*$", re.IGNORECASE)
 _SCENE_CONFIDENCE_ORDER = {"high": 0, "medium": 1, "low": 2}
+_YAW_ANCHOR_RE = re.compile(r"(?:^|\|)\s*yaw:(?P<yaw>-?\d+)deg(?:\||$)", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -150,6 +170,17 @@ def answer_question(
             object_observations,
             world_knowledge_oracle,
         )
+
+    if parsed.intent in {
+        "temporal_first",
+        "temporal_order",
+        "temporal_relative",
+        "spatial_where",
+        "spatial_side",
+        "spatial_relative",
+        "spatial_side_of",
+    }:
+        return _spatial_temporal_answer(parsed, observations)
 
     object_matches = _matching_objects(parsed.subject, observations)
     if not object_matches:
@@ -234,6 +265,25 @@ class _ParsedQuestion:
     intent: str
     subject: str
     attribute: str | None = None
+    reference: str | None = None
+    direction: str | None = None
+
+
+@dataclass(frozen=True)
+class _ObjectEntitySummary:
+    key: str
+    display_subject: str
+    first_t_ms: int
+    first_observation: Observation
+    observations: tuple[Observation, ...]
+    match_texts: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class _SpatialFix:
+    display_subject: str
+    yaw_degrees: int
+    observation: Observation
 
 
 def _build_observations(
@@ -398,6 +448,46 @@ def _parse_question(question: str) -> _ParsedQuestion | None:
     normalized = re.sub(r"\s+", " ", question or "").strip()
     if not normalized:
         return None
+    match = _TEMPORAL_FIRST_RE.match(normalized)
+    if match:
+        return _ParsedQuestion(intent="temporal_first", subject="")
+    match = _TEMPORAL_ORDER_RE.match(normalized)
+    if match:
+        return _ParsedQuestion(intent="temporal_order", subject="")
+    match = _TEMPORAL_RELATIVE_RE.match(normalized)
+    if match:
+        return _ParsedQuestion(
+            intent="temporal_relative",
+            subject=_clean_subject(match.group("subject")),
+            direction=match.group("relation").lower(),
+        )
+    match = _SPATIAL_RELATIVE_RE.match(normalized)
+    if match:
+        return _ParsedQuestion(
+            intent="spatial_relative",
+            subject=_clean_subject(match.group("subject")),
+            reference=_clean_subject(match.group("reference")),
+        )
+    match = _SPATIAL_SIDE_OF_RE.match(normalized)
+    if match:
+        return _ParsedQuestion(
+            intent="spatial_side_of",
+            subject="",
+            reference=_clean_subject(match.group("reference")),
+            direction=match.group("direction").lower(),
+        )
+    match = _SPATIAL_SIDE_RE.match(normalized)
+    if match:
+        return _ParsedQuestion(
+            intent="spatial_side",
+            subject=_clean_subject(match.group("subject")),
+        )
+    match = _SPATIAL_WHERE_RE.match(normalized)
+    if match:
+        return _ParsedQuestion(
+            intent="spatial_where",
+            subject=_clean_subject(match.group("subject")),
+        )
     for pattern in _OPEN_SCENE_PATTERNS:
         if pattern.match(normalized):
             return _ParsedQuestion(intent="open_scene", subject="")
@@ -698,7 +788,370 @@ def _world_context_packet(
 
 def _clean_subject(subject: str) -> str:
     cleaned = re.sub(r"\s+", " ", subject.strip().rstrip("?.!"))
-    return re.sub(r"^(?:the|a|an|any)\s+", "", cleaned, flags=re.IGNORECASE)
+    stripped = re.sub(r"^(?:the|a|an|any)\s+", "", cleaned, flags=re.IGNORECASE)
+    return stripped or cleaned
+
+
+def _spatial_temporal_answer(
+    parsed: _ParsedQuestion,
+    observations: Sequence[Observation],
+) -> EventLogAnswer:
+    object_observations = tuple(
+        observation for observation in observations if observation.kind == "object"
+    )
+    summaries = _object_entity_summaries(object_observations)
+    if parsed.intent == "temporal_first":
+        return _temporal_first_answer(summaries)
+    if parsed.intent == "temporal_order":
+        return _temporal_order_answer(summaries)
+    if parsed.intent == "temporal_relative":
+        return _temporal_relative_answer(summaries, parsed.subject, parsed.direction or "")
+    if parsed.intent == "spatial_where":
+        return _spatial_where_answer(summaries, parsed.subject)
+    if parsed.intent == "spatial_side":
+        return _spatial_side_answer(summaries, parsed.subject)
+    if parsed.intent == "spatial_relative":
+        return _spatial_relative_answer(summaries, parsed.subject, parsed.reference or "")
+    if parsed.intent == "spatial_side_of":
+        return _spatial_side_of_answer(summaries, parsed.reference or "", parsed.direction or "")
+    return EventLogAnswer(supported=False, answer="", refused=False, citations=())
+
+
+def _object_entity_summaries(
+    object_observations: Sequence[Observation],
+) -> tuple[_ObjectEntitySummary, ...]:
+    grouped: dict[str, list[Observation]] = {}
+    for observation in object_observations:
+        grouped.setdefault(normalize_subject(observation.subject), []).append(observation)
+
+    summaries: list[_ObjectEntitySummary] = []
+    for entity in bind_entities(object_observations):
+        ordered = sorted(
+            grouped.get(entity.subject, ()),
+            key=lambda observation: (observation.t_ms, observation.provenance.event_id),
+        )
+        if not ordered:
+            continue
+        match_texts = tuple(
+            text for text in (entity.subject, *entity.source_subjects) if text
+        )
+        summaries.append(
+            _ObjectEntitySummary(
+                key=entity.subject,
+                display_subject=_scene_subject(entity),
+                first_t_ms=entity.first_t_ms,
+                first_observation=ordered[0],
+                observations=tuple(ordered),
+                match_texts=match_texts,
+            )
+        )
+    return tuple(sorted(summaries, key=lambda summary: (summary.first_t_ms, summary.display_subject)))
+
+
+def _temporal_first_answer(summaries: Sequence[_ObjectEntitySummary]) -> EventLogAnswer:
+    if not summaries:
+        return _refusal_answer()
+    first_t_ms = summaries[0].first_t_ms
+    first_subjects = [summary for summary in summaries if summary.first_t_ms == first_t_ms]
+    if len(first_subjects) == 1:
+        answer = (
+            f"The first thing you saw was {first_subjects[0].display_subject} "
+            f"at {_format_time_ms(first_t_ms)}."
+        )
+    else:
+        answer = (
+            f"The first things you saw were {_join_phrases(summary.display_subject for summary in first_subjects)} "
+            f"at {_format_time_ms(first_t_ms)}."
+        )
+    return _supported_answer(answer, tuple(summary.first_observation for summary in first_subjects))
+
+
+def _temporal_order_answer(summaries: Sequence[_ObjectEntitySummary]) -> EventLogAnswer:
+    if not summaries:
+        return _refusal_answer()
+    ordered = ", then ".join(
+        f"{summary.display_subject} at {_format_time_ms(summary.first_t_ms)}"
+        for summary in summaries
+    )
+    return _supported_answer(
+        f"In order, you saw {ordered}.",
+        tuple(summary.first_observation for summary in summaries),
+    )
+
+
+def _temporal_relative_answer(
+    summaries: Sequence[_ObjectEntitySummary],
+    subject: str,
+    direction: str,
+) -> EventLogAnswer:
+    summary = _find_summary(subject, summaries)
+    if summary is None:
+        return _refusal_answer()
+    if direction == "before":
+        related = [candidate for candidate in summaries if candidate.first_t_ms < summary.first_t_ms]
+        prefix = "Before"
+    else:
+        related = [candidate for candidate in summaries if candidate.first_t_ms > summary.first_t_ms]
+        prefix = "After"
+    if not related:
+        answer = f"{prefix} {summary.display_subject}, I didn't see any other grounded object."
+        return _supported_answer(answer, (summary.first_observation,))
+    ordered = ", then ".join(
+        f"{candidate.display_subject} at {_format_time_ms(candidate.first_t_ms)}"
+        for candidate in related
+    )
+    citations = tuple(candidate.first_observation for candidate in related)
+    return _supported_answer(f"{prefix} {summary.display_subject}, you saw {ordered}.", citations)
+
+
+def _spatial_where_answer(
+    summaries: Sequence[_ObjectEntitySummary],
+    subject: str,
+) -> EventLogAnswer:
+    summary = _find_summary(subject, summaries)
+    if summary is None:
+        return _refusal_answer()
+    fixes = _distinct_spatial_fixes(summary)
+    if not fixes:
+        return _supported_answer(
+            f"I saw {summary.display_subject}, but I didn't track exactly where it was.",
+            (summary.first_observation,),
+        )
+    if len(fixes) == 1:
+        fix = fixes[0]
+        answer = (
+            f"I saw {summary.display_subject} around yaw {fix.yaw_degrees}deg "
+            f"at {_format_time_ms(fix.observation.t_ms)}."
+        )
+        return _supported_answer(answer, (fix.observation,))
+    positions = ", then ".join(
+        f"yaw {fix.yaw_degrees}deg at {_format_time_ms(fix.observation.t_ms)}"
+        for fix in fixes
+    )
+    return _supported_answer(
+        f"I saw {summary.display_subject} at multiple headings: {positions}.",
+        tuple(fix.observation for fix in fixes),
+    )
+
+
+def _spatial_side_answer(
+    summaries: Sequence[_ObjectEntitySummary],
+    subject: str,
+) -> EventLogAnswer:
+    summary = _find_summary(subject, summaries)
+    if summary is None:
+        return _refusal_answer()
+    subject_fix = _single_spatial_fix(summary)
+    if subject_fix is None:
+        return _supported_answer(
+            f"I saw {summary.display_subject}, but I didn't track exactly where it was.",
+            (summary.first_observation,),
+        )
+    anchored_others = [
+        (candidate, fix)
+        for candidate in summaries
+        if candidate.key != summary.key
+        if (fix := _single_spatial_fix(candidate)) is not None
+    ]
+    if not anchored_others:
+        return _supported_answer(
+            (
+                f"I saw {summary.display_subject} around yaw {subject_fix.yaw_degrees}deg "
+                f"at {_format_time_ms(subject_fix.observation.t_ms)}, but I don't have another "
+                "anchored object to compare it against."
+            ),
+            (subject_fix.observation,),
+        )
+    if len(anchored_others) == 1:
+        other_summary, other_fix = anchored_others[0]
+        direction = _relative_direction(subject_fix.yaw_degrees, other_fix.yaw_degrees)
+        if direction == "same":
+            answer = f"{summary.display_subject} was at the same heading as {other_summary.display_subject}."
+        else:
+            answer = f"{summary.display_subject} was to the {direction} of {other_summary.display_subject}."
+        return _supported_answer(answer, (subject_fix.observation, other_fix.observation))
+    other_yaws = [fix.yaw_degrees for _, fix in anchored_others]
+    if subject_fix.yaw_degrees < min(other_yaws):
+        descriptor = "left"
+    elif subject_fix.yaw_degrees > max(other_yaws):
+        descriptor = "right"
+    else:
+        descriptor = "between"
+    if descriptor == "between":
+        answer = f"{summary.display_subject} was between the other anchored objects."
+    else:
+        answer = f"{summary.display_subject} was on the {descriptor} side of the scene."
+    citations = (subject_fix.observation, *(fix.observation for _, fix in anchored_others[:2]))
+    return _supported_answer(answer, citations)
+
+
+def _spatial_relative_answer(
+    summaries: Sequence[_ObjectEntitySummary],
+    subject: str,
+    reference: str,
+) -> EventLogAnswer:
+    subject_summary = _find_summary(subject, summaries)
+    reference_summary = _find_summary(reference, summaries)
+    if subject_summary is None or reference_summary is None:
+        return _refusal_answer()
+    subject_fix = _single_spatial_fix(subject_summary)
+    reference_fix = _single_spatial_fix(reference_summary)
+    if subject_fix is None or reference_fix is None:
+        answer = (
+            f"I saw {subject_summary.display_subject} and {reference_summary.display_subject}, "
+            "but I didn't track exactly where they were."
+        )
+        citations = (subject_summary.first_observation, reference_summary.first_observation)
+        return _supported_answer(answer, citations)
+    direction = _relative_direction(subject_fix.yaw_degrees, reference_fix.yaw_degrees)
+    if direction == "same":
+        answer = (
+            f"{subject_summary.display_subject} was at the same heading as "
+            f"{reference_summary.display_subject}."
+        )
+    else:
+        answer = (
+            f"{subject_summary.display_subject} was to the {direction} of "
+            f"{reference_summary.display_subject}."
+        )
+    return _supported_answer(answer, (subject_fix.observation, reference_fix.observation))
+
+
+def _spatial_side_of_answer(
+    summaries: Sequence[_ObjectEntitySummary],
+    reference: str,
+    direction: str,
+) -> EventLogAnswer:
+    reference_summary = _find_summary(reference, summaries)
+    if reference_summary is None:
+        return _refusal_answer()
+    reference_fix = _single_spatial_fix(reference_summary)
+    if reference_fix is None:
+        return _supported_answer(
+            f"I saw {reference_summary.display_subject}, but I didn't track exactly where it was.",
+            (reference_summary.first_observation,),
+        )
+    matches: list[tuple[_ObjectEntitySummary, _SpatialFix]] = []
+    for candidate in summaries:
+        if candidate.key == reference_summary.key:
+            continue
+        candidate_fix = _single_spatial_fix(candidate)
+        if candidate_fix is None:
+            continue
+        if _relative_direction(candidate_fix.yaw_degrees, reference_fix.yaw_degrees) == direction:
+            matches.append((candidate, candidate_fix))
+    if not matches:
+        answer = f"I didn't see any grounded object to the {direction} of {reference_summary.display_subject}."
+        return _supported_answer(answer, (reference_fix.observation,))
+    ordered = ", then ".join(
+        f"{candidate.display_subject} at {_format_time_ms(candidate_fix.observation.t_ms)}"
+        for candidate, candidate_fix in matches
+    )
+    citations = tuple(candidate_fix.observation for _, candidate_fix in matches)
+    return _supported_answer(
+        f"To the {direction} of {reference_summary.display_subject}, you saw {ordered}.",
+        citations,
+    )
+
+
+def _find_summary(
+    subject: str,
+    summaries: Sequence[_ObjectEntitySummary],
+) -> _ObjectEntitySummary | None:
+    for summary in summaries:
+        if any(_subject_query_matches(subject, text) for text in summary.match_texts):
+            return summary
+    return None
+
+
+def _subject_query_matches(query: str, candidate_text: str) -> bool:
+    query_tokens = _subject_tokens(query)
+    candidate_tokens = _subject_tokens(candidate_text)
+    if not query_tokens or not candidate_tokens:
+        return False
+    if query_tokens.issubset(candidate_tokens):
+        return True
+    relaxed_query = _relaxed_subject_tokens(query)
+    return bool(relaxed_query) and relaxed_query == _relaxed_subject_tokens(candidate_text)
+
+
+def _distinct_spatial_fixes(summary: _ObjectEntitySummary) -> tuple[_SpatialFix, ...]:
+    fixes: list[_SpatialFix] = []
+    seen_yaws: set[int] = set()
+    for observation in summary.observations:
+        yaw_degrees = _spatial_anchor_yaw(observation.spatial_anchor)
+        if yaw_degrees is None or yaw_degrees in seen_yaws:
+            continue
+        seen_yaws.add(yaw_degrees)
+        fixes.append(
+            _SpatialFix(
+                display_subject=summary.display_subject,
+                yaw_degrees=yaw_degrees,
+                observation=observation,
+            )
+        )
+    return tuple(fixes)
+
+
+def _single_spatial_fix(summary: _ObjectEntitySummary) -> _SpatialFix | None:
+    fixes = _distinct_spatial_fixes(summary)
+    if len(fixes) != 1:
+        return None
+    return fixes[0]
+
+
+def _spatial_anchor_yaw(anchor: str | None) -> int | None:
+    if not anchor:
+        return None
+    match = _YAW_ANCHOR_RE.search(anchor)
+    if not match:
+        return None
+    return int(match.group("yaw"))
+
+
+def _relative_direction(subject_yaw: int, reference_yaw: int) -> str:
+    if subject_yaw < reference_yaw:
+        return "left"
+    if subject_yaw > reference_yaw:
+        return "right"
+    return "same"
+
+
+def _supported_answer(answer: str, citations: Sequence[Observation]) -> EventLogAnswer:
+    return EventLogAnswer(
+        supported=True,
+        answer=answer,
+        refused=False,
+        citations=tuple(citations),
+        personal_evidence=answer,
+        world_context="",
+    )
+
+
+def _refusal_answer() -> EventLogAnswer:
+    return EventLogAnswer(
+        supported=True,
+        answer=HONEST_REFUSAL,
+        refused=True,
+        citations=(),
+        personal_evidence="",
+        world_context="",
+    )
+
+
+def _format_time_ms(t_ms: int) -> str:
+    return f"{t_ms / 1000.0:.1f}s"
+
+
+def _join_phrases(items: Iterable[str]) -> str:
+    phrases = [item for item in items if item]
+    if not phrases:
+        return ""
+    if len(phrases) == 1:
+        return phrases[0]
+    if len(phrases) == 2:
+        return f"{phrases[0]} and {phrases[1]}"
+    return ", ".join(phrases[:-1]) + f", and {phrases[-1]}"
 
 
 def _matching_objects(subject: str, observations: Iterable[Observation]) -> tuple[Observation, ...]:
