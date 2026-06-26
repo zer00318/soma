@@ -49,7 +49,7 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         let config = ARWorldTrackingConfiguration()
         config.planeDetection = []
         config.environmentTexturing = .none
-        config.isAutoFocusEnabled = false
+        config.isAutoFocusEnabled = true  // MUST be on — off → blurry, unreadable text
 
         let savedMap = loadWorldMap()
         if let savedMap {
