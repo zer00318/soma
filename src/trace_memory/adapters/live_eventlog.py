@@ -15,6 +15,7 @@ from trace_memory.domain.provenance import Provenance
 
 HONEST_REFUSAL = "I don't have that in my memory — I didn't read enough to be sure."
 OPEN_SCENE_REFUSAL = "I didn't capture anything clearly."
+SPEECH_REFUSAL = "I didn't capture any speech"
 
 _CERTAINTY_CONFIDENCE = {
     "likely": 0.78,
@@ -101,8 +102,22 @@ _SPATIAL_SIDE_OF_RE = re.compile(
 )
 _SPATIAL_SIDE_RE = re.compile(r"^\s*which side was\s+(?P<subject>.+?)\s*\??\s*$", re.IGNORECASE)
 _SPATIAL_WHERE_RE = re.compile(r"^\s*where was\s+(?P<subject>.+?)\s*\??\s*$", re.IGNORECASE)
+_SPEECH_RECALL_PATTERNS = (
+    re.compile(r"^\s*what was said\s*\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*what did i hear\s*\??\s*$", re.IGNORECASE),
+)
+_SPEECH_MENTION_RE = re.compile(
+    r"^\s*did\s+(?:anyone|someone)\s+mention\s+(?P<subject>.+?)\s*\??\s*$",
+    re.IGNORECASE,
+)
+_SPEECH_WHO_RE = re.compile(r"^\s*who said what\s*\??\s*$", re.IGNORECASE)
 _SCENE_CONFIDENCE_ORDER = {"high": 0, "medium": 1, "low": 2}
 _YAW_ANCHOR_RE = re.compile(r"(?:^|\|)\s*yaw:(?P<yaw>-?\d+)deg(?:\||$)", re.IGNORECASE)
+_TRANSCRIPT_PATTERNS = (
+    re.compile(r'\btranscript\s*[:=]\s*"(?P<value>[^"]+)"', re.IGNORECASE),
+    re.compile(r"\btranscript\s*[:=]\s*'(?P<value>[^']+)'", re.IGNORECASE),
+    re.compile(r"\btranscript\s*[:=]\s*(?P<value>[^|]+)", re.IGNORECASE),
+)
 
 
 @dataclass(frozen=True)
@@ -159,6 +174,9 @@ def answer_question(
         observations = log.observations()
     finally:
         log.close()
+
+    if parsed.intent in {"speech_recall", "speech_mention", "speech_who"}:
+        return _speech_answer(parsed, observations)
 
     if parsed.intent == "open_scene":
         object_observations = tuple(
@@ -341,6 +359,15 @@ def _line_observation(
     cleaned = " ".join(raw_line.strip().split())
     if not cleaned:
         return None
+    speech_observation = _speech_observation(
+        cleaned,
+        moment_id=moment_id,
+        t_ms=t_ms,
+        line_index=line_index,
+        spatial_anchor=spatial_anchor,
+    )
+    if speech_observation is not None:
+        return speech_observation
     parts = [part.strip() for part in cleaned.split("|")]
     if len(parts) < 3:
         return None
@@ -363,6 +390,58 @@ def _line_observation(
             captured_at_ms=t_ms,
         ),
     )
+
+
+def _speech_observation(
+    cleaned: str,
+    *,
+    moment_id: str,
+    t_ms: int,
+    line_index: int,
+    spatial_anchor: str | None,
+) -> Observation | None:
+    parts = [part.strip() for part in cleaned.split("|")]
+    if not _is_speech_line(cleaned, parts):
+        return None
+    transcript = _extract_transcript(cleaned)
+    if not transcript:
+        return None
+    certainty = _certainty_token(parts[-1]) if parts else None
+    return Observation(
+        kind="speech",
+        subject="speech",
+        attributes=(Attribute("transcript", transcript),),
+        t_ms=t_ms,
+        spatial_anchor=spatial_anchor,
+        confidence=Confidence(_CERTAINTY_CONFIDENCE.get(certainty or "", _DEFAULT_CONFIDENCE)),
+        provenance=Provenance(
+            event_id=f"{moment_id}:{t_ms}:speech:{line_index}",
+            source_channel="audio",
+            captured_at_ms=t_ms,
+        ),
+    )
+
+
+def _is_speech_line(cleaned: str, parts: Sequence[str]) -> bool:
+    if len(parts) >= 2 and parts[0].lower() == "event":
+        subject = re.sub(r"\s+", " ", parts[1].lower())
+        if subject in {"nearby speech", "speech"}:
+            return True
+    return bool(
+        re.search(r"\bkind\s*=\s*event\b", cleaned, re.IGNORECASE)
+        and re.search(r"\bsubject\s*=\s*speech\b", cleaned, re.IGNORECASE)
+    )
+
+
+def _extract_transcript(text: str) -> str | None:
+    for pattern in _TRANSCRIPT_PATTERNS:
+        match = pattern.search(text)
+        if not match:
+            continue
+        value = re.sub(r"\s+", " ", match.group("value")).strip()
+        if value:
+            return value
+    return None
 
 
 def _pose_spatial_anchor(
@@ -448,6 +527,18 @@ def _parse_question(question: str) -> _ParsedQuestion | None:
     normalized = re.sub(r"\s+", " ", question or "").strip()
     if not normalized:
         return None
+    for pattern in _SPEECH_RECALL_PATTERNS:
+        if pattern.match(normalized):
+            return _ParsedQuestion(intent="speech_recall", subject="")
+    match = _SPEECH_MENTION_RE.match(normalized)
+    if match:
+        return _ParsedQuestion(
+            intent="speech_mention",
+            subject=_clean_subject(match.group("subject")),
+        )
+    match = _SPEECH_WHO_RE.match(normalized)
+    if match:
+        return _ParsedQuestion(intent="speech_who", subject="")
     match = _TEMPORAL_FIRST_RE.match(normalized)
     if match:
         return _ParsedQuestion(intent="temporal_first", subject="")
@@ -817,6 +908,57 @@ def _spatial_temporal_answer(
     return EventLogAnswer(supported=False, answer="", refused=False, citations=())
 
 
+def _speech_answer(
+    parsed: _ParsedQuestion,
+    observations: Sequence[Observation],
+) -> EventLogAnswer:
+    speech_observations = tuple(
+        observation for observation in observations if observation.kind == "speech"
+    )
+    if not speech_observations:
+        return _speech_refusal_answer()
+    if parsed.intent == "speech_mention":
+        return _speech_mention_answer(parsed.subject, speech_observations)
+    if parsed.intent == "speech_who":
+        heard = ", then ".join(_speech_quote(observation) for observation in speech_observations)
+        return _supported_answer(
+            f"I heard {heard}, but I didn't capture who said it.",
+            speech_observations,
+        )
+    heard = ", then ".join(_speech_quote(observation) for observation in speech_observations)
+    return _supported_answer(f"I heard {heard}.", speech_observations)
+
+
+def _speech_mention_answer(
+    phrase: str,
+    speech_observations: Sequence[Observation],
+) -> EventLogAnswer:
+    matches = tuple(
+        observation
+        for observation in speech_observations
+        if _speech_mentions(phrase, _speech_transcript(observation))
+    )
+    quoted_phrase = _quote_text(phrase)
+    if matches:
+        citations = ", then ".join(_speech_quote(observation) for observation in matches)
+        return _supported_answer(f"Yes. I heard {citations}.", matches)
+    return _supported_answer(
+        f"No. None of the captured speech mentioned {quoted_phrase}.",
+        speech_observations,
+    )
+
+
+def _speech_refusal_answer() -> EventLogAnswer:
+    return EventLogAnswer(
+        supported=True,
+        answer=SPEECH_REFUSAL,
+        refused=True,
+        citations=(),
+        personal_evidence="",
+        world_context="",
+    )
+
+
 def _object_entity_summaries(
     object_observations: Sequence[Observation],
 ) -> tuple[_ObjectEntitySummary, ...]:
@@ -1141,6 +1283,27 @@ def _refusal_answer() -> EventLogAnswer:
 
 def _format_time_ms(t_ms: int) -> str:
     return f"{t_ms / 1000.0:.1f}s"
+
+
+def _speech_quote(observation: Observation) -> str:
+    return f"{_quote_text(_speech_transcript(observation))} at {_format_time_ms(observation.t_ms)}"
+
+
+def _speech_transcript(observation: Observation) -> str:
+    for attribute in observation.attributes:
+        if attribute.name == "transcript":
+            return attribute.value
+    return _detail_attribute_text(observation)
+
+
+def _speech_mentions(phrase: str, transcript: str) -> bool:
+    normalized_phrase = _normalized_text(phrase)
+    normalized_transcript = _normalized_text(transcript)
+    return bool(normalized_phrase) and normalized_phrase in normalized_transcript
+
+
+def _quote_text(text: str) -> str:
+    return '"' + text.replace('"', "'") + '"'
 
 
 def _join_phrases(items: Iterable[str]) -> str:
