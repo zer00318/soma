@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import importlib
+import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from trace_memory.adapters.sqlite_eventlog import SqliteEventLog
 from trace_memory.application.entity_binder import bind_entities
@@ -20,6 +21,7 @@ _CERTAINTY_CONFIDENCE = {
     "untrusted": 0.3,
 }
 _DEFAULT_CONFIDENCE = 0.55
+_ANGLE_BUCKET_DEGREES = 15
 _CONTAINER_WORDS = {
     "bag",
     "bags",
@@ -91,12 +93,16 @@ def append_perception_observations(
     t_seconds: float,
     memory_text: str,
     ocr_lines: Sequence[str],
+    pose: Mapping[str, Any] | None = None,
+    location_hint: str | None = None,
 ) -> int:
+    spatial_anchor = _pose_spatial_anchor(pose, location_hint=location_hint)
     observations = _build_observations(
         moment_id=moment_id,
         t_seconds=t_seconds,
         memory_text=memory_text,
         ocr_lines=ocr_lines,
+        spatial_anchor=spatial_anchor,
     )
     if not observations:
         return 0
@@ -216,12 +222,19 @@ def _build_observations(
     t_seconds: float,
     memory_text: str,
     ocr_lines: Sequence[str],
+    spatial_anchor: str | None,
 ) -> tuple[Observation, ...]:
     t_ms = max(0, round(float(t_seconds) * 1000))
     observations: list[Observation] = []
     line_index = 0
     for raw_line in memory_text.splitlines():
-        observation = _line_observation(raw_line, moment_id=moment_id, t_ms=t_ms, line_index=line_index)
+        observation = _line_observation(
+            raw_line,
+            moment_id=moment_id,
+            t_ms=t_ms,
+            line_index=line_index,
+            spatial_anchor=spatial_anchor,
+        )
         if observation is not None:
             observations.append(observation)
             line_index += 1
@@ -235,7 +248,7 @@ def _build_observations(
                 subject="text surface",
                 attributes=(Attribute("text", text),),
                 t_ms=t_ms,
-                spatial_anchor=None,
+                spatial_anchor=spatial_anchor,
                 confidence=Confidence(_DEFAULT_CONFIDENCE),
                 provenance=Provenance(
                     event_id=f"{moment_id}:{t_ms}:ocr:{ocr_index}",
@@ -253,6 +266,7 @@ def _line_observation(
     moment_id: str,
     t_ms: int,
     line_index: int,
+    spatial_anchor: str | None,
 ) -> Observation | None:
     cleaned = " ".join(raw_line.strip().split())
     if not cleaned:
@@ -265,13 +279,13 @@ def _line_observation(
         return None
 
     certainty = _certainty_token(parts[-1])
-    detail, spatial_anchor = _detail_and_anchor(parts, has_certainty=certainty is not None)
+    detail, parsed_spatial_anchor = _detail_and_anchor(parts, has_certainty=certainty is not None)
     return Observation(
         kind=prefix,
         subject=parts[1],
         attributes=(Attribute("detail", detail),) if detail else (),
         t_ms=t_ms,
-        spatial_anchor=spatial_anchor,
+        spatial_anchor=spatial_anchor if spatial_anchor is not None else parsed_spatial_anchor,
         confidence=Confidence(_CERTAINTY_CONFIDENCE.get(certainty or "", _DEFAULT_CONFIDENCE)),
         provenance=Provenance(
             event_id=f"{moment_id}:{t_ms}:{prefix}:{line_index}",
@@ -279,6 +293,70 @@ def _line_observation(
             captured_at_ms=t_ms,
         ),
     )
+
+
+def _pose_spatial_anchor(
+    pose: Mapping[str, Any] | None,
+    *,
+    location_hint: str | None,
+) -> str | None:
+    if not pose:
+        return None
+    yaw = _pose_angle_degrees(pose.get("yaw"), pose)
+    pitch = _pose_angle_degrees(pose.get("pitch"), pose)
+    if yaw is None and pitch is None:
+        return None
+
+    parts: list[str] = []
+    if yaw is not None:
+        parts.append(f"yaw:{_bucket_heading_degrees(yaw)}deg")
+    if pitch is not None:
+        parts.append(f"pitch:{_bucket_tilt_degrees(pitch)}deg")
+    cleaned_location = re.sub(r"\s+", " ", str(location_hint or "").strip())
+    if cleaned_location:
+        parts.append(cleaned_location)
+    return "|".join(parts) or None
+
+
+def _pose_angle_degrees(value: object, pose: Mapping[str, Any]) -> float | None:
+    numeric = _float_or_none(value)
+    if numeric is None:
+        return None
+    if _pose_uses_radians(pose):
+        return math.degrees(numeric)
+    return numeric
+
+
+def _pose_uses_radians(pose: Mapping[str, Any]) -> bool:
+    if any(_float_or_none(pose.get(key)) is not None for key in ("qw", "qx", "qy", "qz")):
+        return True
+    angles = [
+        abs(value)
+        for key in ("yaw", "pitch", "roll")
+        if (value := _float_or_none(pose.get(key))) is not None
+    ]
+    return bool(angles) and max(angles) <= math.pi
+
+
+def _bucket_heading_degrees(angle_degrees: float) -> int:
+    wrapped = angle_degrees % 360.0
+    bucket = math.floor((wrapped + (_ANGLE_BUCKET_DEGREES / 2.0)) / _ANGLE_BUCKET_DEGREES)
+    return int((bucket * _ANGLE_BUCKET_DEGREES) % 360)
+
+
+def _bucket_tilt_degrees(angle_degrees: float) -> int:
+    clamped = max(-90.0, min(90.0, angle_degrees))
+    shifted = clamped + 90.0
+    bucket = math.floor((shifted + (_ANGLE_BUCKET_DEGREES / 2.0)) / _ANGLE_BUCKET_DEGREES)
+    quantized = int((bucket * _ANGLE_BUCKET_DEGREES) - 90)
+    return max(-90, min(90, quantized))
+
+
+def _float_or_none(value: object) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _certainty_token(token: str) -> str | None:

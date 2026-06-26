@@ -222,6 +222,10 @@ def _capture(payload: dict[str, Any]) -> dict[str, Any]:
     if not mtext or "no reliable object" in mtext.lower():
         return {"ok": True, "skipped": True}
     moment = str(payload.get("moment_id") or "live")
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+    location_hint = str(payload.get("location_hint") or "").strip()
     with _LIVE_LOCK:
         store = _LIVE.setdefault(moment, {"t0": time.time(), "records": []})
         idx = len(store["records"])
@@ -236,6 +240,8 @@ def _capture(payload: dict[str, Any]) -> dict[str, Any]:
                     "ocr": _extract_ocr_lines(mtext),
                     "source": str(payload.get("source") or "native"),
                     "scene": payload.get("scene_phase"),
+                    "location_hint": location_hint or None,
+                    "metadata": dict(metadata),
                 }
             )
         )
@@ -246,12 +252,20 @@ def _capture(payload: dict[str, Any]) -> dict[str, Any]:
     (mdir / "kf_memory.json").write_text(json.dumps(recs, ensure_ascii=False))
     last = recs[-1]
     if TRACE_EVENTLOG:
+        last_metadata = last.get("metadata")
+        if not isinstance(last_metadata, dict):
+            last_metadata = {}
+        pose = last_metadata.get("pose")
+        if not isinstance(pose, dict):
+            pose = None
         append_perception_observations(
             mdir / "events.db",
             moment_id=moment,
             t_seconds=float(last.get("t") or 0.0),
             memory_text=str(last.get("caption") or ""),
             ocr_lines=tuple(last.get("ocr") or ()),
+            pose=pose,
+            location_hint=str(last.get("location_hint") or "").strip() or None,
         )
     _log(
         "CAPTURE",
