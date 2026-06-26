@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sqlite3
 import sys
 import threading
 import time
@@ -42,6 +43,7 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import ask_home  # noqa: E402  (the brain)
+import brain_memory  # noqa: E402  persistent cross-session memory
 from scrub_pii import scrub_record  # noqa: E402  on-device PII redaction at the storage seam
 from trace_memory.adapters.live_eventlog import (  # noqa: E402
     answer_question as eventlog_answer,
@@ -63,11 +65,17 @@ TRACE_TOKEN = os.environ.get("TRACE_TOKEN", "")
 FRONTIER_ENABLED = os.environ.get("TRACE_FRONTIER_ENABLED", "0") == "1"
 TRACE_EVENTLOG = os.environ.get("TRACE_EVENTLOG", "0") == "1"
 
-# TEST-ONLY observability. When enabled, the phone may POST raw JPEG frames to
-# /debug/frame so the operator can SEE what the camera saw while debugging the
-# loop. OFF by default and NEVER part of the product path — the privacy moat is
-# "no raw media stored"; this exists purely so the Chief can inspect captures.
+# Persistent cross-session memory (never delete, decay = retrieval cost)
+_MEMORY_DB: sqlite3.Connection | None = None
+_MEMORY_DB_LOCK = threading.Lock()
+
+# TEST-ONLY observability. When enabled, raw JPEG frames are KEPT on disk after
+# perception (normally they are deleted immediately). OFF by default.
 DEBUG_FRAMES = os.environ.get("TRACE_DEBUG_FRAMES", "0") == "1"
+
+# Transient frame queue for the Mac-side perceiver. Frames are held only long
+# enough for the VLM to extract derived text, then deleted (privacy moat).
+_FRAME_QUEUE: Path = CAPTURES / "_frame_queue"
 
 _SAFE = re.compile(r"[^a-zA-Z0-9_-]")
 
@@ -92,11 +100,52 @@ LIVE_MAX = int(os.environ.get("TRACE_LIVE_MAX", "600"))
 # background worker perceives the LATEST streamed frame per moment (dropping backlog),
 # and /ask consolidates the per-frame descriptions into one scene and answers.
 PERCEIVE = os.environ.get("TRACE_PERCEIVE", "1") == "1"
+INSTANCE_PIPE = os.environ.get("TRACE_INSTANCE_PIPE", "0") == "1"
 _VISION: dict[str, dict[str, Any]] = {}          # moment -> {t0, frames:[{t,frame,desc}]}
 _VISION_LOCK = threading.Lock()
 _PENDING: dict[str, Path] = {}                    # moment -> newest frame awaiting perception
 _PENDING_LOCK = threading.Lock()
 _SCENE_CACHE: dict[str, dict[str, Any]] = {}      # moment -> {n, scene} (rebuild only on new frames)
+_INSTANCE_GRAPHS: dict[str, dict[str, Any]] = {}  # moment -> scene graph from instance pipeline
+
+
+def _frame_is_usable(path: Path) -> bool:
+    """Quick quality gate: reject frames that are too small (dark/corrupt) or
+    likely blurry (low file-size proxy — a sharp JPEG of a real scene is >8kB).
+    No heavy CV deps; just file-size heuristic + basic JPEG header check."""
+    try:
+        sz = path.stat().st_size
+    except OSError:
+        return False
+    if sz < 3000:
+        return False
+    header = path.read_bytes()[:3]
+    return header[:2] == b"\xff\xd8"
+
+
+def _inject_perceived_record(moment: str, desc: str, frame_name: str,
+                             pose: dict[str, Any] | None) -> None:
+    """Write the Mac-VLM's perceived text back into kf_memory so the
+    flat-string brain path can also use it. This is the key bridge."""
+    with _LIVE_LOCK:
+        store = _LIVE.setdefault(moment, {"t0": time.time(), "records": []})
+        idx = len(store["records"])
+        record: dict[str, Any] = {
+            "t": round(time.time() - store["t0"], 1),
+            "frame": f"f_{idx}",
+            "caption": desc,
+            "ocr": _extract_ocr_lines(desc),
+            "source": "mac_vision",
+            "scene": "perceived",
+        }
+        if pose:
+            record["pose"] = pose
+        store["records"].append(scrub_record(record))
+        if len(store["records"]) > LIVE_MAX:
+            store["records"] = store["records"][-LIVE_MAX:]
+        recs = list(store["records"])
+    mdir = _moment_dir(moment)
+    (mdir / "kf_memory.json").write_text(json.dumps(recs, ensure_ascii=False))
 
 
 def _perception_worker() -> None:
@@ -110,13 +159,44 @@ def _perception_worker() -> None:
         for moment, path in items:
             if last_done.get(moment) == str(path) or not path.exists():
                 continue
+            if not _frame_is_usable(path):
+                _log("FRAME-SKIP", moment=moment, frame=path.name, reason="quality")
+                last_done[moment] = str(path)
+                if not DEBUG_FRAMES:
+                    path.unlink(missing_ok=True)
+                continue
+            pose_data: dict[str, Any] | None = None
+            pose_file = path.with_suffix(".pose.json")
+            if pose_file.exists():
+                try:
+                    pose_data = json.loads(pose_file.read_text())
+                except Exception:
+                    pass
             try:
                 desc = mv.perceive_frame(path)
-            except Exception as exc:  # one bad frame must not kill the worker
+            except Exception as exc:
                 _log("PERCEIVE-ERR", moment=moment, err=str(exc)[:80])
                 last_done[moment] = str(path)
+                if not DEBUG_FRAMES:
+                    path.unlink(missing_ok=True)
+                    pose_file.unlink(missing_ok=True)
                 continue
             last_done[moment] = str(path)
+            if INSTANCE_PIPE:
+                try:
+                    import instance_brain_wire as ibw
+                    graph = ibw.perceive_and_graph(str(path), moment, _INSTANCE_GRAPHS)
+                    text_rec = ibw.graph_to_text_record(graph)
+                    if text_rec:
+                        _inject_perceived_record(moment, text_rec, path.name + ".graph", pose_data)
+                    _log("INST-GRAPH", moment=moment, nodes=len(graph.get("nodes", [])),
+                         edges=len(graph.get("edges", [])))
+                except Exception as exc:
+                    _log("INST-PIPE-ERR", moment=moment, err=str(exc)[:80])
+            # Privacy: delete the raw frame now that we have derived text.
+            if not DEBUG_FRAMES:
+                path.unlink(missing_ok=True)
+                pose_file.unlink(missing_ok=True)
             with _VISION_LOCK:
                 store = _VISION.setdefault(moment, {"t0": time.time(), "frames": []})
                 store["frames"].append(
@@ -125,6 +205,7 @@ def _perception_worker() -> None:
                 if len(store["frames"]) > 240:
                     store["frames"] = store["frames"][-240:]
                 n = len(store["frames"])
+            _inject_perceived_record(moment, desc, path.name, pose_data)
             _log("PERCEIVE", moment=moment, frame=path.name, n=n,
                  desc=desc.replace("\n", " ")[:70])
 
@@ -228,23 +309,32 @@ def _capture(payload: dict[str, Any]) -> dict[str, Any]:
     location_hint = str(payload.get("location_hint") or "").strip()
     with _LIVE_LOCK:
         store = _LIVE.setdefault(moment, {"t0": time.time(), "records": []})
+        if not store["records"]:
+            _path = _moment_dir(moment) / "kf_memory.json"
+            if _path.exists():
+                try:
+                    _existing = json.load(open(_path))
+                    if isinstance(_existing, list):
+                        store["records"] = _existing[-LIVE_MAX:]
+                except Exception:
+                    pass
         idx = len(store["records"])
         # Scrub PII before it ever enters the in-RAM store or the persisted file:
         # what we retain is only the redacted words it read (the privacy moat, enforced).
-        store["records"].append(
-            scrub_record(
-                {
-                    "t": round(time.time() - store["t0"], 1),
-                    "frame": f"f_{idx}",
-                    "caption": mtext,
-                    "ocr": _extract_ocr_lines(mtext),
-                    "source": str(payload.get("source") or "native"),
-                    "scene": payload.get("scene_phase"),
-                    "location_hint": location_hint or None,
-                    "metadata": dict(metadata),
-                }
-            )
-        )
+        rec: dict[str, Any] = {
+            "t": round(time.time() - store["t0"], 1),
+            "frame": f"f_{idx}",
+            "caption": mtext,
+            "ocr": _extract_ocr_lines(mtext),
+            "source": str(payload.get("source") or "native"),
+            "scene": payload.get("scene_phase"),
+            "location_hint": location_hint or None,
+            "metadata": dict(metadata),
+        }
+        pose = metadata.get("pose")
+        if isinstance(pose, dict) and pose:
+            rec["pose"] = pose
+        store["records"].append(scrub_record(rec))
         if len(store["records"]) > LIVE_MAX:
             store["records"] = store["records"][-LIVE_MAX:]
         recs = list(store["records"])
@@ -278,12 +368,12 @@ def _capture(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "moment_id": moment, "frames": len(recs), "t": recs[-1]["t"]}
 
 
-def _debug_frame(payload: dict[str, Any]) -> dict[str, Any]:
-    """TEST-ONLY raw-frame sink. Writes the phone's JPEG under the moment's
-    debug_frames/ dir so the operator can view what the camera actually saw.
-    Gated by TRACE_DEBUG_FRAMES; the product path NEVER stores raw media."""
-    if not DEBUG_FRAMES:
-        return {"ok": False, "disabled": True}
+def _receive_frame(payload: dict[str, Any]) -> dict[str, Any]:
+    """Receive a raw frame from the phone for Mac-side VLM perception.
+    The frame is written to a transient queue; the perception worker picks it
+    up, extracts derived text, and deletes the frame. No raw media persists
+    unless DEBUG_FRAMES is on (test-only). This is the PRODUCT path — the Mac
+    VLM is the real perceiver; the phone's tiny FastVLM is just a trigger."""
     import base64
 
     moment = str(payload.get("moment_id") or "live")
@@ -292,17 +382,27 @@ def _debug_frame(payload: dict[str, Any]) -> dict[str, Any]:
         return {"ok": False, "error": "no jpeg_b64"}
     try:
         data = base64.b64decode(b64)
-    except Exception as exc:  # malformed payload must not crash the loop
+    except Exception as exc:
         return {"ok": False, "error": f"bad base64: {exc}"}
-    fdir = _moment_dir(moment) / "debug_frames"
+    # Write to transient queue (perceived then deleted) or debug dir (kept).
+    if DEBUG_FRAMES:
+        fdir = _moment_dir(moment) / "debug_frames"
+    else:
+        fdir = _FRAME_QUEUE / moment
     fdir.mkdir(parents=True, exist_ok=True)
     t = _float_or_none(payload.get("t"))
     name = f"{t:08.1f}.jpg" if t is not None else f"{len(list(fdir.glob('*.jpg'))):05d}.jpg"
     (fdir / name).write_bytes(data)
+    # Save pose alongside the frame so the perceiver can attach it to the record.
+    metadata = payload.get("metadata")
+    if isinstance(metadata, dict) and metadata.get("pose"):
+        (fdir / name).with_suffix(".pose.json").write_text(
+            json.dumps(metadata["pose"], ensure_ascii=False)
+        )
     if PERCEIVE:
         with _PENDING_LOCK:
-            _PENDING[moment] = fdir / name   # newest frame; worker drops the backlog
-    _log("DBGFRAME", moment=moment, file=name, bytes=len(data))
+            _PENDING[moment] = fdir / name
+    _log("FRAME", moment=moment, file=name, bytes=len(data))
     return {"ok": True, "moment_id": moment, "file": name, "bytes": len(data)}
 
 
@@ -328,6 +428,16 @@ def _frontier_available() -> str:
     if _load_secret("OPENAI_API_KEY"):
         return "openai"
     return ""
+
+
+def _get_memory_db() -> sqlite3.Connection:
+    global _MEMORY_DB
+    with _MEMORY_DB_LOCK:
+        if _MEMORY_DB is None:
+            _MEMORY_DB = brain_memory.open_db(CAPTURES)
+            n = brain_memory.session_count(_MEMORY_DB)
+            _log("MEMORY", msg=f"opened durable store ({n} prior sessions)")
+        return _MEMORY_DB
 
 
 def _moment_dir(moment_id: str) -> Path:
@@ -379,6 +489,14 @@ def _write_memory(moment_id: str, records: list[dict[str, Any]]) -> dict[str, An
         for r in kf
         if "nearby speech" in r["caption"].lower() or "transcript" in r["caption"].lower()
     ]
+    # Persist to durable cross-session memory
+    try:
+        db = _get_memory_db()
+        result = brain_memory.ingest_session(db, moment_id, kf)
+        _log("MEMORY", moment=moment_id,
+             facts=result["facts_stored"], entities=result["entities_found"])
+    except Exception as exc:
+        _log("MEMORY-ERR", moment=moment_id, err=str(exc)[:80])
     return {
         "ok": True,
         "moment_id": moment_id,
@@ -481,36 +599,91 @@ def _eventlog_world_knowledge_oracle(prompt: str) -> str:
     return ask_home._ollama(prompt, MODEL, OLLAMA_HOST, 15)
 
 
+def _kf_fulltext_answer(
+    question: str, kf: list[dict[str, Any]], t0: float,
+    rich_only: bool = False,
+) -> dict[str, Any] | None:
+    """Search kf_memory captions/descriptions for relevant snippets, then ask
+    the LLM to answer. When rich_only=True (eventlog already grounded-refused),
+    only consider mac_vision and instance pipeline entries — these are richer
+    than what eventlog had and may contain the answer."""
+    if not kf:
+        return None
+    rich_sources = {"mac_vision", "instance_pipeline"}
+    q_lower = question.lower()
+    q_words = set(re.split(r'\W+', q_lower)) - {
+        "", "the", "a", "an", "is", "are", "was", "were", "did", "do", "does",
+        "what", "how", "many", "which", "who", "where", "when", "why",
+        "my", "i", "me", "you", "your", "we", "our", "they", "their", "its",
+        "there", "any", "on", "in", "of", "it", "to", "for", "at", "by",
+        "with", "from", "about", "that", "this", "have", "has", "had",
+        "be", "been", "can", "could", "would", "should", "not", "no",
+        "or", "and", "but", "if", "so", "see", "saw", "s",
+    }
+    scored: list[tuple[float, dict[str, Any]]] = []
+    for rec in kf:
+        cap = str(rec.get("caption", ""))
+        cap_lower = cap.lower()
+        src = rec.get("source", "")
+        if not cap or len(cap) < 20:
+            continue
+        is_rich = src in rich_sources or "INSTANCES" in cap[:30]
+        if rich_only and not is_rich:
+            continue
+        hits = sum(1 for w in q_words if w in cap_lower)
+        if hits == 0:
+            continue
+        boost = 2.0 if is_rich else 1.0
+        scored.append((hits * boost / max(len(q_words), 1), rec))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top = scored[:8]
+    if not top:
+        return None
+    snippets = []
+    for score, rec in top:
+        t = rec.get("t", "?")
+        src = rec.get("source", "?")
+        max_len = 1200 if src in rich_sources else 600
+        cap = str(rec.get("caption", ""))[:max_len]
+        snippets.append(f"[{t}s, {src}] {cap}")
+    context = "\n---\n".join(snippets)
+    prompt = (
+        "You answer questions about what a person saw, using ONLY the captured data below.\n"
+        "Rules:\n"
+        "(1) Only state things directly supported by the data.\n"
+        "(2) If the data contains the answer, give it concisely.\n"
+        "(3) On-screen content (chat apps, websites, videos) is valid — report what was on screen.\n"
+        "(4) Read carefully: distinguish WHO sent a message from WHAT the message says. "
+        "In chat data 'Deepak: Happy birthday navin' means Deepak SENT it and navin is the SUBJECT.\n"
+        "(5) If the data genuinely does not contain the answer, say: "
+        "\"I don't have that in what I saw.\"\n\n"
+        f"CAPTURED DATA:\n{context}\n\n"
+        f"QUESTION: {question}\nANSWER:"
+    )
+    try:
+        ans = ask_home._ollama(prompt, MODEL, OLLAMA_HOST, 120)
+    except Exception:
+        return None
+    refused = ask_home._is_refusal(ans)
+    cites = [{"t": rec.get("t", 0), "label": f"{rec.get('t', 0)}s"}
+             for _, rec in top[:3]]
+    return {
+        "answer": ans,
+        "citations": cites,
+        "source": "kf_search",
+        "refused": bool(refused),
+        "model": MODEL,
+        "latency_s": round(time.time() - t0, 1),
+    }
+
+
 def _ask(payload: dict[str, Any]) -> dict[str, Any]:
     moment = str(payload.get("moment_id") or "")
     question = str(payload.get("question") or "").strip()
     allow_frontier = bool(payload.get("allow_frontier", False)) and FRONTIER_ENABLED
 
-    # Mac-vision path: if the worker has perceived frames for this moment, answer from
-    # the consolidated gemma3-vision scene (the real perceiver) instead of FastVLM text.
-    with _VISION_LOCK:
-        vframes = list(_VISION.get(moment, {}).get("frames", []))
-    if question and vframes:
-        import mac_vision_perceive as mv
-
-        descs = [f["desc"] for f in vframes][-16:]
-        cache = _SCENE_CACHE.get(moment)
-        if cache and cache.get("n") == len(vframes):
-            scene = cache["scene"]
-        else:
-            t0 = time.time()
-            scene = mv.consolidate(descs)
-            _SCENE_CACHE[moment] = {"n": len(vframes), "scene": scene}
-            _log("CONSOLIDATE", moment=moment, frames=len(descs), s=round(time.time() - t0, 1))
-        t1 = time.time()
-        ans = mv.answer(scene, question)
-        refused = ask_home._is_refusal(ans)
-        cites = [{"t": f["t"], "frame": f["frame"], "label": f"{f['t']:.1f}s"} for f in vframes[-3:]]
-        out = {"answer": ans, "citations": cites, "source": "mac_vision",
-               "refused": bool(refused), "model": MODEL, "latency_s": round(time.time() - t1, 1)}
-        _log("ASK", moment=moment, q=question[:60], src="mac_vision", frames=len(descs),
-             refused=refused, ans=ans.replace("\n", " ")[:90])
-        return _with_eventlog_fields(out)
+    # INJECT path runs AFTER eventlog (below) — see the inject block after the
+    # eventlog check. Eventlog is the typed system and takes priority.
 
     if payload.get("records"):  # ingest-then-ask in one shot
         _write_memory(moment, payload["records"])
@@ -535,6 +708,10 @@ def _ask(payload: dict[str, Any]) -> dict[str, Any]:
     anchor = _anchor_from_payload(payload, kf_for_anchor)
 
     t0 = time.time()
+    best_refused: dict[str, Any] | None = None
+    eventlog_grounded_refusal = False
+
+    # --- Source 1: eventlog (typed observations) ---
     if TRACE_EVENTLOG:
         eventlog_path = mdir / "events.db"
         if eventlog_path.exists():
@@ -560,50 +737,151 @@ def _ask(payload: dict[str, Any]) -> dict[str, Any]:
                 )
                 out["personal_evidence"] = eventlog_result.personal_evidence
                 out["world_context"] = eventlog_result.world_context
-                _log(
-                    "ASK",
-                    moment=moment,
-                    q=question[:60],
-                    src="eventlog",
-                    refused=out["refused"],
-                    ans=answer.replace("\n", " ")[:90],
-                )
-                return _with_eventlog_fields(out)
+                if not out["refused"]:
+                    _log("ASK", moment=moment, q=question[:60], src="eventlog",
+                         refused=False, ans=answer.replace("\n", " ")[:90])
+                    return _with_eventlog_fields(out)
+                best_refused = out
+                eventlog_grounded_refusal = True
 
-    # Understanding-aware entry: ask() + world-knowledge EXPAND for "what/who is this"
-    # (additive two-zone); falls back to plain ask() on any older ask_home.
-    _ask = getattr(ask_home, "ask_with_understanding", ask_home.ask)
-    try:
-        res = _ask(question, str(mem_path), MODEL, anchor=anchor)
-    except TypeError:
-        # Test stubs sometimes replace ask_home.ask with a narrower signature than
-        # ask_with_understanding expects. Fall back to the base ask path so the
-        # default behavior stays backward-compatible under those lightweight stubs.
-        res = ask_home.ask(question, str(mem_path), MODEL, anchor=anchor)
-    answer = res.get("answer", "")
-    out = _answer_payload(res, answer, anchor, time.time() - t0)
-
-    if out["refused"] and allow_frontier and _frontier_available():
-        kf = ask_home.load_memory(str(mem_path))
+    # --- Source 2: instance graph (derived counts/relations) ---
+    if INSTANCE_PIPE and moment in _INSTANCE_GRAPHS:
         try:
-            fr = _frontier_answer(question, kf)
-            if fr.get("answer") and not ask_home._is_refusal(fr["answer"]):
-                out["answer"] = fr["answer"]
-                out["source"] = fr["source"]
-                out["refused"] = False
-                out["local_refused_first"] = True
-        except Exception as exc:  # frontier failure must not break the answer
-            out["frontier_error"] = str(exc)
+            import instance_brain_wire as ibw
+            ig_result = ibw.answer_from_graph(question, moment, _INSTANCE_GRAPHS)
+            if ig_result and not ig_result.get("refused"):
+                ig_result["latency_s"] = round(time.time() - t0, 1)
+                ig_result["model"] = MODEL
+                ig_result["citations"] = []
+                _log("ASK", moment=moment, q=question[:60], src="instance_graph",
+                     refused=False, ans=ig_result["answer"].replace("\n", " ")[:90])
+                return _with_eventlog_fields(ig_result)
+        except Exception as exc:
+            _log("INST-ASK-ERR", moment=moment, err=str(exc)[:80])
+
+    # --- Source 3: kf_memory rich search (mac_vision + instance data) ---
+    # Only runs when eventlog grounded-refused — these sources have data the
+    # eventlog missed (physical object descriptions, brand labels).
+    kf = _load_kf_records(mem_path)
+    if eventlog_grounded_refusal:
+        kf_answer = _kf_fulltext_answer(question, kf, t0, rich_only=True)
+        if kf_answer and not kf_answer.get("refused"):
+            _log("ASK", moment=moment, q=question[:60], src="kf_search",
+                 refused=False, ans=kf_answer["answer"].replace("\n", " ")[:90])
+            return _with_eventlog_fields(kf_answer)
+
+    # --- Source 4: inject_structure (consensus-bound scene) ---
+    if kf and len(kf) >= 3:
+        import inject_structure
+        t0_inj = time.time()
+        scene = inject_structure.build_scene(kf)
+        has_objects = any(o["confidence"] in ("medium", "high", "low") for o in scene["objects"])
+        if has_objects:
+            ans = inject_structure.answer_from_scene(scene, question, OLLAMA_HOST, MODEL)
+            refused = ask_home._is_refusal(ans)
+            cites = [{"t": r["t"], "label": f"{r['t']}s"} for r in kf[-3:] if "t" in r]
+            out = {"answer": ans, "citations": cites, "source": "inject",
+                   "refused": bool(refused), "model": MODEL,
+                   "latency_s": round(time.time() - t0_inj, 1)}
+            if not refused:
+                _log("ASK", moment=moment, q=question[:60], src="inject",
+                     refused=False, ans=ans.replace("\n", " ")[:90])
+                return _with_eventlog_fields(out)
+            if not best_refused:
+                best_refused = out
+
+    # --- Source 5: kf_memory broad search (all sources, only when eventlog
+    # didn't grounded-refuse — avoids answering from ungrounded text) ---
+    if not eventlog_grounded_refusal:
+        kf_broad = _kf_fulltext_answer(question, kf, t0, rich_only=False)
+        if kf_broad and not kf_broad.get("refused"):
+            _log("ASK", moment=moment, q=question[:60], src="kf_search",
+                 refused=False, ans=kf_broad["answer"].replace("\n", " ")[:90])
+            return _with_eventlog_fields(kf_broad)
+
+    # --- Source 6: long-term memory (cross-session recall) ---
+    try:
+        db = _get_memory_db()
+        ltm_facts = brain_memory.recall(db, question, limit=8,
+                                        current_session=moment)
+        if ltm_facts:
+            ltm_snippets = []
+            for f in ltm_facts:
+                ltm_snippets.append(
+                    f"[session={f['session_id']}, {f['source']}] {f['caption'][:600]}"
+                )
+            ltm_context = "\n---\n".join(ltm_snippets)
+            ltm_prompt = (
+                "You answer questions using the person's PAST captured memories below.\n"
+                "Rules: (1) Only state things supported by the data. "
+                "(2) Distinguish past sessions from the current one. "
+                "(3) If the data doesn't contain the answer, say: "
+                "\"I don't have that in my past memories.\"\n\n"
+                f"PAST MEMORIES:\n{ltm_context}\n\n"
+                f"QUESTION: {question}\nANSWER:"
+            )
+            try:
+                ltm_ans = ask_home._ollama(ltm_prompt, MODEL, OLLAMA_HOST, 120)
+            except Exception:
+                ltm_ans = None
+            if ltm_ans and not ask_home._is_refusal(ltm_ans):
+                cites = [{"t": f["t"], "label": f"past:{f['session_id'][:8]}"}
+                         for f in ltm_facts[:3]]
+                _log("ASK", moment=moment, q=question[:60], src="long_term_memory",
+                     refused=False, ans=ltm_ans.replace("\n", " ")[:90])
+                return _with_eventlog_fields({
+                    "answer": ltm_ans, "citations": cites,
+                    "source": "long_term_memory", "refused": False,
+                    "model": MODEL, "latency_s": round(time.time() - t0, 1),
+                })
+    except Exception as exc:
+        _log("LTM-ERR", moment=moment, err=str(exc)[:80])
+
+    # --- Source 7: ask_home (semantic search + LLM answer) ---
+    # Skip if eventlog already grounded-refused (ask_home would answer from the
+    # same raw text that eventlog correctly determined is ungrounded).
+    if not eventlog_grounded_refusal:
+        _ask = getattr(ask_home, "ask_with_understanding", ask_home.ask)
+        try:
+            res = _ask(question, str(mem_path), MODEL, anchor=anchor)
+        except TypeError:
+            res = ask_home.ask(question, str(mem_path), MODEL, anchor=anchor)
+        answer = res.get("answer", "")
+        out = _answer_payload(res, answer, anchor, time.time() - t0)
+
+        if not out["refused"]:
+            _log("ASK", moment=moment, q=question[:60], src=out.get("source"),
+                 refused=False, ans=answer.replace("\n", " ")[:90])
+            return _with_eventlog_fields(out)
+
+        # --- Source 6: frontier (if local refused) ---
+        if allow_frontier and _frontier_available():
+            kf_mem = ask_home.load_memory(str(mem_path))
+            try:
+                fr = _frontier_answer(question, kf_mem)
+                if fr.get("answer") and not ask_home._is_refusal(fr["answer"]):
+                    out["answer"] = fr["answer"]
+                    out["source"] = fr["source"]
+                    out["refused"] = False
+                    out["local_refused_first"] = True
+                    _log("ASK", moment=moment, q=question[:60], src=out["source"],
+                         refused=False, ans=out["answer"].replace("\n", " ")[:90])
+                    return _with_eventlog_fields(out)
+            except Exception as exc:
+                out["frontier_error"] = str(exc)
+
+    # All sources refused — return the best refusal (prefer eventlog for citations)
+    final = best_refused or out
     _log(
         "ASK",
         moment=moment,
         q=question[:70],
-        refused=out.get("refused"),
-        src=out.get("source"),
-        lat=out.get("latency_s"),
-        ans=(out.get("answer") or "").replace("\n", " ")[:100],
+        refused=True,
+        src=final.get("source"),
+        lat=round(time.time() - t0, 1),
+        ans=(final.get("answer") or "").replace("\n", " ")[:100],
     )
-    return _with_eventlog_fields(out)
+    return _with_eventlog_fields(final)
 
 
 def _proof(moment: str) -> dict[str, Any]:
@@ -712,6 +990,15 @@ class Handler(BaseHTTPRequestHandler):
         elif u.path == "/timeline":
             moment = (parse_qs(u.query).get("moment_id") or [""])[0]
             self._json(200, _timeline(moment))
+        elif u.path == "/memory":
+            try:
+                db = _get_memory_db()
+                self._json(200, {
+                    "sessions": brain_memory.session_count(db),
+                    "entities": brain_memory.known_entities(db, 30),
+                })
+            except Exception as exc:
+                self._json(500, {"error": str(exc)[:200]})
         elif u.path in ("/", "/demo", "/pitch"):
             self._send(200, _demo_html(), "text/html; charset=utf-8")
         else:
@@ -732,7 +1019,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/capture/perception":
                 self._json(200, _capture(payload))
             elif self.path == "/debug/frame":
-                self._json(200, _debug_frame(payload))
+                self._json(200, _receive_frame(payload))
             elif self.path == "/ingest":
                 self._json(
                     200,
@@ -751,6 +1038,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> int:
     CAPTURES.mkdir(parents=True, exist_ok=True)
+    _FRAME_QUEUE.mkdir(parents=True, exist_ok=True)
     if PERCEIVE:
         threading.Thread(target=_perception_worker, daemon=True).start()
     httpd = ThreadingHTTPServer((BIND, PORT), Handler)
