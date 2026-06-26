@@ -36,7 +36,13 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
     }
 
     /// Start (or resume) world tracking. Call on app foreground.
+    /// Disabled until AVCaptureSession camera-sharing is resolved (iOS won't give
+    /// the camera to both ARSession and AVCaptureSession simultaneously without
+    /// isMultiTaskingCameraAccessEnabled — enabling it here causes a black screen).
     func start() {
+        trackingStatus = "ARKit disabled (camera shared with capture pipeline)"
+        return
+        // swiftlint:disable:next unreachable_code
         guard ARWorldTrackingConfiguration.isSupported else {
             isTracking = false
             trackingStatus = "ARKit unsupported"
