@@ -4,6 +4,7 @@
 //
 
 import AVFoundation
+import CoreImage
 import Foundation
 import MLXLMCommon
 import SwiftUI
@@ -14,14 +15,19 @@ import Vision
 extension CVImageBuffer: @unchecked @retroactive Sendable {}
 extension CMSampleBuffer: @unchecked @retroactive Sendable {}
 
-// Continuous mode is Vision-first. FastVLM stays available as a slower semantic backup.
+// Continuous mode is FastVLM-FIRST: the VLM is the understanding channel that names
+// real objects ("Nutella jar", "Pringles can"). The generic detectors (YOLO-COCO 80
+// classes, VNClassifyImageRequest) only know coarse categories, so branded goods get
+// forced into nonsense ("sports ball", "surfboard") that poisons memory — they are now
+// OFF as memory writers. OCR + people detection stay (they carry real signal).
 let VISION_FRAME_DELAY = Duration.milliseconds(650)
 let ENABLE_STABLE_VLM_REFRESH = true
 let ENABLE_TEXT_OCR_MEMORY = true
 let ENABLE_OCR_STILL_PASS = false
-let ENABLE_IMAGE_CLASSIFICATION_MEMORY = true
+let ENABLE_IMAGE_CLASSIFICATION_MEMORY = false
+let ENABLE_DETECTOR_OBJECT_MEMORY = false  // YOLO-COCO labels (jars→"sports ball") poison memory; VLM is the object channel
 let ENABLE_LOCAL_DETECTOR_MEMORY = true
-let STABLE_VLM_REFRESH_SECONDS: TimeInterval = 45
+let STABLE_VLM_REFRESH_SECONDS: TimeInterval = 4
 let ENABLE_PERSON_VLM_ENRICHMENT = true
 let PERSON_VLM_ENRICHMENT_COOLDOWN: TimeInterval = 30
 let MEMORY_COMMIT_DEDUP_SECONDS: TimeInterval = 10
@@ -29,6 +35,12 @@ let CONTEXT_SNAPSHOT_SECONDS: TimeInterval = 8
 let CONTEXT_DIGEST_SECONDS: TimeInterval = 20
 let CONTEXT_ACTIVE_SECONDS: TimeInterval = 90
 let CONTEXT_STALE_SECONDS: TimeInterval = 1_800
+
+enum TraceDefaults {
+    /// Default Mac brain hub address on the LAN. Prefilled so a first-time
+    /// user can Ask without hand-typing an IP; still editable in Hub Setup.
+    static let hubURL = "http://172.20.10.6:8765"
+}
 
 struct TraceContextFact: Identifiable {
     let id: String
@@ -58,6 +70,8 @@ struct TraceClassificationHit {
 struct TracePerceptionRecord {
     let memory: String
     let activeLabels: [String]
+    let anchorLabel: String?
+    let anchorBox: CGRect?
 }
 
 struct ContentView: View {
@@ -96,6 +110,11 @@ struct ContentView: View {
     @State private var lastObjectCount = 0
     @State private var lastFaceCount = 0
     @State private var lastOcrStillAt = Date.distantPast
+    // TESTING ONLY: stream ~1 downscaled JPEG/sec to the Mac so the operator can
+    // SEE what the camera saw while debugging the loop. The product NEVER sends
+    // raw media; the Mac sink (/debug/frame) is itself gated by TRACE_DEBUG_FRAMES.
+    @State private var lastDebugFrameAt = Date.distantPast
+    @AppStorage("traceDebugFrames") private var debugFramesEnabled = true
     @AppStorage(GroundTruthRecorder.toggleKey) private var gtRecordingEnabled = false
     // Ask Trace — queries the Mac brain (over the LAN) about the LIVE perception stream.
     @State private var showAsk = false
@@ -106,6 +125,8 @@ struct ContentView: View {
     @State private var askRefused = false
     @State private var isAsking = false
     @State private var askError = ""
+    // Plain-words connection state to the Mac brain ("Brain connected" / not).
+    @State private var brainReachable: Bool? = nil
     @State private var lastBodyCount = 0
     @State private var lastAcceptedOcrPreview = ""
     @State private var lastVisionInferenceAt: Date?
@@ -113,8 +134,11 @@ struct ContentView: View {
 
     @State private var isShowingInfo: Bool = false
     @State private var isShowingHubSetup: Bool = false
-    @AppStorage("traceHubURL") private var traceHubURL: String = ""
+    // Prefilled so a first-time user never has to type an IP. Still editable in Hub Setup.
+    @AppStorage("traceHubURL") private var traceHubURL: String = TraceDefaults.hubURL
     @State private var isMemoryPaused = false
+    // First-launch onboarding flag (shown once, then never again).
+    @AppStorage("traceHasOnboarded") private var hasOnboarded: Bool = false
 
     @State private var selectedCameraType: CameraType = .continuous
     @State private var isEditingPrompt: Bool = false
@@ -166,6 +190,26 @@ struct ContentView: View {
                     askBar
                 }
                 .padding(.horizontal, 12)
+
+                // Visible heavy-VLM download/load status (Qwen2.5-VL ~2GB on first launch).
+                if !model.modelInfo.isEmpty && model.modelInfo != "Loaded" {
+                    VStack {
+                        HStack(spacing: 8) {
+                            ProgressView().tint(.white)
+                            Text(model.modelInfo)
+                                .font(.caption.bold()).foregroundStyle(.white)
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 8)
+                        .background(.black.opacity(0.75), in: Capsule())
+                        Spacer()
+                    }
+                    .padding(.top, 70)
+                }
+            }
+            // Eager load: start the ~2GB Qwen2.5-VL download on launch, not lazily on
+            // the first steady frame (which may never come while you're panning).
+            .task {
+                await model.load()
             }
             .task {
                 appendNativeStatusLog(status: "local_runtime_status", extra: TraceLocalRuntime.statusPayload())
@@ -173,10 +217,22 @@ struct ContentView: View {
                 camera.start()
                 locationContext.start()
                 audioContext.start()
+                await MainActor.run {
+                    TraceARKitEngine.shared.start()
+                }
                 if ENABLE_LOCAL_DETECTOR_MEMORY {
                     detectorBridge.start()
                 } else {
                     detectorBridge.status = "Detector disabled; FastVLM spatial naming active"
+                }
+            }
+            // Probe the Mac brain on launch and refresh periodically for the
+            // plain-words "Brain connected / not connected" status.
+            .task {
+                refreshBrainStatus()
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 8_000_000_000)
+                    refreshBrainStatus()
                 }
             }
             .onChange(of: detectorBridge.lastMemoryText) { _, memoryText in
@@ -265,6 +321,10 @@ struct ContentView: View {
             .sheet(isPresented: $showAsk) {
                 askSheet
             }
+            // First-launch welcome. Shown once, over the camera, then never again.
+            .fullScreenCover(isPresented: .constant(!hasOnboarded)) {
+                OnboardingView { hasOnboarded = true }
+            }
         }
     }
 
@@ -278,8 +338,8 @@ struct ContentView: View {
         let fm = FileManager.default
         let exts: Set<String> = ["mov", "mp4", "m4v", "heic", "heif", "jpg", "jpeg", "png", "wav", "m4a", "aac", "caf"]
         var count = 0
-        let roots = [fm.urls(for: .documentDirectory, in: .userDomainMask).first,
-                     URL(fileURLWithPath: NSTemporaryDirectory())]
+        let roots: [URL?] = [fm.urls(for: .documentDirectory, in: .userDomainMask).first,
+                             URL(fileURLWithPath: NSTemporaryDirectory())]
         for case let root? in roots {
             guard let en = fm.enumerator(at: root, includingPropertiesForKeys: nil) else { continue }
             for case let u as URL in en where exts.contains(u.pathExtension.lowercased()) { count += 1 }
@@ -290,13 +350,13 @@ struct ContentView: View {
     @ViewBuilder var liveHeader: some View {
         HStack(spacing: 8) {
             Circle().fill(statusBackgroundColor).frame(width: 9, height: 9)
-            Text(model.evaluationState == .idle ? "watching" : model.evaluationState.rawValue)
+            Text("Watching")
                 .font(.caption.bold())
             Spacer()
-            Image(systemName: "brain.head.profile")
-            Text("\(memoryRecords.count)").font(.caption.bold())
-            Text("· \(rawMediaCount) raw media").font(.caption2)
-                .foregroundStyle(rawMediaCount == 0 ? .green : .red)
+            Image(systemName: "sparkles")
+                .font(.caption2)
+            Text(memoryRecords.count == 1 ? "1 memory" : "\(memoryRecords.count) memories")
+                .font(.caption.bold())
         }
         .foregroundStyle(.white)
         .padding(.vertical, 7).padding(.horizontal, 12)
@@ -311,39 +371,109 @@ struct ContentView: View {
         }
     }
 
+    /// Plain-words connection state to the Mac brain, shown above the Ask button.
+    @ViewBuilder var brainStatusPill: some View {
+        let connected = brainReachable == true
+        let unknown = brainReachable == nil
+        HStack(spacing: 6) {
+            Image(systemName: "brain.head.profile")
+                .font(.caption2)
+            Text(unknown ? "Checking brain…" : (connected ? "Brain connected" : "Brain not connected"))
+                .font(.caption2.weight(.semibold))
+        }
+        .foregroundStyle(unknown ? .white.opacity(0.7) : (connected ? .green : .orange))
+        .padding(.vertical, 5).padding(.horizontal, 10)
+        .background(.black.opacity(0.5), in: Capsule())
+    }
+
     @ViewBuilder var liveMemoryOverlay: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack {
-                Text("LIVE MEMORY").font(.caption2.bold()).foregroundStyle(.white.opacity(0.7))
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.caption2)
+                Text("Remembering")
+                    .font(.caption.bold())
                 Spacer()
-                Text(currentScenePhase).font(.caption2).foregroundStyle(.white.opacity(0.5))
-            }
-            if memoryRecords.isEmpty {
-                Text("Point the camera at the scene — objects, text and events become memory here, live.")
-                    .font(.caption).foregroundStyle(.white.opacity(0.6))
-            } else {
-                ForEach(Array(memoryRecords.prefix(6).enumerated()), id: \.offset) { _, rec in
-                    Text(cleanFeedLine(rec))
-                        .font(.caption).foregroundStyle(.white).lineLimit(2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                if !memoryRecords.isEmpty {
+                    Text("live")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.green)
                 }
             }
+            .foregroundStyle(.white.opacity(0.85))
+
+            if memoryRecords.isEmpty {
+                Text("Point your camera at the world — signs, faces, objects and what's said turn into memory here.")
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.7))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                let cards = memoryCards(from: memoryRecords, limit: 6)
+                VStack(alignment: .leading, spacing: 7) {
+                    ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+                        memoryCardRow(card)
+                            // Newest on top is fully opaque; older entries fade gently.
+                            .opacity(max(0.45, 1.0 - Double(index) * 0.11))
+                    }
+                }
+                .animation(.easeOut(duration: 0.25), value: cards.map(\.id))
+            }
         }
-        .padding(10)
-        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 14))
+        .padding(12)
+        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    @ViewBuilder func memoryCardRow(_ card: MemoryCard) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(card.icon)
+                .font(.title3)
+                .frame(width: 26, alignment: .center)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(card.title)
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                if let detail = card.detail, !detail.isEmpty {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 0)
+            Text(card.relativeTime)
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.5))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder var askBar: some View {
-        Button { showAsk = true } label: {
+        VStack(spacing: 8) {
             HStack {
-                Image(systemName: "sparkles")
-                Text("Ask Trace about what you saw")
                 Spacer()
-                Image(systemName: "chevron.up")
+                brainStatusPill
             }
-            .font(.subheadline.bold()).foregroundStyle(.white)
-            .padding(.vertical, 13).padding(.horizontal, 16)
-            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14))
+            Button { showAsk = true } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "sparkles")
+                        .font(.title3)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Ask Trace")
+                            .font(.headline)
+                        Text("about anything you saw")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.up")
+                        .font(.subheadline.bold())
+                }
+                .foregroundStyle(.white)
+                .padding(.vertical, 14).padding(.horizontal, 18)
+                .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 16))
+                .shadow(color: .black.opacity(0.3), radius: 8, y: 2)
+            }
         }
         .padding(.vertical, 10)
     }
@@ -412,6 +542,214 @@ struct ContentView: View {
             .replacingOccurrences(of: " | uncertain", with: "")
             .replacingOccurrences(of: "OBJECT | ", with: "")
             .replacingOccurrences(of: "EVENT | ", with: "")
+    }
+
+    /// A glanceable, human card built from a raw memory record. The raw
+    /// pipe-delimited record (KIND | subject | attributes | relation | certainty)
+    /// stays untouched in `memoryRecords`; this is purely the user-facing view.
+    struct MemoryCard: Identifiable, Equatable {
+        let id: String
+        let icon: String
+        let title: String
+        let detail: String?
+        let relativeTime: String
+    }
+
+    /// Turn the latest raw records into clean cards (newest first). One card per
+    /// record; the first meaningful OBJECT/EVENT line in the record drives it.
+    func memoryCards(from records: [String], limit: Int) -> [MemoryCard] {
+        var cards: [MemoryCard] = []
+        var seenTitles = Set<String>()
+        for (offset, rec) in records.enumerated() {
+            let parts = rec.split(separator: "\n", maxSplits: 1)
+            let timeStamp = parts.count > 1 ? String(parts[0]) : ""
+            let body = parts.count > 1 ? String(parts[1]) : rec
+            guard let line = primaryMemoryLine(in: body),
+                  let card = makeMemoryCard(line: line, timeStamp: timeStamp, index: offset) else {
+                continue
+            }
+            // Avoid back-to-back duplicate-looking cards in the user view.
+            let dedupKey = card.icon + card.title
+            if seenTitles.contains(dedupKey) { continue }
+            seenTitles.insert(dedupKey)
+            cards.append(card)
+            if cards.count >= limit { break }
+        }
+        return cards
+    }
+
+    /// Prefer the first OBJECT/EVENT line; fall back to the first non-empty line.
+    private func primaryMemoryLine(in body: String) -> String? {
+        let lines = body.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        let typed = lines.first { $0.hasPrefix("OBJECT |") || $0.hasPrefix("EVENT |") }
+        return typed ?? lines.first
+    }
+
+    private func makeMemoryCard(line: String, timeStamp: String, index: Int) -> MemoryCard? {
+        let fields = line.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
+        let kind = fields.first?.uppercased() ?? ""
+        let subject = fields.count > 1 ? fields[1] : ""
+        let attributes = fields.count > 2 ? fields[2] : ""
+        let relation = fields.count > 3 ? fields[3] : ""
+        let lowSubject = subject.lowercased()
+        let lowAttr = attributes.lowercased()
+
+        // Quoted text captured by OCR or speech, e.g. OCR text: "..." / transcript: "..."
+        let quoted = firstQuoted(in: line)
+
+        // 1) Speech / things said.
+        if lowSubject.contains("speech") || lowAttr.contains("transcript") {
+            let said = quoted ?? attributes
+            return MemoryCard(id: "\(index)", icon: "🗣️",
+                              title: said.isEmpty ? "Someone spoke nearby" : "Heard: “\(trimForCard(said))”",
+                              detail: said.isEmpty ? nil : "spoken nearby",
+                              relativeTime: relativeTimeLabel(from: timeStamp))
+        }
+
+        // 2) Text on signs / screens / surfaces.
+        let textSurface = lowSubject.contains("sign") || lowSubject.contains("screen")
+            || lowSubject.contains("text") || lowSubject.contains("display")
+            || lowAttr.contains("ocr") || quoted != nil && (kind == "OBJECT")
+        if textSurface, let read = quoted, !read.isEmpty {
+            let label = signLabel(for: lowSubject)
+            return MemoryCard(id: "\(index)", icon: signIcon(for: lowSubject),
+                              title: "\(label): “\(trimForCard(read))”",
+                              detail: nil,
+                              relativeTime: relativeTimeLabel(from: timeStamp))
+        }
+
+        // 3) People.
+        if lowSubject.contains("person") || lowSubject.contains("people") || lowSubject.contains("face") {
+            let title: String
+            if lowSubject.contains("people") {
+                title = "A few people nearby"
+            } else if lowSubject.contains("background") {
+                title = "Another person nearby"
+            } else {
+                title = "A person nearby"
+            }
+            let detail = humanPhrase(attributes.isEmpty ? relation : attributes)
+            return MemoryCard(id: "\(index)", icon: "🚶",
+                              title: title,
+                              detail: detail,
+                              relativeTime: relativeTimeLabel(from: timeStamp))
+        }
+
+        // 4) Events (something happening).
+        if kind == "EVENT" {
+            let action = humanPhrase(attributes.isEmpty ? subject : "\(subject) \(attributes)")
+            return MemoryCard(id: "\(index)", icon: "✨",
+                              title: action.isEmpty ? "Something happening" : capitalizeFirst(action),
+                              detail: nil,
+                              relativeTime: relativeTimeLabel(from: timeStamp))
+        }
+
+        // 5) Generic objects.
+        let name = humanPhrase(subject.replacingOccurrences(of: "visible ", with: ""))
+        guard !name.isEmpty else { return nil }
+        let detail = humanPhrase(attributes)
+        return MemoryCard(id: "\(index)", icon: objectIcon(for: lowSubject + " " + lowAttr),
+                          title: capitalizeFirst(name),
+                          detail: detail == name ? nil : detail,
+                          relativeTime: relativeTimeLabel(from: timeStamp))
+    }
+
+    /// Extract the first double-quoted span (the verbatim text Trace read/heard).
+    private func firstQuoted(in line: String) -> String? {
+        guard let start = line.firstIndex(of: "\"") else { return nil }
+        let after = line.index(after: start)
+        guard after < line.endIndex, let end = line[after...].firstIndex(of: "\"") else { return nil }
+        let inner = String(line[after..<end]).trimmingCharacters(in: .whitespaces)
+        return inner.isEmpty ? nil : inner
+    }
+
+    private func trimForCard(_ s: String, max: Int = 70) -> String {
+        let collapsed = s.replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespaces)
+        if collapsed.count <= max { return collapsed }
+        return String(collapsed.prefix(max)).trimmingCharacters(in: .whitespaces) + "…"
+    }
+
+    /// Strip the internal certainty / pipeline words so the user sees plain language.
+    private func humanPhrase(_ s: String) -> String {
+        var out = s
+        for noise in ["detector stream", "visible frame", "detected while camera moving",
+                      "high-resolution still pass", "provisional ", "full-res ", "OCR text:",
+                      "provisional OCR text:", "; detected", " detected"] {
+            out = out.replacingOccurrences(of: noise, with: "")
+        }
+        out = out.replacingOccurrences(of: "likely", with: "")
+            .replacingOccurrences(of: "uncertain", with: "")
+            .replacingOccurrences(of: "  ", with: " ")
+        // Drop dangling separators left behind.
+        out = out.trimmingCharacters(in: CharacterSet(charactersIn: " ;,|-"))
+        return out
+    }
+
+    private func capitalizeFirst(_ s: String) -> String {
+        guard let first = s.first else { return s }
+        return first.uppercased() + s.dropFirst()
+    }
+
+    private func signLabel(for subject: String) -> String {
+        if subject.contains("transit") { return "Sign" }
+        if subject.contains("screen") || subject.contains("display") { return "Screen" }
+        return "Sign"
+    }
+
+    private func signIcon(for subject: String) -> String {
+        if subject.contains("screen") || subject.contains("display") { return "📱" }
+        return "🪧"
+    }
+
+    private func objectIcon(for text: String) -> String {
+        if text.contains("headphone") || text.contains("earphone") || text.contains("earbud") { return "🎧" }
+        if text.contains("glass") || text.contains("eyewear") || text.contains("sunglass") { return "🕶️" }
+        if text.contains("phone") || text.contains("cell") { return "📱" }
+        if text.contains("laptop") || text.contains("computer") || text.contains("screen") { return "💻" }
+        if text.contains("hat") || text.contains("headwear") || text.contains("cap") { return "🧢" }
+        if text.contains("shirt") || text.contains("clothing") || text.contains("jacket") { return "👕" }
+        if text.contains("bag") || text.contains("backpack") { return "🎒" }
+        if text.contains("car") || text.contains("vehicle") || text.contains("bus") { return "🚗" }
+        if text.contains("cup") || text.contains("bottle") || text.contains("drink") { return "🥤" }
+        if text.contains("book") { return "📖" }
+        if text.contains("tree") || text.contains("plant") { return "🌳" }
+        return "🔎"
+    }
+
+    /// Convert the stored wall-clock timestamp (e.g. "2:14:08 PM") into a relative
+    /// label like "just now" / "12s ago" / "3m ago".
+    private func relativeTimeLabel(from timeStamp: String) -> String {
+        guard !timeStamp.isEmpty else { return "just now" }
+        let formatter = DateFormatter()
+        formatter.timeStyle = .medium
+        formatter.dateStyle = .none
+        guard let parsed = formatter.date(from: timeStamp) else { return "just now" }
+        let now = Date()
+        // The stored time omits the date; rebuild it on today's calendar.
+        let cal = Calendar.current
+        let comps = cal.dateComponents([.hour, .minute, .second], from: parsed)
+        var todayComps = cal.dateComponents([.year, .month, .day], from: now)
+        todayComps.hour = comps.hour
+        todayComps.minute = comps.minute
+        todayComps.second = comps.second
+        guard let stamp = cal.date(from: todayComps) else { return "just now" }
+        let delta = now.timeIntervalSince(stamp)
+        if delta < 5 { return "just now" }
+        if delta < 60 { return "\(Int(delta))s ago" }
+        if delta < 3600 { return "\(Int(delta / 60))m ago" }
+        return "\(Int(delta / 3600))h ago"
+    }
+
+    /// Probe the Mac brain so we can show a plain-words "connected" state.
+    func refreshBrainStatus() {
+        let base = traceHubURL.isEmpty ? TraceDefaults.hubURL : traceHubURL
+        Task {
+            let ok = await BrainClient.isHealthy(base: base)
+            await MainActor.run { brainReachable = ok }
+        }
     }
 
     func performAsk() {
@@ -785,6 +1123,7 @@ struct ContentView: View {
                 currentScenePhase = scenePhase
                 currentMotionScore = motion.score
             }
+            await sendDebugFrame(frame, frameIndex: frameIndex)
             if frameIndex == 1 || frameIndex % 30 == 0 {
                 appendNativeStatusLog(status: "analysis_frame_received", extra: [
                     "frame_index": frameIndex,
@@ -810,11 +1149,18 @@ struct ContentView: View {
             }
             let locationHint = await MainActor.run { locationContext.locationMemoryHint }
             let localRecord = localVisionRecord(frame, scenePhase: scenePhase, frameIndex: frameIndex, locationHint: locationHint)
-                await MainActor.run {
-                    if ENABLE_LOCAL_DETECTOR_MEMORY {
-                        detectorBridge.submit(frame: frame)
-                    }
+            await MainActor.run {
+                #if os(iOS)
+                if let arFrame = TraceARKitEngine.shared.session.currentFrame,
+                   let anchorLabel = localRecord.anchorLabel,
+                   let anchorBox = localRecord.anchorBox {
+                    TraceARKitEngine.shared.placeOrUpdateAnchor(label: anchorLabel, normalizedBox: anchorBox, in: arFrame)
                 }
+                #endif
+                if ENABLE_LOCAL_DETECTOR_MEMORY {
+                    detectorBridge.submit(frame: frame)
+                }
+            }
             if !localRecord.memory.isEmpty {
                 await MainActor.run {
                     visionStatus = "Native Vision \(scenePhase): building object/event context"
@@ -860,7 +1206,7 @@ struct ContentView: View {
 
             let semanticDue = await MainActor.run {
                 ENABLE_STABLE_VLM_REFRESH
-                    && scenePhase == "stable"
+                    && scenePhase != "moving"   // run on stable OR settling — catch brief glimpses, not just dead-still
                     && !model.running
                     && Date().timeIntervalSince(lastSemanticRefreshAt) >= STABLE_VLM_REFRESH_SECONDS
             }
@@ -1036,10 +1382,10 @@ struct ContentView: View {
         }
 
         // Construct request to model
-        let userInput = UserInput(
-            prompt: .text("\(prompt) \(promptSuffix)"),
-            images: [.ciImage(CIImage(cvPixelBuffer: frame))]
-        )
+        var userInput = UserInput(chat: [
+            .user("\(prompt) \(promptSuffix)", images: [.ciImage(CIImage(cvPixelBuffer: frame))])
+        ])
+        userInput.processing.resize = .init(width: 448, height: 448)
 
         // Post request to FastVLM
         Task {
@@ -1055,21 +1401,30 @@ struct ContentView: View {
     }
 
     func runSemanticMemoryRefresh(_ frame: CVImageBuffer, scenePhase: String) async {
+        // NO concrete example here: a tiny VLM copies any example object verbatim
+        // (it parroted "Nutella jar / Pringles can" every frame). Format described in
+        // words only; screens are INCLUDED (live feed combines physical + on-screen).
         let semanticPrompt = """
-            You are Trace's wearable first-person object/event perception engine.
-            Inspect only the current camera frame. Do not use previous memory.
-            Write at most 4 plain text memory facts.
-            Every line must start exactly with OBJECT | or EVENT |
-            Do not print a table, headings, examples, placeholders, or this instruction.
-            The camera, photo, picture, image, and act of taking a picture are not memory facts.
-            Prefer specific visible objects and readable sign/board text over a general scene caption.
-            Mention relation/location only if visible. If nothing is clear, output nothing.
+            You are a wearable first-person camera. Look at THIS image and list ONLY the \
+            things actually visible in it right now — physical objects AND anything shown \
+            on a screen.
+            Put each on its own line, starting with "OBJECT | " then a short specific \
+            name, then " | " then its visible details (color, material, state, position, \
+            or any text legibly printed or displayed on it). Use a brand, product, or app \
+            name only when its text is clearly readable; otherwise use the plain category.
+            Describe only what is genuinely in THIS image. Never invent or guess something \
+            that is not there. Do not repeat these instructions and do not output any \
+            example object. If the view is unclear, output a single best-guess line, or \
+            nothing.
             """
 
-        let userInput = UserInput(
-            prompt: .text(semanticPrompt),
-            images: [.ciImage(CIImage(cvPixelBuffer: frame))]
-        )
+        // Chat form so Qwen2-VL's processor inserts the vision placeholder tokens
+        // (the .text form fails: "placeholder tokens does not match number of frames").
+        // resize caps vision tokens -> lower on-device memory + faster.
+        var userInput = UserInput(chat: [
+            .user(semanticPrompt, images: [.ciImage(CIImage(cvPixelBuffer: frame))])
+        ])
+        userInput.processing.resize = .init(width: 448, height: 448)
 
         let task = await model.generate(userInput)
         _ = await task.result
@@ -1125,10 +1480,10 @@ struct ContentView: View {
             Skip anything not clearly visible. Do NOT output more than one line.
             """
 
-        let userInput = UserInput(
-            prompt: .text(enrichPrompt),
-            images: [.ciImage(CIImage(cvPixelBuffer: frame))]
-        )
+        var userInput = UserInput(chat: [
+            .user(enrichPrompt, images: [.ciImage(CIImage(cvPixelBuffer: frame))])
+        ])
+        userInput.processing.resize = .init(width: 448, height: 448)
 
         let task = await model.generate(userInput)
         _ = await task.result
@@ -1388,7 +1743,7 @@ struct ContentView: View {
         do {
             try handler.perform(requests)
         } catch {
-            return TracePerceptionRecord(memory: "", activeLabels: [])
+            return TracePerceptionRecord(memory: "", activeLabels: [], anchorLabel: nil, anchorBox: nil)
         }
 
         var records: [String] = []
@@ -1438,6 +1793,9 @@ struct ContentView: View {
         let objectHits: [DetectedObjectV2] = ObjectDetectorV2.shared.detect(
             frame, minimumConfidence: scenePhase == "moving" ? 0.50 : 0.40
         )
+        let primaryAnchorCandidate = objectHits.max { lhs, rhs in
+            lhs.confidence < rhs.confidence
+        }
         if isLikelySelfFacingArtifact(personBoxes: personBoxes, textHits: textHits, classificationHits: classificationHits) {
             bodyBoxes = []
             faceBoxes = []
@@ -1487,9 +1845,11 @@ struct ContentView: View {
             if let textBlock = compactVisibleText(textHits, maxCharacters: 90) {
                 records.append("OBJECT | \(textSurfaceLabel) | provisional OCR text: \"\(textBlock)\" | \(frameRelation) | uncertain")
             }
-            records.append(contentsOf: objectHits.map { obj in
-                "OBJECT | visible \(obj.label) | detected | \(frameRelation) | uncertain"
-            })
+            if ENABLE_DETECTOR_OBJECT_MEMORY {
+                records.append(contentsOf: objectHits.map { obj in
+                    "OBJECT | visible \(obj.label) | detected | \(frameRelation) | uncertain"
+                })
+            }
             records.append(contentsOf: classificationMemoryLines(
                 classificationHits,
                 scenePhase: scenePhase,
@@ -1504,7 +1864,9 @@ struct ContentView: View {
                     textSurfaceLabel: textHits.isEmpty ? nil : textSurfaceLabel,
                     peopleCount: peopleCount,
                     classificationHits: classificationHits
-                )
+                ),
+                anchorLabel: memory.isEmpty ? nil : (primaryAnchorCandidate?.label ?? "scene"),
+                anchorBox: memory.isEmpty ? nil : (primaryAnchorCandidate?.box ?? CGRect(x: 0.25, y: 0.25, width: 0.5, height: 0.5))
             )
         }
 
@@ -1526,9 +1888,11 @@ struct ContentView: View {
             records.append("EVENT | visible person | near or below \(textSurfaceLabel) | \(frameRelation) | \(scenePhase == "stable" ? "likely" : "uncertain")")
         }
 
-        records.append(contentsOf: objectHits.map { obj in
-            "OBJECT | visible \(obj.label) | detected | \(frameRelation) | \(obj.confidence > 0.6 ? "likely" : "uncertain")"
-        })
+        if ENABLE_DETECTOR_OBJECT_MEMORY {
+            records.append(contentsOf: objectHits.map { obj in
+                "OBJECT | visible \(obj.label) | detected | \(frameRelation) | \(obj.confidence > 0.6 ? "likely" : "uncertain")"
+            })
+        }
         records.append(contentsOf: classificationMemoryLines(
             classificationHits,
             scenePhase: scenePhase,
@@ -1544,7 +1908,9 @@ struct ContentView: View {
                 textSurfaceLabel: textHits.isEmpty ? nil : textSurfaceLabel,
                 peopleCount: peopleCount,
                 classificationHits: classificationHits
-            )
+            ),
+            anchorLabel: memory.isEmpty ? nil : (primaryAnchorCandidate?.label ?? "scene"),
+            anchorBox: memory.isEmpty ? nil : (primaryAnchorCandidate?.box ?? CGRect(x: 0.25, y: 0.25, width: 0.5, height: 0.5))
         )
     }
 
@@ -2218,6 +2584,7 @@ struct ContentView: View {
         appendNativePayload(payload)
     }
 
+    @MainActor
     func appendNativeTextLog(memory: String, raw: String, source: String, activeLabels: [String]? = nil) {
         let labels = !((activeLabels ?? []).isEmpty)
             ? dedupeLabels(activeLabels ?? [])
@@ -2400,6 +2767,47 @@ struct ContentView: View {
         }
     }
 
+    // TESTING ONLY — see the comment on `debugFramesEnabled`. Throttled to ~1/sec,
+    // downscaled, and double-gated (app toggle + Mac's TRACE_DEBUG_FRAMES). Lets the
+    // operator view what the camera actually captured; never part of the product path.
+    static let debugCIContext = CIContext()
+
+    // maxDim raised 640 -> 1920: the Mac-side instance pipeline (detector + SAM2 +
+    // per-crop VLM) needs readable pixels to lift fine print / brands out of crops.
+    // Demo is plugged in + on LAN, so the bandwidth of a 1080p JPEG/sec is a non-issue.
+    static func jpegFromBuffer(_ buffer: CVImageBuffer, maxDim: CGFloat = 1920) -> Data? {
+        let ci = CIImage(cvImageBuffer: buffer)
+        let longest = max(ci.extent.width, ci.extent.height)
+        let scale = longest > maxDim ? maxDim / longest : 1
+        let scaled = scale < 1 ? ci.transformed(by: CGAffineTransform(scaleX: scale, y: scale)) : ci
+        return debugCIContext.jpegRepresentation(
+            of: scaled, colorSpace: CGColorSpaceCreateDeviceRGB(), options: [:]
+        )
+    }
+
+    func sendDebugFrame(_ buffer: CVImageBuffer, frameIndex: Int) async {
+        let baseURL: String? = await MainActor.run {
+            guard debugFramesEnabled else { return nil }
+            if Date().timeIntervalSince(lastDebugFrameAt) < 1.0 { return nil }
+            lastDebugFrameAt = Date()
+            return traceHubURL.isEmpty ? "http://127.0.0.1:8765" : traceHubURL
+        }
+        guard let baseURL,
+              let jpeg = Self.jpegFromBuffer(buffer),
+              let url = URL(string: "\(baseURL)/debug/frame") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("dev-token", forHTTPHeaderField: "X-TRACE-Token")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "moment_id": "live",
+            "t": frameIndex,
+            "jpeg_b64": jpeg.base64EncodedString(),
+        ])
+        _ = try? await URLSession.shared.data(for: req)
+    }
+
+    @MainActor
     func postPerceptionPacketToHub(_ payload: [String: Any]) {
         let baseURL = traceHubURL.isEmpty ? "http://127.0.0.1:8765" : traceHubURL
         // Capture v2: every packet carries device pose + battery — day-one
@@ -2409,6 +2817,10 @@ struct ContentView: View {
         var meta = (payload["metadata"] as? [String: Any]) ?? [:]
         let pose = PoseStamper.shared.snapshot()
         if !pose.isEmpty { meta["pose"] = pose }
+        let arkitMeta = TraceARKitEngine.shared.metadataSnapshot()
+        for (key, value) in arkitMeta {
+            meta[key] = value
+        }
         meta["battery_pct"] = PoseStamper.batteryPercent
         meta["build"] = BuildStamp.sha
         payload["metadata"] = meta
@@ -2461,6 +2873,7 @@ struct ContentView: View {
         }.resume()
     }
 
+    @MainActor
     func postSceneStateToHub(scenePhase: String, motionScore: Double?, locationHint: String) {
         let payload: [String: Any] = [
             "timestamp": ISO8601DateFormatter().string(from: Date()),
@@ -2516,6 +2929,7 @@ struct ContentView: View {
 struct TraceHubSetupView: View {
     @Binding var hubURL: String
     @State private var ipInput: String = ""
+    @AppStorage("traceDebugFrames") private var debugFramesEnabled = true
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -2538,6 +2952,14 @@ struct TraceHubSetupView: View {
                             .foregroundStyle(.secondary)
                             .font(.footnote.monospaced())
                     }
+                }
+
+                Section {
+                    Toggle("Send debug frames to Mac", isOn: $debugFramesEnabled)
+                } header: {
+                    Text("Testing")
+                } footer: {
+                    Text("TESTING ONLY: streams ~1 downscaled JPEG/sec to the Mac so the operator can see what the camera saw while debugging. Not part of the product — turn off when done.")
                 }
             }
             .navigationTitle("Trace Hub Setup")
@@ -2595,6 +3017,7 @@ enum BrainClient {
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("dev-token", forHTTPHeaderField: "X-TRACE-Token")
         req.timeoutInterval = 180
         req.httpBody = try JSONSerialization.data(withJSONObject: [
             "moment_id": "live",
@@ -2603,5 +3026,22 @@ enum BrainClient {
         ])
         let (data, _) = try await URLSession.shared.data(for: req)
         return try JSONDecoder().decode(AskResult.self, from: data)
+    }
+
+    /// Lightweight reachability probe against GET /health. Returns true only on a
+    /// 200 from the brain; any error/timeout is treated as not connected.
+    static func isHealthy(base: String) async -> Bool {
+        let trimmed = base.hasSuffix("/") ? String(base.dropLast()) : base
+        guard !trimmed.isEmpty, let url = URL(string: trimmed + "/health") else { return false }
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("dev-token", forHTTPHeaderField: "X-TRACE-Token")
+        req.timeoutInterval = 4
+        do {
+            let (_, response) = try await URLSession.shared.data(for: req)
+            return (response as? HTTPURLResponse)?.statusCode == 200
+        } catch {
+            return false
+        }
     }
 }
