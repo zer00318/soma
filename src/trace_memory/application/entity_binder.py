@@ -27,6 +27,7 @@ class BoundEntity:
     frames_seen: int
     spatial_anchors: frozenset[str]
     confidence: str
+    source_subjects: tuple[str, ...] = ()
 
 
 def bind_entities(observations: Iterable[Observation]) -> list[BoundEntity]:
@@ -34,7 +35,7 @@ def bind_entities(observations: Iterable[Observation]) -> list[BoundEntity]:
     for observation in observations:
         if observation.kind != "object":
             continue
-        subject = _normalize_subject(observation.subject)
+        subject = normalize_subject(observation.subject)
         grouped.setdefault(subject, []).append(observation)
 
     entities: list[BoundEntity] = []
@@ -53,6 +54,7 @@ def bind_entities(observations: Iterable[Observation]) -> list[BoundEntity]:
                 frames_seen=frames_seen,
                 spatial_anchors=frozenset(anchors),
                 confidence=_confidence_tier(frames_seen),
+                source_subjects=_source_subjects(ordered),
             )
         )
     return sorted(entities, key=lambda entity: (entity.first_t_ms, entity.subject))
@@ -94,9 +96,21 @@ def _merge_attributes(observations: list[Observation]) -> tuple[Attribute, ...]:
     return tuple(merged)
 
 
-def _normalize_subject(subject: str) -> str:
+def normalize_subject(subject: str) -> str:
     normalized = _singularize_phrase(subject)
     return _SUBJECT_SYNONYMS.get(normalized, normalized)
+
+
+def _source_subjects(observations: list[Observation]) -> tuple[str, ...]:
+    subjects: list[str] = []
+    seen: set[str] = set()
+    for observation in observations:
+        candidate = " ".join(re.findall(r"[a-z0-9]+", observation.subject.lower()))
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        subjects.append(candidate)
+    return tuple(subjects)
 
 
 def _normalize_anchor(anchor: str | None) -> str | None:

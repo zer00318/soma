@@ -8,12 +8,13 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from trace_memory.adapters.sqlite_eventlog import SqliteEventLog
-from trace_memory.application.entity_binder import bind_entities
+from trace_memory.application.entity_binder import BoundEntity, bind_entities, normalize_subject
 from trace_memory.domain.confidence import Confidence
 from trace_memory.domain.observation import Attribute, Observation
 from trace_memory.domain.provenance import Provenance
 
 HONEST_REFUSAL = "I don't have that in my memory — I didn't read enough to be sure."
+OPEN_SCENE_REFUSAL = "I didn't capture anything clearly."
 
 _CERTAINTY_CONFIDENCE = {
     "likely": 0.78,
@@ -74,6 +75,14 @@ _LABEL_RE = re.compile(
     r"(?:is|are|was|were)\s+(?:on|for)?\s*(?P<subject>.+?)\s*\??\s*$",
     re.IGNORECASE,
 )
+_OPEN_SCENE_PATTERNS = (
+    re.compile(r"^\s*what did i see\s*\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*what(?:'s| is)\s+(?:here|there)\s*\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*what was around\s*\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*describe what i saw\s*\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*what(?:'s| is| was)\s+on\s+the\s+.+?\s*\??\s*$", re.IGNORECASE),
+)
+_SCENE_CONFIDENCE_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 
 @dataclass(frozen=True)
@@ -130,6 +139,17 @@ def answer_question(
         observations = log.observations()
     finally:
         log.close()
+
+    if parsed.intent == "open_scene":
+        object_observations = tuple(
+            observation for observation in observations if observation.kind == "object"
+        )
+        bound_entities = bind_entities(object_observations)
+        return _open_scene_answer(
+            bound_entities,
+            object_observations,
+            world_knowledge_oracle,
+        )
 
     object_matches = _matching_objects(parsed.subject, observations)
     if not object_matches:
@@ -378,6 +398,9 @@ def _parse_question(question: str) -> _ParsedQuestion | None:
     normalized = re.sub(r"\s+", " ", question or "").strip()
     if not normalized:
         return None
+    for pattern in _OPEN_SCENE_PATTERNS:
+        if pattern.match(normalized):
+            return _ParsedQuestion(intent="open_scene", subject="")
     match = _COUNT_RE.match(normalized)
     if match:
         return _ParsedQuestion(intent="count", subject=_clean_subject(match.group("subject")))
@@ -441,6 +464,194 @@ def _time_citation_note(citations: Sequence[Observation]) -> str:
     if len(labels) <= 4:
         return f"(seen at {', '.join(labels)})"
     return f"(seen at {', '.join(labels[:4])}, +{len(labels) - 4} more)"
+
+
+def _open_scene_answer(
+    bound_entities: Sequence[BoundEntity],
+    observations: Sequence[Observation],
+    world_knowledge_oracle: Callable[[str], str] | None,
+) -> EventLogAnswer:
+    summary_entities = _scene_summary_entities(bound_entities)
+    if not summary_entities:
+        return EventLogAnswer(
+            supported=True,
+            answer=OPEN_SCENE_REFUSAL,
+            refused=True,
+            citations=(),
+        )
+
+    personal_answer = f"You saw {_join_scene_items(_scene_item(entity) for entity in summary_entities)}."
+    citations = _scene_citations(summary_entities, observations)
+    referents = _scene_referents(summary_entities)
+    personal_evidence, world_context, answer = _compose_two_zone_answer(
+        personal_answer,
+        citations,
+        referents,
+        world_knowledge_oracle,
+    )
+    return EventLogAnswer(
+        supported=True,
+        answer=answer,
+        refused=False,
+        citations=citations,
+        personal_evidence=personal_evidence,
+        world_context=world_context,
+    )
+
+
+def _scene_summary_entities(bound_entities: Sequence[BoundEntity]) -> list[BoundEntity]:
+    visible = [
+        entity
+        for entity in bound_entities
+        if entity.confidence in {"high", "medium"}
+    ]
+    return sorted(
+        visible,
+        key=lambda entity: (
+            _SCENE_CONFIDENCE_ORDER.get(entity.confidence, 99),
+            -entity.last_t_ms,
+            -entity.frames_seen,
+            entity.subject,
+        ),
+    )
+
+
+def _scene_item(entity: BoundEntity) -> str:
+    subject = _scene_subject(entity)
+    colour = _entity_colour(entity)
+    if colour and colour not in subject.split():
+        subject = f"{colour} {subject}"
+    qualifier = _entity_qualifier(entity, subject)
+    if qualifier:
+        return f"{subject} ({qualifier})"
+    return subject
+
+
+def _scene_subject(entity: BoundEntity) -> str:
+    if entity.source_subjects:
+        subject = max(
+            entity.source_subjects,
+            key=lambda subject: (len(subject.split()), len(subject), subject),
+        )
+        return _singularize_display_subject(subject)
+    return entity.subject
+
+
+def _singularize_display_subject(subject: str) -> str:
+    tokens = re.findall(r"[a-z0-9]+", subject.lower())
+    if not tokens:
+        return subject
+    display: list[str] = []
+    for token in tokens:
+        if token in _CONTAINER_WORDS:
+            display.append(_singularize_token(token))
+            continue
+        display.append(token)
+    return " ".join(display)
+
+
+def _entity_detail_values(entity: BoundEntity) -> tuple[str, ...]:
+    return tuple(
+        attribute.value.lower()
+        for attribute in entity.attributes
+        if attribute.name == "detail"
+    )
+
+
+def _entity_colour(entity: BoundEntity) -> str | None:
+    for detail in _entity_detail_values(entity):
+        for colour in sorted(_COLOR_WORDS, key=len, reverse=True):
+            if re.search(rf"\b{re.escape(colour)}\b", detail):
+                return colour
+    return None
+
+
+def _entity_qualifier(entity: BoundEntity, subject: str) -> str | None:
+    for detail in _entity_detail_values(entity):
+        flavour = _extract_flavour(detail)
+        if flavour:
+            return flavour
+    label = _entity_label(entity)
+    if label and _normalized_text(label) not in _normalized_text(subject):
+        return label
+    return None
+
+
+def _normalized_text(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+
+
+def _entity_label(entity: BoundEntity) -> str | None:
+    for detail in _entity_detail_values(entity):
+        label = _extract_label(detail)
+        if label:
+            return label
+    return None
+
+
+def _join_scene_items(items: Iterable[str]) -> str:
+    labelled = [_with_indefinite_article(item) for item in items if item]
+    if not labelled:
+        return ""
+    if len(labelled) == 1:
+        return labelled[0]
+    if len(labelled) == 2:
+        return f"{labelled[0]} and {labelled[1]}"
+    return ", ".join(labelled[:-1]) + f", and {labelled[-1]}"
+
+
+def _with_indefinite_article(text: str) -> str:
+    article = "an" if text[:1].lower() in {"a", "e", "i", "o", "u"} else "a"
+    return f"{article} {text}"
+
+
+def _scene_citations(
+    summary_entities: Sequence[BoundEntity],
+    observations: Sequence[Observation],
+) -> tuple[Observation, ...]:
+    grouped: dict[str, list[Observation]] = {}
+    for observation in observations:
+        grouped.setdefault(normalize_subject(observation.subject), []).append(observation)
+
+    citations: list[Observation] = []
+    seen_times: set[int] = set()
+    for entity in summary_entities:
+        candidates = sorted(
+            grouped.get(entity.subject, ()),
+            key=lambda observation: (observation.t_ms, observation.provenance.event_id),
+            reverse=True,
+        )
+        for target_t_ms in (entity.last_t_ms, entity.first_t_ms):
+            for candidate in candidates:
+                if candidate.t_ms != target_t_ms or candidate.t_ms in seen_times:
+                    continue
+                citations.append(candidate)
+                seen_times.add(candidate.t_ms)
+                break
+            if len(citations) >= 2:
+                return tuple(citations)
+    return tuple(citations)
+
+
+def _scene_referents(summary_entities: Sequence[BoundEntity]) -> tuple[str, ...]:
+    referents: list[str] = []
+    seen: set[str] = set()
+    for entity in summary_entities:
+        referent = _scene_referent(entity)
+        key = referent.lower()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        referents.append(referent)
+    return tuple(referents)
+
+
+def _scene_referent(entity: BoundEntity) -> str:
+    subject = _scene_subject(entity)
+    label = _entity_label(entity)
+    if label and _normalized_text(label) not in _normalized_text(subject):
+        return label
+    return subject
 
 
 def _entity_referents(observations: Sequence[Observation]) -> tuple[str, ...]:
