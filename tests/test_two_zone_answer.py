@@ -48,6 +48,7 @@ def test_seen_object_returns_personal_evidence_and_fenced_world_context(
     assert result["personal_evidence"]
     assert result["world_context"]
     assert "sour cream and onion" in result["personal_evidence"].lower()
+    assert result["world_context"].startswith("```world_context\n")
     assert "general knowledge, not from your memory" in result["world_context"]
     assert "pringles is a brand of stackable potato crisps." in result["world_context"].lower()
     assert result["answer"] == (

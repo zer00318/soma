@@ -67,6 +67,7 @@ def test_compose_fences_world_from_personal():
     out = ix.compose("The plaque reads Wilhelm Conrad Röntgen, 1845-1923.", pkt)
     # personal answer present, world knowledge present but in a SEPARATE, labelled zone
     assert "The plaque reads" in out
+    assert "```world_context" in out
     assert "general knowledge, not from your memory" in out
     assert "X-rays" in out
 

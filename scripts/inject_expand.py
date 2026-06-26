@@ -205,7 +205,12 @@ def compose(personal_answer: str, packet: dict) -> str:
     for w in world:
         hedge = "" if w.get("confidence", 0) >= 0.6 else " (likely)"
         lines.append(f"• {w['referent']}{hedge}: {w['gloss']}")
-    note = "About what you saw (general knowledge, not from your memory):\n" + "\n".join(lines)
+    note = (
+        "```world_context\n"
+        "About what you saw (general knowledge, not from your memory):\n"
+        + "\n".join(lines)
+        + "\n```"
+    )
     return (out + "\n\n" + note).strip() if out else note
 
 
