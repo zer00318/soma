@@ -88,7 +88,20 @@ def _chess_answer(facts, question):
     return scz.answer(facts, question)
 
 
-# Registries — extend as specialists are added (document, code, shopping...).
+def _reading_extract(perception):
+    import specialist_reading as sr
+    return sr.extract(perception)
+
+
+def _reading_answer(facts, question):
+    import specialist_reading as sr
+    return sr.answer(facts, question)
+
+
+# Registries — extend as specialists are added (code, shopping...).
 # Each runner is lazy-imported, so a not-yet-built specialist just no-ops.
-_SPECIALISTS = {"cooking": _cooking_extract, "chess": _chess_extract}
-_ANSWERERS = {"cooking": _cooking_answer, "chess": _chess_answer}
+# Keys match the specialist names activity_identifier emits.
+_SPECIALISTS = {"cooking": _cooking_extract, "chess": _chess_extract,
+                "document": _reading_extract}
+_ANSWERERS = {"cooking": _cooking_answer, "chess": _chess_answer,
+              "document": _reading_answer}
