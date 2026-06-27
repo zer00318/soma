@@ -11,6 +11,9 @@ _TYPE_SYNONYMS = {
     "mugs": "cup",
 }
 _MERGED_FIELDS = ("name", "brand", "text", "colour", "material", "state", "orient")
+H_FOV_DEG = 66.0
+V_FOV_DEG = 50.0
+_BEARING_MATCH_DEG = 9.0
 
 
 def _clean_text(value: object) -> str:
@@ -89,6 +92,15 @@ def _yaw_delta(left: float, right: float) -> float:
     return abs((left - right + 180.0) % 360.0 - 180.0)
 
 
+def _float_or_none(value: object) -> float | None:
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+
 def _valid_box(box: object) -> list[float] | None:
     if not isinstance(box, list) or len(box) != 4:
         return None
@@ -98,6 +110,70 @@ def _valid_box(box: object) -> list[float] | None:
             return None
         coords.append(float(value))
     return coords
+
+
+def _valid_img_wh(img_wh: object) -> tuple[float, float] | None:
+    if not isinstance(img_wh, (list, tuple)) or len(img_wh) != 2:
+        return None
+    width = _float_or_none(img_wh[0])
+    height = _float_or_none(img_wh[1])
+    if width is None or height is None or width <= 0.0 or height <= 0.0:
+        return None
+    return width, height
+
+
+def detection_bearing(
+    box: object,
+    img_wh: object,
+    cam_yaw_deg: float,
+    cam_pitch_deg: float = 0.0,
+) -> tuple[float, float]:
+    """World bearing (azimuth, elevation) in degrees for a detection."""
+    yaw = _float_or_none(cam_yaw_deg)
+    pitch = _float_or_none(cam_pitch_deg)
+    cam_yaw = 0.0 if yaw is None else yaw
+    cam_pitch = 0.0 if pitch is None else pitch
+
+    coords = _valid_box(box)
+    dims = _valid_img_wh(img_wh)
+    if coords is None or dims is None:
+        return cam_yaw, cam_pitch
+
+    x0, y0, x1, y1 = coords
+    width, height = dims
+    center_x = (x0 + x1) / 2.0
+    center_y = (y0 + y1) / 2.0
+    azimuth = cam_yaw + (center_x / width - 0.5) * H_FOV_DEG
+    elevation = cam_pitch + (0.5 - center_y / height) * V_FOV_DEG
+    return azimuth, elevation
+
+
+def _pose_angles(pose: object) -> tuple[float, float] | None:
+    if not isinstance(pose, dict):
+        return None
+    yaw = _float_or_none(pose.get("yaw"))
+    if yaw is None:
+        return None
+    pitch = _float_or_none(pose.get("pitch"))
+    return yaw, 0.0 if pitch is None else pitch
+
+
+def _instance_bearing(inst: dict, pose: object) -> tuple[float, float] | None:
+    angles = _pose_angles(pose)
+    if angles is None:
+        return None
+    yaw, pitch = angles
+    return detection_bearing(inst.get("box"), inst.get("img_wh"), yaw, pitch)
+
+
+def _bearing_match(
+    existing_bearing: tuple[float, float],
+    incoming_bearing: tuple[float, float],
+) -> bool:
+    return (
+        _yaw_delta(existing_bearing[0], incoming_bearing[0]) <= _BEARING_MATCH_DEG
+        and abs(existing_bearing[1] - incoming_bearing[1]) <= _BEARING_MATCH_DEG
+    )
 
 
 def _detections_match(
@@ -133,6 +209,32 @@ def _detections_match(
     return True
 
 
+def _world_detections_match(
+    existing: dict,
+    incoming: dict,
+    existing_frame: int,
+    incoming_frame: int,
+    existing_yaw: float | None,
+    incoming_yaw: float | None,
+    existing_bearing: tuple[float, float] | None,
+    incoming_bearing: tuple[float, float] | None,
+) -> bool:
+    if existing_frame == incoming_frame:
+        return False
+    if _normalize_type(existing) != _normalize_type(incoming):
+        return False
+    if existing_bearing is not None and incoming_bearing is not None:
+        return _bearing_match(existing_bearing, incoming_bearing)
+    return _detections_match(
+        existing,
+        incoming,
+        existing_frame,
+        incoming_frame,
+        existing_yaw,
+        incoming_yaw,
+    )
+
+
 def _cluster_matches(cluster: dict, inst: dict, frame_idx: int, yaw: float | None) -> bool:
     if frame_idx in cluster["frame_set"]:
         return False
@@ -144,6 +246,30 @@ def _cluster_matches(cluster: dict, inst: dict, frame_idx: int, yaw: float | Non
             frame_idx,
             member["yaw"],
             yaw,
+        ):
+            return True
+    return False
+
+
+def _cluster_matches_world(
+    cluster: dict,
+    inst: dict,
+    frame_idx: int,
+    yaw: float | None,
+    bearing: tuple[float, float] | None,
+) -> bool:
+    if frame_idx in cluster["frame_set"]:
+        return False
+    for member in cluster["members"]:
+        if _world_detections_match(
+            member["inst"],
+            inst,
+            member["frame_idx"],
+            frame_idx,
+            member["yaw"],
+            yaw,
+            member.get("bearing"),
+            bearing,
         ):
             return True
     return False
@@ -240,6 +366,35 @@ def _summary(instances: list[dict], counts_by_type: dict[str, dict]) -> str:
     )
 
 
+def _counts_by_type_world(frame_instances: list[list[dict]], clusters: list[dict]) -> dict[str, dict]:
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    legacy_clusters: list[dict] = []
+    for cluster in clusters:
+        grouped[cluster["type"]].append(cluster)
+        legacy_clusters.append(
+            {
+                "type": cluster["type"],
+                "has_text": cluster["has_text"],
+                "signature": cluster["signature"],
+            }
+        )
+
+    legacy_counts = _counts_by_type(frame_instances, legacy_clusters)
+    result: dict[str, dict] = {}
+    for inst_type, typed_clusters in grouped.items():
+        distinct = len(typed_clusters)
+        if all(cluster["has_bearing"] for cluster in typed_clusters):
+            result[inst_type] = {"distinct": distinct, "hedge": str(distinct)}
+            continue
+        legacy = legacy_counts.get(inst_type)
+        result[inst_type] = {
+            "distinct": distinct,
+            "hedge": legacy["hedge"] if legacy is not None else str(distinct),
+        }
+
+    return dict(sorted(result.items()))
+
+
 def consolidate(
     frame_instances: list[list[dict]],
     frame_yaws: list[float | None] | None = None,
@@ -291,6 +446,77 @@ def consolidate(
         )
 
     counts_by_type = _counts_by_type(frame_instances, cluster_summaries)
+    return {
+        "instances": canonical_instances,
+        "counts_by_type": counts_by_type,
+        "summary": _summary(canonical_instances, counts_by_type),
+    }
+
+
+def consolidate_world(
+    frame_instances: list[list[dict]],
+    frame_poses: list[dict | None] | None,
+) -> dict:
+    """Consolidate per-frame detections using world bearing when pose is available."""
+    poses = frame_poses or []
+    if not any(_pose_angles(poses[index]) for index in range(min(len(poses), len(frame_instances)))):
+        return consolidate(frame_instances)
+
+    clusters: list[dict] = []
+    for frame_idx, detections in enumerate(frame_instances):
+        pose = poses[frame_idx] if frame_idx < len(poses) else None
+        pose_angles = _pose_angles(pose)
+        yaw = pose_angles[0] if pose_angles is not None else None
+
+        for inst in detections:
+            if not isinstance(inst, dict):
+                continue
+
+            bearing = _instance_bearing(inst, pose)
+            matched_cluster = None
+            for cluster in clusters:
+                if _cluster_matches_world(cluster, inst, frame_idx, yaw, bearing):
+                    matched_cluster = cluster
+                    break
+            if matched_cluster is None:
+                matched_cluster = {
+                    "type": _normalize_type(inst),
+                    "members": [],
+                    "frame_set": set(),
+                }
+                clusters.append(matched_cluster)
+            matched_cluster["members"].append(
+                {
+                    "inst": dict(inst),
+                    "frame_idx": frame_idx,
+                    "yaw": yaw,
+                    "bearing": bearing,
+                }
+            )
+            matched_cluster["frame_set"].add(frame_idx)
+
+    canonical_instances: list[dict] = []
+    cluster_summaries: list[dict] = []
+    for cluster in clusters:
+        members = cluster["members"]
+        member_insts = [member["inst"] for member in members]
+        merged = {field: _pick_value(member_insts, field) for field in _MERGED_FIELDS}
+        merged["type"] = cluster["type"]
+        merged["box"] = _merge_box(member_insts)
+        merged["frames"] = sorted(cluster["frame_set"])
+        merged["count_frames"] = len(merged["frames"])
+        merged["label"] = _build_label(cluster["type"], merged)
+        canonical_instances.append(merged)
+        cluster_summaries.append(
+            {
+                "type": cluster["type"],
+                "has_text": any(_identity_tokens(inst) for inst in member_insts),
+                "signature": _colour_material_signature(member_insts[0]),
+                "has_bearing": any(member.get("bearing") is not None for member in members),
+            }
+        )
+
+    counts_by_type = _counts_by_type_world(frame_instances, cluster_summaries)
     return {
         "instances": canonical_instances,
         "counts_by_type": counts_by_type,
