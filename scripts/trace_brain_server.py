@@ -153,6 +153,31 @@ def _inject_perceived_record(moment: str, desc: str, frame_name: str,
     (mdir / "kf_memory.json").write_text(json.dumps(recs, ensure_ascii=False))
 
 
+def _moment_perception(moment: str, mdir: Path) -> dict[str, Any]:
+    """Assemble a moment's derived perception (objects/texts/caption) for the
+    activity identifier + domain specialists."""
+    objects: list[str] = []
+    texts: list[str] = []
+    captions: list[str] = []
+    g = _INSTANCE_GRAPHS.get(moment) or {}
+    cons = g.get("consolidated") or {}
+    for n in (cons.get("instances") or []):
+        if n.get("type"):
+            objects.append(str(n["type"]))
+        for t in (n.get("texts") or []):
+            texts.append(str(t))
+    try:
+        kf = json.load(open(mdir / "kf_memory.json"))
+        for r in kf[-40:]:
+            if r.get("caption"):
+                captions.append(str(r["caption"]))
+            for o in (r.get("ocr") or []):
+                texts.append(str(o))
+    except Exception:
+        pass
+    return {"objects": objects, "texts": texts, "caption": " ".join(captions)[:4000]}
+
+
 def _persist_instance_graph(moment: str) -> None:
     """Persist the accumulated world/instance graph (coordinate nodes, relations,
     frame accumulation) so counting/spatial memory survives a brain restart — not
@@ -856,6 +881,25 @@ def _ask_impl(payload: dict[str, Any]) -> dict[str, Any]:
                 return _with_eventlog_fields(ig_result)
         except Exception as exc:
             _log("INST-ASK-ERR", moment=moment, err=str(exc)[:80])
+
+    # --- Source 2.5: activity specialists (domain understanding) ---
+    # Recognise the activity (cooking/chess/...) and answer from the domain
+    # specialist's structured facts — "how much soya", "what opening".
+    try:
+        import activity_dispatch
+        analysis = activity_dispatch.analyze(_moment_perception(moment, mdir))
+        if analysis and analysis.get("domain_facts"):
+            dom = activity_dispatch.answer_domain(question, analysis["domain_facts"])
+            if dom and not dom.get("refused"):
+                dom["latency_s"] = round(time.time() - t0, 1)
+                dom["model"] = MODEL
+                dom["citations"] = []
+                dom.setdefault("source", "specialist")
+                _log("ASK", moment=moment, q=question[:60], src=dom["source"],
+                     refused=False, ans=str(dom["answer"]).replace("\n", " ")[:90])
+                return _with_eventlog_fields(dom)
+    except Exception as exc:
+        _log("DOMAIN-ERR", moment=moment, err=str(exc)[:80])
 
     # --- Source 3: kf_memory rich search (mac_vision + instance data) ---
     # Only runs when eventlog grounded-refused — these sources have data the
