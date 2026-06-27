@@ -125,7 +125,18 @@ def _frame_is_usable(path: Path) -> bool:
     if sz < 3000:
         return False
     header = path.read_bytes()[:3]
-    return header[:2] == b"\xff\xd8"
+    if header[:2] != b"\xff\xd8":
+        return False
+    # Real sharpness/brightness gate (Laplacian variance) when available — keep
+    # only sharp frames so the VLM never perceives motion-blur. Graceful fallback.
+    try:
+        import frame_quality
+        if not frame_quality.quality(str(path)).get("keep", True):
+            _log("FRAME-BLUR", frame=path.name)
+            return False
+    except Exception:
+        pass
+    return True
 
 
 def _inject_perceived_record(moment: str, desc: str, frame_name: str,
