@@ -2804,23 +2804,33 @@ struct ContentView: View {
     }
 
     func sendDebugFrame(_ buffer: CVImageBuffer, frameIndex: Int) async {
-        let baseURL: String? = await MainActor.run {
+        struct FrameCtx { let baseURL: String; let pose: [String: Any]; let arkit: [String: Any] }
+        let ctx: FrameCtx? = await MainActor.run {
             guard debugFramesEnabled else { return nil }
             if Date().timeIntervalSince(lastDebugFrameAt) < 1.0 { return nil }
             lastDebugFrameAt = Date()
-            return traceHubURL.isEmpty ? "http://127.0.0.1:8765" : traceHubURL
+            let base = traceHubURL.isEmpty ? "http://127.0.0.1:8765" : traceHubURL
+            return FrameCtx(baseURL: base,
+                            pose: PoseStamper.shared.snapshot(),
+                            arkit: TraceARKitEngine.shared.metadataSnapshot())
         }
-        guard let baseURL,
+        guard let ctx,
               let jpeg = Self.jpegFromBuffer(buffer),
-              let url = URL(string: "\(baseURL)/debug/frame") else { return }
+              let url = URL(string: "\(ctx.baseURL)/debug/frame") else { return }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("dev-token", forHTTPHeaderField: "X-TRACE-Token")
+        // Attach camera pose (yaw/pitch) so the Mac can individuate instances by
+        // viewing direction (world-anchored counting). ARKit anchors ride along too
+        // when spatial mode is on. Derived numbers only — still no raw media retained.
+        var meta: [String: Any] = ["pose": ctx.pose]
+        for (k, v) in ctx.arkit { meta[k] = v }
         req.httpBody = try? JSONSerialization.data(withJSONObject: [
             "moment_id": "live",
             "t": frameIndex,
             "jpeg_b64": jpeg.base64EncodedString(),
+            "metadata": meta,
         ])
         _ = try? await URLSession.shared.data(for: req)
     }
