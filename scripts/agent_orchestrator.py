@@ -141,20 +141,21 @@ def run_metrics() -> None:
         "brain_server": _proc("trace_brain_server.py"),
         "orchestrator": True,
     }
-    try:
-        plan = json.loads(PLAN.read_text())
-        overall = round(sum(p.get("progress", 0) for p in plan["pillars"]) / max(1, len(plan["pillars"])))
-    except Exception:  # noqa: BLE001
-        plan, overall = {}, 0
+    reasoner = _read_reasoner_eval()
+    wired = (COCK / "reasoner_wired.flag").exists()
     state = {
         "updated_unix": _now(), "updated_human": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "store": st, "daemons": daemons, "overall_progress": overall,
+        "store": st, "daemons": daemons,
+        "overall_progress": _mechanical_overall(st, daemons, reasoner, wired),
         "pillars": {
             "digital": {"obs": st["by_source"].get("mac_screen", 0),
                         "state": "live" if daemons["screen_daemon"] else "down"},
             "physical": {"obs": st["by_source"].get("phys_video", 0), "state": "offline-verified"},
         },
-        "reasoner_pct": _read_reasoner_pct(),
+        "reasoner_pct": reasoner["pct"],            # None => UNMEASURED, never a hardcoded guess
+        "reasoner_state": reasoner["state"],
+        "reasoner_halluc_pct": reasoner["halluc_pct"],
+        "reasoner_wired_live": wired,
         "pitch_day": "2026-07-01",
         "honesty_floor": "<10% confident-wrong (sacred)",
     }
@@ -166,11 +167,43 @@ def run_metrics() -> None:
     _set("Metrics", status="idle", task="", last=f"{st['total']} nodes, {st['obs_per_min']}/min")
 
 
-def _read_reasoner_pct() -> int:
+def _read_reasoner_eval() -> dict:
+    """Reasoner accuracy is a MEASUREMENT or it is UNMEASURED. Reads the real store-eval
+    artifact (evaluation/ras/store_eval.json, written by the annotate-live scorer, T4).
+    NO hardcoded fallback — a missing eval yields UNMEASURED, not a flattering 80."""
     try:
-        return int(json.loads((COCK / "digital_pillar.json").read_text())["reasoner"]["matched_gt_correct_pct"])
+        data = json.loads((ROOT / "evaluation" / "ras" / "store_eval.json").read_text())
+        return {"state": "measured", "pct": int(data.get("answered_pct", 0)),
+                "halluc_pct": float(data.get("halluc_pct", 100.0)), "n": int(data.get("n", 0))}
     except Exception:  # noqa: BLE001
-        return 80
+        return {"state": "UNMEASURED", "pct": None, "halluc_pct": None, "n": 0}
+
+
+def _mechanical_overall(st: dict, daemons: dict, reasoner: dict, wired: bool) -> int:
+    """Overall progress from REAL signals only (store, process table, eval, wiring flag) —
+    never an average of LLM-authored pillar guesses. It cannot rise on narration alone."""
+    pts = 0
+    if daemons.get("screen_daemon"):
+        pts += 15
+    total = int(st.get("total", 0) or 0)
+    if total > 0:
+        pts += 10
+    if total >= 300:
+        pts += 5
+    if wired:
+        pts += 25                                   # store reasoner IS the live /ask path
+    if reasoner.get("state") == "measured":
+        pts += 10
+        pct = reasoner.get("pct") or 0
+        halluc = reasoner.get("halluc_pct")
+        halluc = 100.0 if halluc is None else halluc
+        if pct >= 75 and halluc < 10:
+            pts += 20
+        elif pct >= 40:
+            pts += 10
+    if int(st.get("by_source", {}).get("phone_camera", 0) or 0) > 0:
+        pts += 15                                   # live ON-DEVICE physical (not video replay)
+    return min(pts, 100)
 
 
 # ---- AGENT: Perceiver (gemma vision) — backfills physical obs --------------------

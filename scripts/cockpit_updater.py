@@ -40,9 +40,10 @@ BUILD_ORDER = [
      "note": "Society of per-frame specialists exists; mislabeling on hard objects unfixed."},
     {"key": "binders", "title": "2 · Binders / before-brain", "status": "partial",
      "note": "Inject layer (fuse→link→expand→tier→compile) built; not yet over the new store."},
-    {"key": "brain", "title": "3 · Brain format / reasoner", "status": "partial",
-     "note": "Store + gemma RAG reasoner GOOD (~80% matched, near-zero hallucination). "
-             "Obsidian-style cross-linked sleep notes + frontier reasoner planned."},
+    {"key": "brain", "title": "3 · Brain format / reasoner", "status": "todo",
+     "note": "Store-grounded reasoner (brain/agent.py) EXISTS but is NOT wired into the live "
+             "/ask path, and its accuracy on the new store is UNMEASURED. The only real eval "
+             "on record is the live44 battery: RAS 9.1 / 30% hallucination. No 80% claim stands."},
 ]
 
 
@@ -77,12 +78,60 @@ def _store_stats(store_path: str) -> dict:
     return stats
 
 
+def _load_reasoner_eval() -> dict:
+    """The reasoner number is a MEASUREMENT or it is UNMEASURED — never a hardcoded claim.
+    Reads the real store eval artifact (written by evaluation/annotate_live scorer, task T4).
+    Until that file exists, the cockpit shows UNMEASURED, not a flattering guess."""
+    path = ROOT / "evaluation" / "ras" / "store_eval.json"
+    try:
+        data = json.loads(path.read_text())
+        return {
+            "state": "measured",
+            "pct": int(data.get("answered_pct", 0)),
+            "halluc_pct": float(data.get("halluc_pct", 100.0)),
+            "n": int(data.get("n", 0)),
+        }
+    except Exception:  # noqa: BLE001  no eval yet -> honest UNMEASURED
+        return {"state": "UNMEASURED", "pct": None, "halluc_pct": None, "n": 0}
+
+
+def _mechanical_progress(store: dict, daemons: dict, reasoner_eval: dict, wired: bool) -> int:
+    """Overall progress = a transparent function of REAL signals (store, process table,
+    eval artifact, wiring flag). NOT an average of LLM-authored pillar guesses. Every
+    point is earned by something a script can verify; it cannot rise on narration alone."""
+    pts = 0
+    if daemons.get("screen_daemon"):
+        pts += 15                                   # digital capture live
+    total = int(store.get("total", 0) or 0)
+    if total > 0:
+        pts += 10                                   # store substrate filling
+    if total >= 300:
+        pts += 5
+    if wired:
+        pts += 25                                   # store reasoner IS the live /ask path (T3 flag)
+    if reasoner_eval.get("state") == "measured":
+        pts += 10                                   # a real number exists at all
+        pct = reasoner_eval.get("pct") or 0
+        halluc = reasoner_eval.get("halluc_pct")
+        halluc = 100.0 if halluc is None else halluc
+        if pct >= 75 and halluc < 10:
+            pts += 20                               # meets the pitch gate
+        elif pct >= 40:
+            pts += 10
+    # live PHYSICAL capture (the locked demo needs on-device live, NOT video replay)
+    if int(store.get("by_source", {}).get("phone_camera", 0) or 0) > 0:
+        pts += 15
+    return min(pts, 100)
+
+
 def _gemma_line(state: dict) -> str:
     """One honest status sentence. Text-only, short timeout, fail-soft."""
+    rp = state.get("reasoner_pct")
+    reasoner_phrase = "reasoner accuracy UNMEASURED" if rp is None else f"reasoner ~{rp}% correct (measured)"
     facts = (f"store has {state['store']['total']} memory nodes "
              f"({state['store'].get('by_source')}); digital daemon alive="
              f"{state['daemons']['screen_daemon']}; last observation "
-             f"{state['store'].get('last_obs_age_s')}s ago; reasoner ~{state['reasoner_pct']}% correct.")
+             f"{state['store'].get('last_obs_age_s')}s ago; {reasoner_phrase}.")
     body = {
         "model": "gemma3:12b-it-qat", "stream": False, "options": {"temperature": 0.2},
         "prompt": "Write ONE plain, honest sentence (<=22 words) a founder can glance at, "
@@ -105,12 +154,18 @@ def build_state(store_path: str, narrate: bool) -> dict:
         "brain_server": _proc_alive("trace_brain_server.py"),
         "cockpit_server": _proc_alive("cockpit_ask_server.py"),
     }
+    reasoner_eval = _load_reasoner_eval()
+    wired = (ROOT / "ops" / "cockpit" / "reasoner_wired.flag").exists()
     state = {
         "updated_unix": int(time.time()),
         "updated_human": time.strftime("%Y-%m-%d %H:%M:%S"),
         "store": store,
         "daemons": daemons,
-        "reasoner_pct": 80,  # last measured matched-correct; near-zero true hallucination
+        "reasoner_pct": reasoner_eval["pct"],          # None => UNMEASURED (no hardcoded claim)
+        "reasoner_state": reasoner_eval["state"],
+        "reasoner_halluc_pct": reasoner_eval["halluc_pct"],
+        "overall_progress": _mechanical_progress(store, daemons, reasoner_eval, wired),
+        "reasoner_wired_live": wired,
         "build_order": BUILD_ORDER,
         "pillars": {
             "digital": {"state": "live" if daemons["screen_daemon"] else "down",

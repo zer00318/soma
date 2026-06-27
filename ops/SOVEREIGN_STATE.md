@@ -378,3 +378,30 @@ A pitch-ready [Context → Prompt → Answer] ambient-memory prototype. Target =
 - roadblock cleared: the product wasn't on the phone (and a Chief kept rebuilding the OCR corner). Now the real
   multi-modal loop is deployed + verified; the next work is real-capture quality + the substrate + the number.
 - FULL RESUME: read ops/HANDOFF_NEXT_CHAT.md (rewritten this cycle) FIRST.
+
+---
+[STATE_MANIFEST]
+- cycle: 14 (2026-06-27) — HARD PIVOT: ARCHITECTURAL JUDGING → AGGRESSIVE SERIAL EXECUTION. Pitch day 2026-07-01.
+- LEASH: goal=#1 the WOW demo (a TRUE number, not a padded dashboard); verified=every change run + tested
+  by the Chief THIS session (not an agent's say-so — the echo chamber is the thing we broke); founder-#1=YES
+  (Commander-in-Chief mandate: liquidate illusions, deploy a 24/7 serial engine).
+- THE JUDGMENT: cockpit 44% was the MEAN of gemma-authored pillar guesses; reasoner "80% / near-zero
+  hallucination" was a HARDCODED constant contradicted by the only real eval (RAS 9.1 / 30% halluc). The
+  greenfield store + digital capture ARE real (508 nodes). The store reasoner was a real grounded reasoner
+  crippled by a regex/hardcoded-brand fast-path AND unwired from the live /ask. TRUE pitch-readiness ≈ 15%.
+- ENACTED THIS SESSION (run + validated):
+  1. PROTECTED the untracked greenfield spine — commit 592754a (was one `git checkout` from oblivion).
+  2. HONEST METRICS at the true source: `agent_orchestrator._mechanical_overall` +
+     `cockpit_updater._mechanical_progress` compute overall_progress from REAL signals; killed hardcoded
+     reasoner_pct=80 → reads `evaluation/ras/store_eval.json` or UNMEASURED. Dashboard now ~30% / UNMEASURED.
+  3. DE-REGEXED the production reasoner: `brain/agent.py::_heuristic_answer` → None; every question flows to
+     grounded retrieval + the evidence-only contract. test_agent.py rewritten to the new spec; 5/5 green.
+  4. LIQUIDATED the autonomous_worker dead-end TASK_QUEUE (rejected schematized abstraction).
+- THE LEDGER: `ops/SERIAL_EXECUTION_LEDGER_2026-06-27.md`. Serial, two lanes: CHIEF (multi-function +
+  server wiring) and MACHINE (24/7 eval + perception). T1 unify+de-rig the eval onto the production agent;
+  T2 wire store reasoner into live /ask (+reasoner_wired.flag); T3 the REAL number (gate ≥75%/<10% wrong);
+  T4 sleep cross-links; T5 BLOCKED on founder's live-capture decision.
+- next 3 autonomous actions: (1) T1 unify the eval onto TraceMemoryAgent + write store_eval.json; (2) T2
+  wire the reasoner into /ask and prove a store-cited live answer; (3) kick the MACHINE-lane real eval over
+  the n=11 gold to replace UNMEASURED with the first honest store number.
+- roadblock: founder must answer T5 (fully-live broken vs digital-led demo) — it reshapes the 4 days.

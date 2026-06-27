@@ -163,74 +163,10 @@ class TraceMemoryAgent:
         )
 
     def _heuristic_answer(self, question: str, search: SearchSlice) -> AgentAnswer | None:
-        if match := COUNT_RE.match(question):
-            subject = match.group("subject")
-            # Counting needs INDIVIDUATED entities (an observation mentions "laptop" many
-            # times; counting mentions would overcount). Use entity nodes only; if the
-            # store has none yet, fall through (None) to the grounded LLM reasoner rather
-            # than refusing — it answers honestly ("I saw a MacBook") from the evidence.
-            nodes = _match_subject(self._store, subject, node_types=("entity",))
-            if not nodes:
-                return None
-            return AgentAnswer(
-                answer=str(len(nodes)),
-                evidence_chain=self._evidence_chain(search, preferred_ids={node.id for node in nodes}),
-                confidence=0.82,
-                refused=False,
-                retrieval_mode=search.retrieval_mode,
-            )
-
-        if match := EXISTS_RE.match(question):
-            subject = match.group("subject")
-            nodes = _match_subject(self._store, subject)
-            return AgentAnswer(
-                answer="Yes" if nodes else "No",
-                evidence_chain=self._evidence_chain(search, preferred_ids={node.id for node in nodes}),
-                confidence=0.75,
-                refused=False,
-                retrieval_mode=search.retrieval_mode,
-            )
-
-        if match := ATTRIBUTE_RE.match(question):
-            subject = match.group("subject")
-            nodes = _match_subject(self._store, subject)
-            if not nodes:
-                return AgentAnswer(
-                    answer="I don't know",
-                    evidence_chain=self._evidence_chain(search),
-                    confidence=0.2,
-                    refused=True,
-                    retrieval_mode=search.retrieval_mode,
-                )
-            blob = _blob(nodes[0])
-            attribute = match.group("attribute").lower()
-            if attribute in {"colour", "color"}:
-                colour = _first_colour(blob)
-                if colour is not None:
-                    return AgentAnswer(
-                        answer=colour,
-                        evidence_chain=self._evidence_chain(search, preferred_ids={nodes[0].id}),
-                        confidence=0.7,
-                        refused=False,
-                        retrieval_mode=search.retrieval_mode,
-                    )
-            if attribute in {"brand", "name"}:
-                for candidate in ("macbook", "nutella", "pringles", "pesto"):
-                    if candidate in blob:
-                        return AgentAnswer(
-                            answer=candidate.capitalize(),
-                            evidence_chain=self._evidence_chain(search, preferred_ids={nodes[0].id}),
-                            confidence=0.72,
-                            refused=False,
-                            retrieval_mode=search.retrieval_mode,
-                        )
-            return AgentAnswer(
-                answer="I don't know",
-                evidence_chain=self._evidence_chain(search, preferred_ids={nodes[0].id}),
-                confidence=0.2,
-                refused=True,
-                retrieval_mode=search.retrieval_mode,
-            )
+        """REMOVED (T2): the brittle COUNT/EXISTS/ATTRIBUTE regex + hardcoded brand/colour
+        fast-path is gone. It short-circuited the grounded reasoner with overfit guesses.
+        Every question now flows to precise retrieval + the evidence-only LLM contract,
+        which answers from what was actually seen or refuses honestly."""
         return None
 
     @staticmethod
