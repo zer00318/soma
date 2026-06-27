@@ -116,6 +116,45 @@ def _norm_physical_source(source: Any) -> str:
     return raw
 
 
+# Source 0: the greenfield store agent answers /ask from the UNIFIED store (precise
+# retrieval + grounded reasoner). OFF by default so the test suite (no ollama) is
+# unaffected; the demo launches with TRACE_STORE_AGENT=1. Additive — an honest refusal or
+# irrelevant retrieval falls through to the legacy cascade, so it can only ADD grounded
+# answers, never remove the fallback. The cockpit awards "wired" (+25) only when it runs.
+STORE_AGENT_ENABLED = os.environ.get("TRACE_STORE_AGENT", "0") == "1"
+_STORE_WIRED_FLAG = ROOT / "ops" / "cockpit" / "reasoner_wired.flag"
+
+
+def _touch_store_wired() -> None:
+    try:
+        _STORE_WIRED_FLAG.parent.mkdir(parents=True, exist_ok=True)
+        _STORE_WIRED_FLAG.write_text("1")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _store_agent_answer(question: str, allow_frontier: bool) -> Any:
+    """Answer from the UNIFIED store via the greenfield agent. Returns an AgentAnswer, or
+    None when retrieval finds nothing relevant (fast skip — no LLM call wasted, fall through
+    to the legacy cascade)."""
+    from trace_memory.brain import TraceMemoryAgent
+
+    store = TraceMemoryStore(_unified_store_path())
+    try:
+        sl = store.search(question, k=6)
+        if not sl.hits or sl.hits[0].score <= 0.25:
+            return None
+        agent = TraceMemoryAgent(
+            store,
+            reasoner=("frontier" if allow_frontier else "local-ollama"),
+            ollama_model=MODEL,
+            ollama_host=OLLAMA_HOST,
+        )
+        return agent.answer(question)
+    finally:
+        store.close()
+
+
 def _store_place(record: dict[str, Any]) -> str | None:
     location_hint = str(record.get("location_hint") or "").strip()
     if location_hint:
@@ -1073,6 +1112,28 @@ def _ask_impl(payload: dict[str, Any]) -> dict[str, Any]:
             "source": "none",
             "refused": True,
         })
+
+    # --- Source 0: unified store agent (greenfield brain). Primary when enabled; an honest
+    # refusal or irrelevant retrieval falls through to the legacy cascade below. ---
+    if STORE_AGENT_ENABLED:
+        try:
+            _sa_res = _store_agent_answer(question, allow_frontier)
+        except Exception as exc:  # noqa: BLE001  never let the new path break the live demo
+            _sa_res = None
+            _log("STORE_AGENT_ERR", err=str(exc)[:120])
+        if _sa_res is not None:
+            _touch_store_wired()
+            if getattr(_sa_res, "evidence_chain", None) and not _sa_res.refused:
+                return _with_eventlog_fields({
+                    "answer": _sa_res.answer,
+                    "citations": [
+                        {"t": None, "frame": r.get("id"), "label": str(r.get("text") or "")[:48]}
+                        for r in list(_sa_res.evidence_chain)[:4]
+                    ],
+                    "source": "store_agent",
+                    "refused": False,
+                    "confidence": float(getattr(_sa_res, "confidence", 0.0)),
+                })
 
     kf_for_anchor = _load_kf_records(mem_path)
     anchor = _anchor_from_payload(payload, kf_for_anchor)
