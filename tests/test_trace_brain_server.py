@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 import scripts.trace_brain_server as brain
+from trace_memory.store import TraceMemoryStore
 
 
 def test_capture_promotes_live_text_field_to_ocr(tmp_path, monkeypatch):
@@ -57,3 +58,33 @@ def test_ask_passes_latest_anchor_and_keeps_consensus_answer(tmp_path, monkeypat
     assert result["source"] == "ocr_consensus"
     assert result["refused"] is False
     assert result["citations"] == [{"t": 7.5, "frame": None, "label": "7.5s"}]
+
+
+def test_capture_writes_unified_store_as_phone_camera(tmp_path, monkeypatch) -> None:
+    # Live phone captures land in the ONE unified store (founder's model), tagged
+    # phone_camera — the live PHYSICAL context that makes this not Windows Recall.
+    unified = tmp_path / "trace_store.sqlite3"
+    monkeypatch.setattr(brain, "CAPTURES", tmp_path)
+    monkeypatch.setattr(brain, "UNIFIED_STORE_DB", str(unified))
+    brain._LIVE.clear()
+
+    brain._capture(
+        {
+            "moment_id": "live",
+            "source": "native_vision",
+            "memory_text": "OBJECT | pesto jar | con peperoncino | likely",
+            "metadata": {"pose": {"yaw": 1.2, "pitch": 0.4}},
+            "location_hint": "kitchen shelf",
+        }
+    )
+
+    store = TraceMemoryStore(unified)
+    try:
+        nodes = store.nodes(node_types=("observation",))
+    finally:
+        store.close()
+
+    assert len(nodes) == 1
+    assert "pesto jar" in nodes[0].text.lower()
+    assert nodes[0].place == "kitchen shelf"
+    assert nodes[0].source == "phone_camera"

@@ -49,6 +49,7 @@ from trace_memory.adapters.live_eventlog import (  # noqa: E402
     answer_question as eventlog_answer,
     append_perception_observations,
 )
+from trace_memory.store import TraceMemoryStore  # noqa: E402
 
 PORT = int(os.environ.get("TRACE_BRAIN_PORT") or os.environ.get("PORT") or "8765")
 MODEL = os.environ.get("TRACE_BRAIN_MODEL", "gemma3:12b-it-qat")
@@ -64,6 +65,7 @@ ALLOW_ORIGIN = os.environ.get("TRACE_ALLOW_ORIGIN", f"http://127.0.0.1:{PORT}")
 TRACE_TOKEN = os.environ.get("TRACE_TOKEN", "")
 FRONTIER_ENABLED = os.environ.get("TRACE_FRONTIER_ENABLED", "0") == "1"
 TRACE_EVENTLOG = os.environ.get("TRACE_EVENTLOG", "0") == "1"
+TRACE_STORE_DB = os.environ.get("TRACE_STORE_DB", "trace_store.sqlite3")
 
 # Persistent cross-session memory (never delete, decay = retrieval cost)
 _MEMORY_DB: sqlite3.Connection | None = None
@@ -86,6 +88,182 @@ def _log(kind: str, **fields: Any) -> None:
         f"{k}={v}" for k, v in fields.items() if v is not None and v != ""
     )
     print(f"[{time.strftime('%H:%M:%S')}] {kind:9s} {parts}", flush=True)
+
+
+def _store_path(moment: str) -> Path:
+    return _moment_dir(moment) / TRACE_STORE_DB
+
+
+# THE UNIFIED STORE (founder's model: ONE never-delete cross-linked store). Live phone
+# captures land here alongside mac_screen + phys_video, so the brain queries one place.
+UNIFIED_STORE_DB = os.environ.get("TRACE_UNIFIED_STORE") or str(ROOT / "data" / TRACE_STORE_DB)
+
+# All physical-perception sources (phone camera, on-device FastVLM, Mac-side vision over
+# streamed phone frames) map to one canonical tag so the cockpit credits live PHYSICAL
+# context distinctly from digital mac_screen — the moat that makes this not Windows Recall.
+_PHYSICAL_SOURCES = {"native", "native_vision", "fastvlm", "fastvlm_stable_refresh", "mac_vision"}
+
+
+def _unified_store_path() -> Path:
+    return Path(UNIFIED_STORE_DB)
+
+
+def _norm_physical_source(source: Any) -> str:
+    raw = str(source or "capture").strip()
+    low = raw.lower()
+    if raw in _PHYSICAL_SOURCES or "vision" in low or "fastvlm" in low or "camera" in low:
+        return "phone_camera"
+    return raw
+
+
+def _store_place(record: dict[str, Any]) -> str | None:
+    location_hint = str(record.get("location_hint") or "").strip()
+    if location_hint:
+        return location_hint
+    pose = record.get("pose")
+    if not isinstance(pose, dict):
+        return None
+    yaw = pose.get("yaw") if isinstance(pose.get("yaw"), (int, float)) else None
+    pitch = pose.get("pitch") if isinstance(pose.get("pitch"), (int, float)) else None
+    if yaw is None and pitch is None:
+        return None
+    parts = []
+    if yaw is not None:
+        parts.append(f"yaw:{round(float(yaw), 2)}")
+    if pitch is not None:
+        parts.append(f"pitch:{round(float(pitch), 2)}")
+    return "|".join(parts) or None
+
+
+def _store_text(record: dict[str, Any]) -> str:
+    caption = str(record.get("caption") or "").strip()
+    ocr = record.get("ocr") or []
+    ocr_lines = [str(line).strip() for line in ocr if str(line).strip()] if isinstance(ocr, list) else []
+    if caption and ocr_lines:
+        return caption + "\nOCR: " + " | ".join(ocr_lines)
+    if caption:
+        return caption
+    if ocr_lines:
+        return "OCR: " + " | ".join(ocr_lines)
+    return "empty derived record"
+
+
+def _latest_store_observation(store: TraceMemoryStore) -> Any | None:
+    nodes = [
+        node
+        for node in store.nodes(node_types=("observation",))
+        if node.metadata.get("record_class") == "capture"
+    ]
+    return nodes[-1] if nodes else None
+
+
+def _write_store_capture_record(moment: str, record: dict[str, Any]) -> str | None:
+    text = _store_text(record)
+    if not text.strip():
+        return None
+    store = TraceMemoryStore(_unified_store_path())
+    try:
+        previous = _latest_store_observation(store)
+        node = store.write_observation(
+            text=text,
+            t_ms=int(round(float(record.get("t") or 0.0) * 1000)),
+            source=_norm_physical_source(record.get("source")),
+            place=_store_place(record),
+            pose=record.get("pose") if isinstance(record.get("pose"), dict) else None,
+            provenance={
+                "moment_id": moment,
+                "frame": record.get("frame"),
+                "scene": record.get("scene"),
+                "source": record.get("source"),
+            },
+            metadata={
+                "record_class": "capture",
+                "ocr": record.get("ocr") or [],
+                "metadata": record.get("metadata") if isinstance(record.get("metadata"), dict) else {},
+            },
+            node_type="observation",
+        )
+        if previous is not None:
+            store.link(previous.id, node.id, "succession")
+            if previous.place and previous.place == node.place:
+                store.link(previous.id, node.id, "same_place")
+        return node.id
+    finally:
+        store.close()
+
+
+def _write_store_graph_records(
+    moment: str,
+    frame_name: str,
+    text_record: str,
+    pose: dict[str, Any] | None,
+    graph: dict[str, Any],
+) -> tuple[str, ...]:
+    consolidated = (graph.get("consolidated") or {}).get("instances") or []
+    if not text_record.strip() and not consolidated:
+        return ()
+    store = TraceMemoryStore(_store_path(moment))
+    created: list[str] = []
+    try:
+        frame_nodes = [
+            node
+            for node in store.nodes(node_types=("observation",))
+            if node.provenance.get("frame") == frame_name and node.metadata.get("record_class") == "capture"
+        ]
+        frame_node = frame_nodes[-1] if frame_nodes else None
+        for index, entity in enumerate(consolidated):
+            parts = [str(entity.get("type") or "entity"), str(entity.get("label") or "").strip()]
+            for text in entity.get("texts") or ():
+                text = str(text).strip()
+                if text and text not in parts:
+                    parts.append(text)
+            attrs = entity.get("attrs") or {}
+            for key in ("state", "colour", "color", "material"):
+                value = attrs.get(key)
+                if value:
+                    parts.append(f"{key}={value}")
+            entity_text = " | ".join(bit for bit in parts if bit)
+            node = store.write_observation(
+                text=entity_text,
+                t_ms=int(round(float(frame_node.t_ms if frame_node is not None else 0))),
+                source="mac_instance_graph.entity",
+                place=frame_node.place if frame_node is not None else _store_place({"pose": pose}),
+                pose=pose,
+                provenance={
+                    "moment_id": moment,
+                    "frame": frame_name,
+                    "support_frames": entity.get("frames") or [],
+                },
+                metadata={"record_class": "instance_graph_entity", **entity},
+                node_type="entity",
+            )
+            created.append(node.id)
+            if frame_node is not None:
+                store.link(node.id, frame_node.id, "same_entity")
+        if text_record.strip():
+            summary_node = store.write_observation(
+                text=text_record,
+                t_ms=int(round(float(frame_node.t_ms if frame_node is not None else 0))),
+                source="mac_instance_graph.summary",
+                place=frame_node.place if frame_node is not None else _store_place({"pose": pose}),
+                pose=pose,
+                provenance={"moment_id": moment, "frame": frame_name},
+                metadata={
+                    "record_class": "instance_graph_summary",
+                    "node_count": len(graph.get("nodes") or []),
+                    "edge_count": len(graph.get("edges") or []),
+                },
+                node_type="observation",
+            )
+            created.append(summary_node.id)
+            if frame_node is not None:
+                store.link(summary_node.id, frame_node.id, "same_time")
+        for idx, left in enumerate(created):
+            for right in created[idx + 1 :]:
+                store.link(left, right, "same_time")
+        return tuple(created)
+    finally:
+        store.close()
 
 # Rolling in-memory store for the phone's LIVE perception stream. The native app
 # POSTs every committed OBJECT/EVENT record to /capture/perception as it sees it;
@@ -162,6 +340,7 @@ def _inject_perceived_record(moment: str, desc: str, frame_name: str,
         recs = list(store["records"])
     mdir = _moment_dir(moment)
     (mdir / "kf_memory.json").write_text(json.dumps(recs, ensure_ascii=False))
+    _write_store_capture_record(moment, recs[-1])
 
 
 _PLAUS_CACHE: dict[tuple, float] = {}
@@ -323,6 +502,7 @@ def _perception_worker() -> None:
                     text_rec = ibw.graph_to_text_record(graph)
                     if text_rec:
                         _inject_perceived_record(moment, text_rec, path.name + ".graph", pose_data)
+                    _write_store_graph_records(moment, path.name, text_rec, pose_data, graph)
                     _log("INST-GRAPH", moment=moment, nodes=len(graph.get("nodes", [])),
                          edges=len(graph.get("edges", [])))
                     _persist_instance_graph(moment)
@@ -476,6 +656,7 @@ def _capture(payload: dict[str, Any]) -> dict[str, Any]:
         recs = list(store["records"])
     mdir = _moment_dir(moment)
     (mdir / "kf_memory.json").write_text(json.dumps(recs, ensure_ascii=False))
+    _write_store_capture_record(moment, recs[-1])
     last = recs[-1]
     if TRACE_EVENTLOG:
         last_metadata = last.get("metadata")
