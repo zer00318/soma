@@ -89,6 +89,7 @@ def perceive_and_graph(frame_path: str, moment: str, graphs_store: dict,
             tiered = perception_consensus.tier_instances(tier_in, len(frames))
             tiered["relations"] = spatial_relations.relations(bound["nodes"])
             tiered["coordinate_bound"] = True
+            _attach_identity(tiered.get("instances") or [])
             graph["consolidated"] = tiered
         else:
             # No depth yet (standard mode) -> bearing fallback.
@@ -212,6 +213,23 @@ def answer_from_graph(question: str, moment: str, graphs_store: dict,
         "graph_nodes": len(graph["nodes"]),
         "graph_edges": len(graph["edges"]),
     }
+
+
+def _attach_identity(nodes: list) -> None:
+    """Tag each node with its cross-frame identity consensus — reliable only when
+    the per-crop reads AGREE across frames; a one-off misread ('scallops') is
+    flagged unreliable so the brain hedges instead of asserting it."""
+    try:
+        import identity_consensus
+    except Exception:
+        return
+    for n in nodes:
+        try:
+            ident = identity_consensus.resolve(list(n.get("texts") or []))
+            n["identity"] = ident
+            n["identity_reliable"] = identity_consensus.is_reliable(ident)
+        except Exception:
+            continue
 
 
 _SPATIAL_Q_RE = re.compile(
