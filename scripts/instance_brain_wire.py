@@ -33,21 +33,25 @@ import instance_consolidate  # noqa: E402
 import instance_graph  # noqa: E402
 import instance_perceive  # noqa: E402
 import perception_consensus  # noqa: E402
+import spatial_relations  # noqa: E402
+import world_binder  # noqa: E402
 
 _MAX_FRAMES = 500  # cap accumulation per moment
 
 
-def perceive_and_graph(frame_path: str, moment: str,
-                       graphs_store: dict, pose: dict | None = None) -> dict:
-    """Run the instance pipeline on one frame AND consolidate across all frames.
+def perceive_and_graph(frame_path: str, moment: str, graphs_store: dict,
+                       pose: dict | None = None,
+                       depth_grid: dict | None = None) -> dict:
+    """Run the instance pipeline on one frame AND bind across all frames.
 
     Per-frame: detector + per-crop VLM -> instances -> single-frame graph.
-    Across frames: accumulate every frame's instances + camera pose (yaw/pitch)
-    and run WORLD-ANCHORED consolidation — instances are individuated by viewing
-    BEARING (stable across frames) not by the VLM's inconsistent text, then tiered
-    by cross-frame CONSENSUS (confirmed >=2 frames vs one-off provisional). The
-    returned graph carries the consolidated+tiered result under "consolidated".
-
+    Across frames the binder individuates by WORLD COORDINATE: when an ARKit
+    depth-grid is present (spatial mode), each instance's box is projected to a
+    world (x,y,z); instances at the same location = one node regardless of the
+    VLM's inconsistent text; count = number of distinct nodes. Cross-frame
+    CONSENSUS tiers one-off reads as provisional. Spatial RELATIONS between nodes
+    are derived from geometry. Without depth (standard mode) it falls back to
+    bearing-based consolidation. Result under "consolidated".
     """
     instances = instance_perceive.perceive(frame_path)
     graph = instance_graph.build_graph(instances)
@@ -55,14 +59,28 @@ def perceive_and_graph(frame_path: str, moment: str,
     prev = graphs_store.get(moment) or {}
     frames = (prev.get("_frame_instances") or [])[-(_MAX_FRAMES - 1):]
     poses = (prev.get("_frame_poses") or [])[-(_MAX_FRAMES - 1):]
+    grids = (prev.get("_frame_grids") or [])[-(_MAX_FRAMES - 1):]
     frames.append(instances)
     poses.append(pose)
+    grids.append(depth_grid)
 
     graph["_frame_instances"] = frames
     graph["_frame_poses"] = poses
+    graph["_frame_grids"] = grids
     try:
-        cons = instance_consolidate.consolidate_world(frames, poses)
-        graph["consolidated"] = perception_consensus.tier_instances(cons, len(frames))
+        if any(g for g in grids):
+            # World-coordinate binding (the real spatial substrate).
+            bound = world_binder.bind_world_instances(frames, grids)
+            tier_in = {"instances": bound["nodes"],
+                       "counts_by_type": bound["counts_by_type"]}
+            tiered = perception_consensus.tier_instances(tier_in, len(frames))
+            tiered["relations"] = spatial_relations.relations(bound["nodes"])
+            tiered["coordinate_bound"] = True
+            graph["consolidated"] = tiered
+        else:
+            # No depth yet (standard mode) -> bearing fallback.
+            cons = instance_consolidate.consolidate_world(frames, poses)
+            graph["consolidated"] = perception_consensus.tier_instances(cons, len(frames))
     except Exception:
         graph["consolidated"] = None
     graphs_store[moment] = graph

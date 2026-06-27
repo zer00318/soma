@@ -213,7 +213,16 @@ def _perception_worker() -> None:
                         _y, _p = _deg("yaw"), _deg("pitch")
                         if _y is not None or _p is not None:
                             _pose_deg = {"yaw": _y or 0.0, "pitch": _p or 0.0}
-                    graph = ibw.perceive_and_graph(str(path), moment, _INSTANCE_GRAPHS, pose=_pose_deg)
+                    # Depth grid (ARKit raycast -> world points) for coordinate binding.
+                    _depth_grid = None
+                    _depth_file = path.with_suffix(".depth.json")
+                    if _depth_file.exists():
+                        try:
+                            _depth_grid = json.loads(_depth_file.read_text())
+                        except Exception:
+                            _depth_grid = None
+                    graph = ibw.perceive_and_graph(str(path), moment, _INSTANCE_GRAPHS,
+                                                   pose=_pose_deg, depth_grid=_depth_grid)
                     text_rec = ibw.graph_to_text_record(graph)
                     if text_rec:
                         _inject_perceived_record(moment, text_rec, path.name + ".graph", pose_data)
@@ -225,6 +234,7 @@ def _perception_worker() -> None:
             if not DEBUG_FRAMES:
                 path.unlink(missing_ok=True)
                 pose_file.unlink(missing_ok=True)
+                path.with_suffix(".depth.json").unlink(missing_ok=True)
             with _VISION_LOCK:
                 store = _VISION.setdefault(moment, {"t0": time.time(), "frames": []})
                 store["frames"].append(
