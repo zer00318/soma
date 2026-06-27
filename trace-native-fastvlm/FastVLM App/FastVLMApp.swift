@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import Video
 
 @main
 struct FastVLMApp: App {
@@ -13,14 +14,17 @@ struct FastVLMApp: App {
     // composes with model load / permissions.
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("spatialMode") private var spatialMode = false
+    @AppStorage("traceHubURL") private var hubURL = ""
 
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background && spatialMode {
-                TraceARKitEngine.shared.saveWorldMap()
+            if phase == .background {
+                if spatialMode { TraceARKitEngine.shared.saveWorldMap() }
+                // Finalize + upload the FULL recorded video to the Mac.
+                VideoRecorder.shared.finishAndUpload(hubURL: hubURL)
             }
         }
     }

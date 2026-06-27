@@ -250,6 +250,8 @@ extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
         from connection: AVCaptureConnection
     ) {
         if sampleBuffer.isValid && sampleBuffer.imageBuffer != nil {
+            // Record the FULL video (every frame) alongside the perception stream.
+            VideoRecorder.shared.append(sampleBuffer)
             framesContinuation?.yield(sampleBuffer)
         }
     }

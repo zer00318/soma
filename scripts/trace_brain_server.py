@@ -504,6 +504,36 @@ def _capture(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "moment_id": moment, "frames": len(recs), "t": recs[-1]["t"]}
 
 
+def _receive_video(stream, length: int, path: str) -> dict[str, Any]:
+    """Receive the FULL captured video (raw .mov bytes) and save it on the Mac so
+    the moment is recorded continuously, not as sparse keyframes. Streamed to disk
+    in chunks (the file can be large)."""
+    from urllib.parse import parse_qs, urlparse
+    qs = parse_qs(urlparse(path).query)
+    frames = (qs.get("frames") or ["?"])[0]
+    vdir = CAPTURES / "live" / "video"
+    vdir.mkdir(parents=True, exist_ok=True)
+    name = f"capture_{int(_now())}.mov"
+    dest = vdir / name
+    written = 0
+    with open(dest, "wb") as f:
+        remaining = length
+        while remaining > 0:
+            chunk = stream.read(min(1 << 20, remaining))
+            if not chunk:
+                break
+            f.write(chunk)
+            written += len(chunk)
+            remaining -= len(chunk)
+    _log("VIDEO", file=name, mb=round(written / 1e6, 1), frames=frames)
+    return {"ok": True, "file": name, "bytes": written, "frames": frames}
+
+
+def _now() -> float:
+    import time as _t
+    return _t.time()
+
+
 def _receive_frame(payload: dict[str, Any]) -> dict[str, Any]:
     """Receive a raw frame from the phone for Mac-side VLM perception.
     The frame is written to a transient queue; the perception worker picks it
@@ -1189,6 +1219,10 @@ class Handler(BaseHTTPRequestHandler):
             self._json(401, {"error": "unauthorized"})
             return
         length = int(self.headers.get("Content-Length", "0") or "0")
+        # Full-video upload: the body is raw .mov bytes, not JSON — save it.
+        if self.path.split("?")[0] == "/debug/video":
+            self._json(200, _receive_video(self.rfile, length, self.path))
+            return
         raw = self.rfile.read(length) if length else b"{}"
         try:
             payload = json.loads(raw or b"{}")
