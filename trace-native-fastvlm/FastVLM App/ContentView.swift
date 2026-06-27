@@ -2804,7 +2804,7 @@ struct ContentView: View {
     }
 
     func sendDebugFrame(_ buffer: CVImageBuffer, frameIndex: Int) async {
-        struct FrameCtx { let baseURL: String; let pose: [String: Any]; let arkit: [String: Any] }
+        struct FrameCtx { let baseURL: String; let pose: [String: Any]; let arkit: [String: Any]; let depthGrid: [String: Any]? }
         let ctx: FrameCtx? = await MainActor.run {
             guard debugFramesEnabled else { return nil }
             if Date().timeIntervalSince(lastDebugFrameAt) < 1.0 { return nil }
@@ -2812,7 +2812,8 @@ struct ContentView: View {
             let base = traceHubURL.isEmpty ? "http://127.0.0.1:8765" : traceHubURL
             return FrameCtx(baseURL: base,
                             pose: PoseStamper.shared.snapshot(),
-                            arkit: TraceARKitEngine.shared.metadataSnapshot())
+                            arkit: TraceARKitEngine.shared.metadataSnapshot(),
+                            depthGrid: TraceARKitEngine.shared.depthGridSnapshot())
         }
         guard let ctx,
               let jpeg = Self.jpegFromBuffer(buffer),
@@ -2826,6 +2827,7 @@ struct ContentView: View {
         // when spatial mode is on. Derived numbers only — still no raw media retained.
         var meta: [String: Any] = ["pose": ctx.pose]
         for (k, v) in ctx.arkit { meta[k] = v }
+        if let grid = ctx.depthGrid { meta["depth_grid"] = grid }  // world-coord substrate
         req.httpBody = try? JSONSerialization.data(withJSONObject: [
             "moment_id": "live",
             "t": frameIndex,

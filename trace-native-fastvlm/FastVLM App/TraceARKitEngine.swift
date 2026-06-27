@@ -139,6 +139,34 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         ]
     }
 
+    /// Raycast a grid of screen points to WORLD coordinates — the estimated-depth
+    /// substrate. The Mac projects each detected object's box centre to a world
+    /// (x,y,z) via this grid, so the binder can individuate instances by physical
+    /// LOCATION. On a non-LiDAR iPhone these come from feature points + estimated
+    /// planes (coarse, but the founder's design tolerates it; the relational helper
+    /// backstops precision). Returns nil when ARKit isn't running (standard mode).
+    func depthGridSnapshot(cols: Int = 8, rows: Int = 6) -> [String: Any]? {
+        guard let frame = session.currentFrame else { return nil }
+        var pts: [Any] = []
+        for r in 0..<rows {
+            for c in 0..<cols {
+                let nx = (CGFloat(c) + 0.5) / CGFloat(cols)
+                let ny = (CGFloat(r) + 0.5) / CGFloat(rows)
+                let hits = frame.hitTest(CGPoint(x: nx, y: ny),
+                                         types: [.featurePoint,
+                                                 .estimatedHorizontalPlane,
+                                                 .estimatedVerticalPlane])
+                if let t = hits.first?.worldTransform {
+                    let col = t.columns.3
+                    pts.append([col.x, col.y, col.z])
+                } else {
+                    pts.append(NSNull())
+                }
+            }
+        }
+        return ["w": cols, "h": rows, "pts": pts]
+    }
+
     // MARK: - ARSessionDelegate
 
     nonisolated func session(_ session: ARSession, didUpdate frame: ARFrame) {
@@ -367,5 +395,7 @@ final class TraceARKitEngine: ObservableObject {
             "arkit_anchors": [],
         ]
     }
+
+    func depthGridSnapshot(cols: Int = 8, rows: Int = 6) -> [String: Any]? { nil }
 }
 #endif

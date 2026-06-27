@@ -421,11 +421,16 @@ def _receive_frame(payload: dict[str, Any]) -> dict[str, Any]:
     t = _float_or_none(payload.get("t"))
     name = f"{t:08.1f}.jpg" if t is not None else f"{len(list(fdir.glob('*.jpg'))):05d}.jpg"
     (fdir / name).write_bytes(data)
-    # Save pose alongside the frame so the perceiver can attach it to the record.
+    # Save pose + depth grid alongside the frame so the perceiver can project each
+    # detected instance to a world coordinate (the world-anchored binder substrate).
     metadata = payload.get("metadata")
     if isinstance(metadata, dict) and metadata.get("pose"):
         (fdir / name).with_suffix(".pose.json").write_text(
             json.dumps(metadata["pose"], ensure_ascii=False)
+        )
+    if isinstance(metadata, dict) and metadata.get("depth_grid"):
+        (fdir / name).with_suffix(".depth.json").write_text(
+            json.dumps(metadata["depth_grid"], ensure_ascii=False)
         )
     if PERCEIVE:
         with _PENDING_LOCK:
