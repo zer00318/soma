@@ -78,6 +78,17 @@ def _cooking_answer(facts, question):
     return sc.answer(facts, question)
 
 
-# Registries — extend as specialists are added (chess, document, code, shopping...).
-_SPECIALISTS = {"cooking": _cooking_extract}
-_ANSWERERS = {"cooking": _cooking_answer}
+def _chess_extract(perception):
+    import specialist_chess as scz
+    return scz.extract(perception)
+
+
+def _chess_answer(facts, question):
+    import specialist_chess as scz
+    return scz.answer(facts, question)
+
+
+# Registries — extend as specialists are added (document, code, shopping...).
+# Each runner is lazy-imported, so a not-yet-built specialist just no-ops.
+_SPECIALISTS = {"cooking": _cooking_extract, "chess": _chess_extract}
+_ANSWERERS = {"cooking": _cooking_answer, "chess": _chess_answer}
