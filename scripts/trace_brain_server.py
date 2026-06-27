@@ -153,6 +153,42 @@ def _inject_perceived_record(moment: str, desc: str, frame_name: str,
     (mdir / "kf_memory.json").write_text(json.dumps(recs, ensure_ascii=False))
 
 
+def _persist_instance_graph(moment: str) -> None:
+    """Persist the accumulated world/instance graph (coordinate nodes, relations,
+    frame accumulation) so counting/spatial memory survives a brain restart — not
+    just the flat kf_memory + eventlog. Founder mandate: never lose memory."""
+    graph = _INSTANCE_GRAPHS.get(moment)
+    if not graph:
+        return
+    try:
+        mdir = _moment_dir(moment)
+        tmp = mdir / "instance_graph.json.tmp"
+        tmp.write_text(json.dumps(graph, ensure_ascii=False, default=float))
+        tmp.replace(mdir / "instance_graph.json")
+    except Exception as exc:
+        _log("IGRAPH-SAVE-ERR", moment=moment, err=str(exc)[:80])
+
+
+def _load_instance_graphs() -> None:
+    """Reload persisted instance graphs on startup so accumulated coordinate memory
+    continues across restarts instead of resetting."""
+    if not INSTANCE_PIPE or not CAPTURES.exists():
+        return
+    for mdir in CAPTURES.iterdir():
+        f = mdir / "instance_graph.json"
+        if not f.is_file():
+            continue
+        try:
+            graph = json.loads(f.read_text())
+            _INSTANCE_GRAPHS[mdir.name] = graph
+            cons = (graph.get("consolidated") or {})
+            _log("IGRAPH-LOAD", moment=mdir.name,
+                 nodes=len(cons.get("instances", [])),
+                 frames=len(graph.get("_frame_instances", [])))
+        except Exception as exc:
+            _log("IGRAPH-LOAD-ERR", moment=mdir.name, err=str(exc)[:80])
+
+
 def _perception_worker() -> None:
     import mac_vision_perceive as mv  # local gemma3-vision
 
@@ -228,6 +264,7 @@ def _perception_worker() -> None:
                         _inject_perceived_record(moment, text_rec, path.name + ".graph", pose_data)
                     _log("INST-GRAPH", moment=moment, nodes=len(graph.get("nodes", [])),
                          edges=len(graph.get("edges", [])))
+                    _persist_instance_graph(moment)
                 except Exception as exc:
                     _log("INST-PIPE-ERR", moment=moment, err=str(exc)[:80])
             # Privacy: delete the raw frame now that we have derived text.
@@ -1100,6 +1137,7 @@ class Handler(BaseHTTPRequestHandler):
 def main() -> int:
     CAPTURES.mkdir(parents=True, exist_ok=True)
     _FRAME_QUEUE.mkdir(parents=True, exist_ok=True)
+    _load_instance_graphs()  # restore accumulated coordinate memory across restarts
     if PERCEIVE:
         threading.Thread(target=_perception_worker, daemon=True).start()
     httpd = ThreadingHTTPServer((BIND, PORT), Handler)
