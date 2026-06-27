@@ -90,6 +90,14 @@ def judge(truth: str, answer: str, refused: bool) -> str:
         return "correct" if re.search(rf"\b{truth_norm}\b", answer_norm) else "wrong"
     if truth_norm and truth_norm in answer_norm:
         return "correct"
+    # Content-word overlap: all significant truth words present, in any order, even with
+    # extra words ("white sneakers" matches "white and grey Puma sneakers"). Avoids the
+    # false-NEGATIVE a strict contiguous-substring match produced.
+    _stop = {"a", "an", "the", "is", "are", "of", "on", "in", "there", "my", "it", "and",
+             "with", "near", "to", "i", "was", "were", "side"}
+    truth_words = [w for w in truth_norm.split() if w not in _stop and len(w) > 2]
+    if truth_words and all(w in answer_norm for w in truth_words):
+        return "correct"
     return "wrong"
 
 
