@@ -2804,16 +2804,23 @@ struct ContentView: View {
     }
 
     func sendDebugFrame(_ buffer: CVImageBuffer, frameIndex: Int) async {
-        struct FrameCtx { let baseURL: String; let pose: [String: Any]; let arkit: [String: Any]; let depthGrid: [String: Any]? }
+        struct FrameCtx { let baseURL: String; let pose: [String: Any]; let arkit: [String: Any]; let depthGrid: [String: Any]?; let motion: [String: Any] }
         let ctx: FrameCtx? = await MainActor.run {
             guard debugFramesEnabled else { return nil }
-            if Date().timeIntervalSince(lastDebugFrameAt) < 1.0 { return nil }
+            let pose = PoseStamper.shared.snapshot()
+            // Frame supplier: keep SHARP keyframes (emit when motion settles), drop
+            // blurry fast-pan frames, and carry the movement signal between them.
+            let decision = FrameSupplier.shared.consider(pose: pose)
+            guard decision.emit else { return nil }
             lastDebugFrameAt = Date()
             let base = traceHubURL.isEmpty ? "http://127.0.0.1:8765" : traceHubURL
             return FrameCtx(baseURL: base,
-                            pose: PoseStamper.shared.snapshot(),
+                            pose: pose,
                             arkit: TraceARKitEngine.shared.metadataSnapshot(),
-                            depthGrid: TraceARKitEngine.shared.depthGridSnapshot())
+                            depthGrid: TraceARKitEngine.shared.depthGridSnapshot(),
+                            motion: ["since_keyframe": decision.motionSinceKeyframe,
+                                     "peak": decision.peakMotion,
+                                     "step": decision.stepMotion])
         }
         guard let ctx,
               let jpeg = Self.jpegFromBuffer(buffer),
@@ -2828,6 +2835,7 @@ struct ContentView: View {
         var meta: [String: Any] = ["pose": ctx.pose]
         for (k, v) in ctx.arkit { meta[k] = v }
         if let grid = ctx.depthGrid { meta["depth_grid"] = grid }  // world-coord substrate
+        meta["motion"] = ctx.motion  // movement signal between keyframes
         req.httpBody = try? JSONSerialization.data(withJSONObject: [
             "moment_id": "live",
             "t": frameIndex,
