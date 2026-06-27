@@ -200,14 +200,20 @@ def _perception_worker() -> None:
                 try:
                     import instance_brain_wire as ibw
                     import math
-                    _yaw_deg: float | None = None
-                    if isinstance(pose_data, dict) and pose_data.get("yaw") is not None:
-                        try:
-                            # PoseStamper yaw is radians (CoreMotion/ARKit); consolidator wants degrees.
-                            _yaw_deg = float(pose_data["yaw"]) * 180.0 / math.pi
-                        except Exception:
-                            _yaw_deg = None
-                    graph = ibw.perceive_and_graph(str(path), moment, _INSTANCE_GRAPHS, yaw=_yaw_deg)
+                    # PoseStamper yaw/pitch are radians (CoreMotion/ARKit); the
+                    # consolidator individuates by bearing in DEGREES.
+                    _pose_deg: dict[str, float] | None = None
+                    if isinstance(pose_data, dict):
+                        def _deg(key: str) -> float | None:
+                            v = pose_data.get(key)
+                            try:
+                                return float(v) * 180.0 / math.pi if v is not None else None
+                            except Exception:
+                                return None
+                        _y, _p = _deg("yaw"), _deg("pitch")
+                        if _y is not None or _p is not None:
+                            _pose_deg = {"yaw": _y or 0.0, "pitch": _p or 0.0}
+                    graph = ibw.perceive_and_graph(str(path), moment, _INSTANCE_GRAPHS, pose=_pose_deg)
                     text_rec = ibw.graph_to_text_record(graph)
                     if text_rec:
                         _inject_perceived_record(moment, text_rec, path.name + ".graph", pose_data)

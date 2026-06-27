@@ -307,6 +307,20 @@ def _merge_box(instances: list[dict]) -> list[float] | None:
     return [sum(coords) / len(valid) for coords in zip(*valid)]
 
 
+def _all_texts(instances: list[dict]) -> list[str]:
+    """Every distinct text/name/brand the cluster's members were read as — so brand
+    matching survives the per-crop VLM calling one jar 'Nutella' then 'Aleksandar'."""
+    seen: list[str] = []
+    lowered: set[str] = set()
+    for inst in instances:
+        for field in ("text", "name", "brand", "label"):
+            v = _clean_text(inst.get(field))
+            if v and v.lower() not in lowered:
+                seen.append(v)
+                lowered.add(v.lower())
+    return seen
+
+
 def _build_label(inst_type: str, merged: dict) -> str:
     detail = merged.get("text") or merged.get("brand") or merged.get("name") or ""
     detail_text = _clean_text(detail)
@@ -436,6 +450,7 @@ def consolidate(
         merged["frames"] = sorted(cluster["frame_set"])
         merged["count_frames"] = len(merged["frames"])
         merged["label"] = _build_label(cluster["type"], merged)
+        merged["texts"] = _all_texts(member_insts)
         canonical_instances.append(merged)
         cluster_summaries.append(
             {
@@ -506,6 +521,7 @@ def consolidate_world(
         merged["frames"] = sorted(cluster["frame_set"])
         merged["count_frames"] = len(merged["frames"])
         merged["label"] = _build_label(cluster["type"], merged)
+        merged["texts"] = _all_texts(member_insts)
         canonical_instances.append(merged)
         cluster_summaries.append(
             {

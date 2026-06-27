@@ -32,20 +32,21 @@ import re  # noqa: E402
 import instance_consolidate  # noqa: E402
 import instance_graph  # noqa: E402
 import instance_perceive  # noqa: E402
+import perception_consensus  # noqa: E402
 
 _MAX_FRAMES = 500  # cap accumulation per moment
 
 
 def perceive_and_graph(frame_path: str, moment: str,
-                       graphs_store: dict, yaw: float | None = None) -> dict:
+                       graphs_store: dict, pose: dict | None = None) -> dict:
     """Run the instance pipeline on one frame AND consolidate across all frames.
 
-    Per-frame: detector + per-crop VLM -> instances -> single-frame graph
-    (nodes/edges/relations from geometry). Across frames: accumulate every
-    frame's instances + camera yaw and run the cross-frame consolidator so the
-    SAME physical object seen in many frames counts ONCE. The returned graph is
-    the latest single-frame graph (for relations + backward compat) with the
-    consolidated cross-frame result attached under "consolidated".
+    Per-frame: detector + per-crop VLM -> instances -> single-frame graph.
+    Across frames: accumulate every frame's instances + camera pose (yaw/pitch)
+    and run WORLD-ANCHORED consolidation — instances are individuated by viewing
+    BEARING (stable across frames) not by the VLM's inconsistent text, then tiered
+    by cross-frame CONSENSUS (confirmed >=2 frames vs one-off provisional). The
+    returned graph carries the consolidated+tiered result under "consolidated".
 
     """
     instances = instance_perceive.perceive(frame_path)
@@ -53,14 +54,15 @@ def perceive_and_graph(frame_path: str, moment: str,
 
     prev = graphs_store.get(moment) or {}
     frames = (prev.get("_frame_instances") or [])[-(_MAX_FRAMES - 1):]
-    yaws = (prev.get("_frame_yaws") or [])[-(_MAX_FRAMES - 1):]
+    poses = (prev.get("_frame_poses") or [])[-(_MAX_FRAMES - 1):]
     frames.append(instances)
-    yaws.append(yaw)
+    poses.append(pose)
 
     graph["_frame_instances"] = frames
-    graph["_frame_yaws"] = yaws
+    graph["_frame_poses"] = poses
     try:
-        graph["consolidated"] = instance_consolidate.consolidate(frames, yaws)
+        cons = instance_consolidate.consolidate_world(frames, poses)
+        graph["consolidated"] = perception_consensus.tier_instances(cons, len(frames))
     except Exception:
         graph["consolidated"] = None
     graphs_store[moment] = graph
@@ -87,7 +89,10 @@ def _count_answer_from_consolidated(question: str, consolidated: dict | None) ->
     m = _COUNT_Q_RE.search(question)
     if not m:
         return None
-    counts = consolidated.get("counts_by_type") or {}
+    # Prefer the CONSENSUS-confirmed counts (objects seen in >=2 frames) — the
+    # honest, hallucination-filtered number — falling back to raw counts.
+    counts = (consolidated.get("confirmed_counts_by_type")
+              or consolidated.get("counts_by_type") or {})
     noun = _singular(m.group("noun").split()[-1])  # last word, singularized
 
     # 1) TYPE match (detector type, e.g. "jar", "bottle").
@@ -98,8 +103,13 @@ def _count_answer_from_consolidated(question: str, consolidated: dict | None) ->
                 info, noun = cinfo, ctype
                 break
     if info is not None:
-        hedge = str(info.get("hedge", info.get("distinct", "")))
-        distinct = info.get("distinct")
+        # confirmed_counts_by_type uses plain ints; counts_by_type uses {distinct,hedge}.
+        if isinstance(info, dict):
+            distinct = info.get("distinct")
+            hedge = str(info.get("hedge", distinct if distinct is not None else ""))
+        else:
+            distinct = info
+            hedge = str(info)
         if "-" in hedge:
             ans = (f"I counted between {hedge} {noun}s across what I saw "
                    f"(I can't tell identical {noun}s apart without spatial depth, so it's a range).")
@@ -113,10 +123,16 @@ def _count_answer_from_consolidated(question: str, consolidated: dict | None) ->
     query = m.group("noun").strip().lower()
     qword = query.split()[-1]
     qstem = qword[:-1] if qword.endswith("s") and len(qword) > 3 else qword
-    instances = consolidated.get("instances") or []
+    # Count brand matches among CONFIRMED instances (>=2 frames) when tiers exist,
+    # else all instances. Demotes one-off hallucinated brand reads.
+    all_inst = consolidated.get("instances") or []
+    confirmed = [i for i in all_inst if i.get("tier") == "confirmed"]
+    instances = confirmed if any(i.get("tier") for i in all_inst) else all_inst
     matches = []
     for inst in instances:
-        blob = " ".join(str(inst.get(k, "")) for k in ("text", "brand", "name", "label", "type")).lower()
+        parts = [str(inst.get(k, "")) for k in ("text", "brand", "name", "label", "type")]
+        parts.extend(str(t) for t in (inst.get("texts") or []))  # every read this object got
+        blob = " ".join(parts).lower()
         if qstem and qstem in blob:
             matches.append(inst)
     if matches:
