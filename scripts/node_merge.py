@@ -41,17 +41,23 @@ def _norm_type(node: dict) -> str:
     return str(node.get("type") or "").strip().lower()
 
 
-def _dist(a, b) -> float | None:
+def _close(a, b, radius_xy: float, radius_z: float) -> bool:
+    """Anisotropic proximity. x,y come from the camera BEARING (reliable); z is
+    ESTIMATED DEPTH (no LiDAR -> noisy), so allow a much looser z tolerance — two
+    detections at the same bearing with different depth are almost always the SAME
+    object whose depth estimate jittered, not two objects stacked front-to-back."""
     if not a or not b:
-        return None
-    return math.sqrt(sum((float(x) - float(y)) ** 2 for x, y in zip(a, b)))
+        return False
+    dx = float(a[0]) - float(b[0])
+    dy = float(a[1]) - float(b[1])
+    dz = float(a[2]) - float(b[2])
+    return math.hypot(dx, dy) <= radius_xy and abs(dz) <= radius_z
 
 
-def _should_merge(n1: dict, n2: dict, radius_m: float) -> bool:
+def _should_merge(n1: dict, n2: dict, radius_xy: float, radius_z: float) -> bool:
     if _norm_type(n1) != _norm_type(n2):
         return False
-    d = _dist(n1.get("world_xyz"), n2.get("world_xyz"))
-    if d is None or d > radius_m:
+    if not _close(n1.get("world_xyz"), n2.get("world_xyz"), radius_xy, radius_z):
         return False
     b1, b2 = brand_tokens(n1), brand_tokens(n2)
     if b1 and b2:
@@ -93,8 +99,12 @@ def _counts(nodes: list[dict]) -> dict:
     return dict(sorted(out.items()))
 
 
-def merge_jittered(binder_result: dict, radius_m: float = 0.15) -> dict:
-    """Merge same-object nodes split by depth jitter. Returns a new binder_result."""
+def merge_jittered(binder_result: dict, radius_m: float = 0.13,
+                   radius_z: float = 0.22) -> dict:
+    """Merge same-object nodes split by depth jitter. radius_m is the tolerance on
+    the reliable bearing plane (x,y); radius_z is the looser tolerance on the noisy
+    estimated-depth axis (z). Returns a new binder_result."""
+    radius_xy = radius_m
     nodes = [dict(n) for n in (binder_result.get("nodes") or [])]
     # Iterate to a fixpoint: each pass merges the first mergeable pair found.
     changed = True
@@ -102,7 +112,7 @@ def merge_jittered(binder_result: dict, radius_m: float = 0.15) -> dict:
         changed = False
         for i in range(len(nodes)):
             for j in range(i + 1, len(nodes)):
-                if _should_merge(nodes[i], nodes[j], radius_m):
+                if _should_merge(nodes[i], nodes[j], radius_xy, radius_z):
                     nodes[i] = _merge_pair(nodes[i], nodes[j])
                     del nodes[j]
                     changed = True

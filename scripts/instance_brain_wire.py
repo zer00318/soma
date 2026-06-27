@@ -80,7 +80,10 @@ def perceive_and_graph(frame_path: str, moment: str, graphs_store: dict,
             bound = world_binder.bind_world_instances(phys_frames, grids)
             # Absorb estimated-depth jitter: collapse same-object nodes split by
             # coordinate wobble (no-LiDAR), without merging distinct brands.
-            bound = node_merge.merge_jittered(bound, radius_m=0.15)
+            # Tight on the reliable bearing plane (x,y), looser on the noisy
+            # estimated-depth axis (z). Stable band z in [0.18, 0.25] gave the
+            # correct physical count on a real capture (3 nutella, 1 pesto, 1 pringles).
+            bound = node_merge.merge_jittered(bound, radius_m=0.13, radius_z=0.22)
             tier_in = {"instances": bound["nodes"],
                        "counts_by_type": bound["counts_by_type"]}
             tiered = perception_consensus.tier_instances(tier_in, len(frames))
