@@ -33,6 +33,7 @@ import instance_consolidate  # noqa: E402
 import instance_graph  # noqa: E402
 import instance_perceive  # noqa: E402
 import perception_consensus  # noqa: E402
+import screen_quarantine  # noqa: E402
 import spatial_relations  # noqa: E402
 import world_binder  # noqa: E402
 
@@ -54,6 +55,9 @@ def perceive_and_graph(frame_path: str, moment: str, graphs_store: dict,
     bearing-based consolidation. Result under "consolidated".
     """
     instances = instance_perceive.perceive(frame_path)
+    # Quarantine on-screen reads: a "Nutella" read INSIDE the laptop box is screen
+    # content (our chat), not a physical jar — it binds to the screen, not the world.
+    instances = screen_quarantine.mark_on_screen(instances)
     graph = instance_graph.build_graph(instances)
 
     prev = graphs_store.get(moment) or {}
@@ -67,10 +71,12 @@ def perceive_and_graph(frame_path: str, moment: str, graphs_store: dict,
     graph["_frame_instances"] = frames
     graph["_frame_poses"] = poses
     graph["_frame_grids"] = grids
+    # Count PHYSICAL objects only (drop screen-content reads from every frame).
+    phys_frames = [screen_quarantine.physical_only(fr) for fr in frames]
     try:
         if any(g for g in grids):
             # World-coordinate binding (the real spatial substrate).
-            bound = world_binder.bind_world_instances(frames, grids)
+            bound = world_binder.bind_world_instances(phys_frames, grids)
             tier_in = {"instances": bound["nodes"],
                        "counts_by_type": bound["counts_by_type"]}
             tiered = perception_consensus.tier_instances(tier_in, len(frames))
@@ -79,7 +85,7 @@ def perceive_and_graph(frame_path: str, moment: str, graphs_store: dict,
             graph["consolidated"] = tiered
         else:
             # No depth yet (standard mode) -> bearing fallback.
-            cons = instance_consolidate.consolidate_world(frames, poses)
+            cons = instance_consolidate.consolidate_world(phys_frames, poses)
             graph["consolidated"] = perception_consensus.tier_instances(cons, len(frames))
     except Exception:
         graph["consolidated"] = None

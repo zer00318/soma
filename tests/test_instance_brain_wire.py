@@ -52,7 +52,11 @@ def test_perceive_stores_graph(mock_ig, mock_ip):
     result = perceive_and_graph("/tmp/test.jpg", "m1", store)
 
     mock_ip.perceive.assert_called_once_with("/tmp/test.jpg")
-    mock_ig.build_graph.assert_called_once_with(FAKE_INSTANCES)
+    # build_graph is called once, with the screen-quarantine-annotated instances
+    # (same content + on_screen flags), so check call count not object identity.
+    assert mock_ig.build_graph.call_count == 1
+    built_with = mock_ig.build_graph.call_args[0][0]
+    assert len(built_with) == len(FAKE_INSTANCES)
     assert store["m1"] is FAKE_GRAPH
     assert result is FAKE_GRAPH
 
