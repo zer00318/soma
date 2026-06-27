@@ -32,6 +32,7 @@ import re  # noqa: E402
 import instance_consolidate  # noqa: E402
 import instance_graph  # noqa: E402
 import instance_perceive  # noqa: E402
+import node_merge  # noqa: E402
 import perception_consensus  # noqa: E402
 import screen_quarantine  # noqa: E402
 import spatial_relations  # noqa: E402
@@ -77,6 +78,9 @@ def perceive_and_graph(frame_path: str, moment: str, graphs_store: dict,
         if any(g for g in grids):
             # World-coordinate binding (the real spatial substrate).
             bound = world_binder.bind_world_instances(phys_frames, grids)
+            # Absorb estimated-depth jitter: collapse same-object nodes split by
+            # coordinate wobble (no-LiDAR), without merging distinct brands.
+            bound = node_merge.merge_jittered(bound, radius_m=0.15)
             tier_in = {"instances": bound["nodes"],
                        "counts_by_type": bound["counts_by_type"]}
             tiered = perception_consensus.tier_instances(tier_in, len(frames))
@@ -191,6 +195,10 @@ def answer_from_graph(question: str, moment: str, graphs_store: dict,
     count_ans = _count_answer_from_consolidated(question, graph.get("consolidated"))
     if count_ans is not None:
         return count_ans
+    # Spatial questions: answer from the geometric relations between world nodes.
+    spatial_ans = _spatial_answer_from_relations(question, graph.get("consolidated"))
+    if spatial_ans is not None:
+        return spatial_ans
     instance_graph.render_graph(graph)
     ans = instance_graph.answer(graph, question)
     refused = "don't have" in ans.lower() or "do not have" in ans.lower()
@@ -201,6 +209,44 @@ def answer_from_graph(question: str, moment: str, graphs_store: dict,
         "graph_nodes": len(graph["nodes"]),
         "graph_edges": len(graph["edges"]),
     }
+
+
+_SPATIAL_Q_RE = re.compile(
+    r"what(?:'s| is| was|s)?\s+(?P<rel>next to|to the left of|left of|to the right of|"
+    r"right of|above|below|on top of|behind|in front of)\s+(?P<ref>.+?)\s*\??$",
+    re.IGNORECASE,
+)
+_REL_ALIASES = {
+    "to the left of": "left of", "to the right of": "right of",
+}
+
+
+def _spatial_answer_from_relations(question: str, consolidated: dict | None) -> dict | None:
+    """Answer 'what is <relation> <X>' from the geometric relations between world nodes."""
+    if not consolidated:
+        return None
+    relations = consolidated.get("relations") or []
+    if not relations:
+        return None
+    m = _SPATIAL_Q_RE.search(question.strip())
+    if not m:
+        return None
+    rel = _REL_ALIASES.get(m.group("rel").lower(), m.group("rel").lower())
+    ref = m.group("ref").strip().lower()
+    ref_stem = ref.split()[-1]
+    hits = []
+    for r in relations:
+        a, b, rr = str(r.get("from", "")), str(r.get("to", "")), str(r.get("rel", "")).lower()
+        if rr != rel:
+            continue
+        # relation r means: `from` is <rel> `to`. Asking "what is <rel> <ref>": ref is `to`.
+        if ref_stem in b.lower() or ref in b.lower():
+            hits.append((a, r.get("dist_m")))
+    if not hits:
+        return None
+    parts = [f"{a}" + (f" ({d:.2f} m)" if isinstance(d, (int, float)) else "") for a, d in hits]
+    ans = f"{', '.join(parts)} {('is' if len(hits) == 1 else 'are')} {rel} the {ref}."
+    return {"answer": ans, "source": "instance_graph_spatial", "refused": False}
 
 
 def graph_to_text_record(graph: dict) -> str:
