@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -40,7 +41,12 @@ def answer_question(
 ) -> dict[str, Any]:
     """Route EVERY question through the production agent — the same brain the demo runs.
     'heuristic' (no LLM) refuses honestly; 'local-ollama'/'frontier' do grounded reasoning."""
-    agent = TraceMemoryAgent(store, reasoner=reasoner, ollama_model=model, ollama_host=host)
+    restrict = os.environ.get("TRACE_RESTRICT_SOURCES", "").strip()
+    restrict_sources = tuple(s.strip() for s in restrict.split(",") if s.strip()) or None
+    agent = TraceMemoryAgent(
+        store, reasoner=reasoner, ollama_model=model, ollama_host=host,
+        restrict_sources=restrict_sources,
+    )
     answer = agent.answer(question)
     return {
         "answer": answer.answer,

@@ -139,9 +139,11 @@ def _store_agent_answer(question: str, allow_frontier: bool) -> Any:
     to the legacy cascade)."""
     from trace_memory.brain import TraceMemoryAgent
 
+    restrict = os.environ.get("TRACE_RESTRICT_SOURCES", "").strip()
+    restrict_sources = tuple(s.strip() for s in restrict.split(",") if s.strip()) or None
     store = TraceMemoryStore(_unified_store_path())
     try:
-        sl = store.search(question, k=6)
+        sl = store.search(question, k=6, sources=restrict_sources)
         if not sl.hits or sl.hits[0].score <= 0.25:
             return None
         agent = TraceMemoryAgent(
@@ -149,6 +151,7 @@ def _store_agent_answer(question: str, allow_frontier: bool) -> Any:
             reasoner=("frontier" if allow_frontier else "local-ollama"),
             ollama_model=MODEL,
             ollama_host=OLLAMA_HOST,
+            restrict_sources=restrict_sources,
         )
         return agent.answer(question)
     finally:

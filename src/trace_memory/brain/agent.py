@@ -105,8 +105,10 @@ def _first_colour(blob: str) -> str | None:
     return None
 
 
-def _search_context(store: TraceMemoryStore, question: str, max_hops: int) -> SearchSlice:
-    search = store.search(question, k=6)
+def _search_context(
+    store: TraceMemoryStore, question: str, max_hops: int, sources=None
+) -> SearchSlice:
+    search = store.search(question, k=6, sources=sources)
     if not search.hits:
         return search
     if max_hops <= 1:
@@ -137,19 +139,23 @@ class TraceMemoryAgent:
         reasoner: str = "heuristic",
         ollama_model: str = "gemma3:12b-it-qat",
         ollama_host: str = "http://127.0.0.1:11434",
+        restrict_sources=None,
     ) -> None:
         self._store = store
         self._reasoner = reasoner
         self._ollama_model = ollama_model
         self._ollama_host = ollama_host.rstrip("/")
+        # Scope retrieval to specific capture sources (e.g. phone_camera) so a polluted
+        # never-delete store (dev screenshots, other sessions) can't drown the answer.
+        self._restrict_sources = tuple(restrict_sources) if restrict_sources else None
 
     def answer(self, question: str) -> AgentAnswer:
-        quick = _search_context(self._store, question, max_hops=1)
+        quick = _search_context(self._store, question, max_hops=1, sources=self._restrict_sources)
         heuristic = self._heuristic_answer(question, quick)
         if heuristic is not None:
             return heuristic
 
-        expanded = _search_context(self._store, question, max_hops=2)
+        expanded = _search_context(self._store, question, max_hops=2, sources=self._restrict_sources)
         if self._reasoner == "frontier":
             return self._frontier_answer(question, expanded)
         if self._reasoner == "local-ollama":

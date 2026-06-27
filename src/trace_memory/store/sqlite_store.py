@@ -221,16 +221,31 @@ class TraceMemoryStore:
             return None
         return _row_to_node(row)
 
-    def nodes(self, *, node_types: Iterable[str] | None = None) -> tuple[MemoryNode, ...]:
-        if node_types is None:
-            rows = self._conn.execute("SELECT * FROM memory_nodes ORDER BY t_ms ASC, seq ASC").fetchall()
-        else:
+    def nodes(
+        self,
+        *,
+        node_types: Iterable[str] | None = None,
+        sources: Iterable[str] | None = None,
+        exclude_sources: Iterable[str] | None = None,
+    ) -> tuple[MemoryNode, ...]:
+        clauses: list[str] = []
+        params: list[Any] = []
+        if node_types is not None:
             types = tuple(node_types)
-            placeholders = ",".join("?" for _ in types)
-            rows = self._conn.execute(
-                f"SELECT * FROM memory_nodes WHERE node_type IN ({placeholders}) ORDER BY t_ms ASC, seq ASC",
-                types,
-            ).fetchall()
+            clauses.append(f"node_type IN ({','.join('?' for _ in types)})")
+            params.extend(types)
+        if sources is not None:
+            srcs = tuple(sources)
+            clauses.append(f"source IN ({','.join('?' for _ in srcs)})")
+            params.extend(srcs)
+        if exclude_sources:
+            ex = tuple(exclude_sources)
+            clauses.append(f"source NOT IN ({','.join('?' for _ in ex)})")
+            params.extend(ex)
+        where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+        rows = self._conn.execute(
+            f"SELECT * FROM memory_nodes{where} ORDER BY t_ms ASC, seq ASC", params
+        ).fetchall()
         return tuple(_row_to_node(row) for row in rows)
 
     def links(self) -> tuple[LinkRecord, ...]:
@@ -252,9 +267,13 @@ class TraceMemoryStore:
         k: int = 5,
         *,
         node_types: Iterable[str] | None = None,
+        sources: Iterable[str] | None = None,
+        exclude_sources: Iterable[str] | None = None,
     ) -> SearchSlice:
         query_embedding = self._embedder.embed([query])[0]
-        candidates = self.nodes(node_types=node_types)
+        candidates = self.nodes(
+            node_types=node_types, sources=sources, exclude_sources=exclude_sources
+        )
         scored: list[SearchHit] = []
         for node in candidates:
             cosine = _cosine(query_embedding, node.embedding)
