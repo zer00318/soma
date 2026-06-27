@@ -105,6 +105,11 @@ _VISION: dict[str, dict[str, Any]] = {}          # moment -> {t0, frames:[{t,fra
 _VISION_LOCK = threading.Lock()
 _PENDING: dict[str, list[Path]] = {}              # moment -> FIFO queue of frames awaiting perception
 _PENDING_LOCK = threading.Lock()
+# GPU contention guard: the perception worker (gemma3-vision + GroundingDINO + crop
+# VLM) and the Q&A cascade (gemma3:12b) both hit the GPU; running together OOMs the
+# M2's 32GB ("kIOGPUCommandBufferCallbackErrorOutOfMemory"). While a question is being
+# answered, the perception worker pauses so only one GPU-heavy job runs at a time.
+_ASK_ACTIVE = threading.Event()
 _SCENE_CACHE: dict[str, dict[str, Any]] = {}      # moment -> {n, scene} (rebuild only on new frames)
 _INSTANCE_GRAPHS: dict[str, dict[str, Any]] = {}  # moment -> scene graph from instance pipeline
 
@@ -163,6 +168,9 @@ def _perception_worker() -> None:
         if next_item is None:
             time.sleep(0.5)
             continue
+        # Yield the GPU while a question is being answered (avoid OOM).
+        while _ASK_ACTIVE.is_set():
+            time.sleep(0.3)
         moment, path = next_item
         if True:
             if not path.exists():
@@ -700,6 +708,16 @@ def _kf_fulltext_answer(
 
 
 def _ask(payload: dict[str, Any]) -> dict[str, Any]:
+    """Pause the perception worker for the duration of the answer (GPU guard),
+    then run the answer cascade."""
+    _ASK_ACTIVE.set()
+    try:
+        return _ask_impl(payload)
+    finally:
+        _ASK_ACTIVE.clear()
+
+
+def _ask_impl(payload: dict[str, Any]) -> dict[str, Any]:
     moment = str(payload.get("moment_id") or "")
     question = str(payload.get("question") or "").strip()
     allow_frontier = bool(payload.get("allow_frontier", False)) and FRONTIER_ENABLED

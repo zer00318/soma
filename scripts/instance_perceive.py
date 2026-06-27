@@ -53,14 +53,18 @@ _GD = {"proc": None, "model": None, "device": None}
 
 INSTANCE_PROMPT = (
     "This is a tight crop of ONE object from a person's camera. "
+    "Identify the PRODUCT or object itself, not stickers or promo slogans on it.\n"
     "Respond in compact lines:\n"
-    "NAME: <specific name; include brand/model ONLY if legibly printed>\n"
-    "TEXT: <any text/label/brand printed on it, verbatim; else NONE>\n"
+    "NAME: <what this product/object IS — its common product name or brand if you "
+    "recognise it (e.g. 'Nutella', 'Pringles', 'MacBook'), even if a promotional "
+    "sticker or contest text is more prominent. Generic noun if unknown.>\n"
+    "TEXT: <the MAIN brand/product name printed on it, verbatim; ignore promo "
+    "slogans, prize/contest text, and stickers; else NONE>\n"
     "COLOUR: <main colours>\n"
     "MATERIAL: <glass/plastic/metal/fabric/paper/wood/unknown>\n"
     "STATE: <open/closed/empty/full/on/off/unknown>\n"
     "ORIENT: <upright/on-its-side/tilted/unknown>\n"
-    "Only what is visible in THIS crop. Do not guess."
+    "Only what is visible in THIS crop. Do not guess attributes you cannot see."
 )
 
 
@@ -98,7 +102,7 @@ def _load_gd(model_id: str = "IDEA-Research/grounding-dino-tiny"):
 
 
 def segment_instances(image_path: str, max_instances: int = 12,
-                      box_thr: float = 0.30, text_thr: float = 0.22) -> list[dict]:
+                      box_thr: float = 0.35, text_thr: float = 0.27) -> list[dict]:
     """Open-vocab DETECTOR (Grounding-DINO) -> clean object boxes with class labels.
     Falls back to SAM2-everything, then a grid, so the pipeline always runs."""
     im = Image.open(image_path).convert("RGB")
@@ -138,9 +142,38 @@ def segment_instances(image_path: str, max_instances: int = 12,
     for bx, lab, sc in clean:
         if all(_iou(bx, k[0]) < 0.6 for k in kept):
             kept.append((bx, lab, sc))
-    kept = kept[:max_instances]
+
+    # Containment suppression: drop a box that is mostly inside a >=2x larger box.
+    # The open-vocab detector finds an object AND its parts (a laptop's keyboard,
+    # screen, trackpad), turning ONE physical object into many instances and
+    # poisoning counts. The parts are contained in the whole, so keep the whole.
+    survivors = []
+    for i, (bx, lab, sc) in enumerate(kept):
+        area = max(1, (bx[2] - bx[0]) * (bx[3] - bx[1]))
+        swallowed = False
+        for j, (kbx, klab, ksc) in enumerate(kept):
+            if i == j:
+                continue
+            karea = (kbx[2] - kbx[0]) * (kbx[3] - kbx[1])
+            if karea >= 2.0 * area and _containment(bx, kbx) >= 0.80:
+                swallowed = True
+                break
+        if not swallowed:
+            survivors.append((bx, lab, sc))
+    kept = survivors[:max_instances]
     return [{"box": list(bx), "det_label": lab, "det_score": round(sc, 2),
              "img_wh": [W, H]} for bx, lab, sc in kept]
+
+
+def _containment(a, b) -> float:
+    """Fraction of box a's area that lies inside box b."""
+    x0 = max(a[0], b[0]); y0 = max(a[1], b[1])
+    x1 = min(a[2], b[2]); y1 = min(a[3], b[3])
+    if x1 <= x0 or y1 <= y0:
+        return 0.0
+    inter = (x1 - x0) * (y1 - y0)
+    area_a = (a[2] - a[0]) * (a[3] - a[1])
+    return inter / area_a if area_a else 0.0
 
 
 def _iou(a, b) -> float:
