@@ -11,6 +11,8 @@
 
 import Foundation
 import CoreGraphics
+import CoreImage
+import CoreVideo
 
 #if os(iOS)
 import UIKit
@@ -20,6 +22,43 @@ import UIKit
 final class FrameSupplier {
     static let shared = FrameSupplier()
     private init() {}
+
+    private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+    /// Reject a keyframe candidate below this Laplacian-variance sharpness. Matches
+    /// the Mac frame_quality gate (512-downscale, validated: blurry pan 1-28, sharp 270+).
+    let sharpnessThreshold = 60.0
+
+    /// Laplacian-variance sharpness of a frame (higher = sharper). Same method as the
+    /// Mac scorer so the validated threshold transfers. Only run on motion-settled
+    /// keyframe candidates (a few per second), so the cost is negligible.
+    func sharpness(_ buffer: CVPixelBuffer) -> Double {
+        let ci = CIImage(cvPixelBuffer: buffer)
+        let longest = max(ci.extent.width, ci.extent.height)
+        guard longest > 0 else { return 9999 }
+        let scale = min(1.0, 512.0 / longest)
+        let small = ci.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        let gray = small.applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 0.0])
+        let w = Int(small.extent.width.rounded())
+        let h = Int(small.extent.height.rounded())
+        guard w > 4, h > 4 else { return 9999 }
+        var px = [UInt8](repeating: 0, count: w * h * 4)
+        Self.ciContext.render(gray, toBitmap: &px, rowBytes: w * 4,
+                              bounds: CGRect(x: 0, y: 0, width: w, height: h),
+                              format: .RGBA8, colorSpace: CGColorSpaceCreateDeviceRGB())
+        var lum = [Double](repeating: 0, count: w * h)
+        for i in 0..<(w * h) { lum[i] = Double(px[i * 4]) }
+        var sum = 0.0, sum2 = 0.0, n = 0.0
+        for y in 1..<(h - 1) {
+            for x in 1..<(w - 1) {
+                let lap = lum[(y - 1) * w + x] + lum[(y + 1) * w + x]
+                        + lum[y * w + x - 1] + lum[y * w + x + 1] - 4 * lum[y * w + x]
+                sum += lap; sum2 += lap * lap; n += 1
+            }
+        }
+        guard n > 0 else { return 9999 }
+        let mean = sum / n
+        return sum2 / n - mean * mean
+    }
 
     // Tunables (radians of attitude change per step; seconds).
     private let settledMotion = 0.045      // <~2.5°/step => steady enough to be sharp

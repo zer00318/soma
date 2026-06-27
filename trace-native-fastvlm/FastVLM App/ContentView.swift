@@ -2812,6 +2812,9 @@ struct ContentView: View {
             // blurry fast-pan frames, and carry the movement signal between them.
             let decision = FrameSupplier.shared.consider(pose: pose)
             guard decision.emit else { return nil }
+            // Sharpness gate: drop motion-settled-but-blurry frames (autofocus hunt).
+            let sharp = FrameSupplier.shared.sharpness(buffer)
+            guard sharp >= FrameSupplier.shared.sharpnessThreshold else { return nil }
             lastDebugFrameAt = Date()
             let base = traceHubURL.isEmpty ? "http://127.0.0.1:8765" : traceHubURL
             return FrameCtx(baseURL: base,
@@ -2820,7 +2823,8 @@ struct ContentView: View {
                             depthGrid: TraceARKitEngine.shared.depthGridSnapshot(),
                             motion: ["since_keyframe": decision.motionSinceKeyframe,
                                      "peak": decision.peakMotion,
-                                     "step": decision.stepMotion])
+                                     "step": decision.stepMotion,
+                                     "sharpness": sharp])
         }
         guard let ctx,
               let jpeg = Self.jpegFromBuffer(buffer),
