@@ -164,6 +164,31 @@ def _inject_perceived_record(moment: str, desc: str, frame_name: str,
     (mdir / "kf_memory.json").write_text(json.dumps(recs, ensure_ascii=False))
 
 
+_PLAUS_CACHE: dict[tuple, float] = {}
+
+
+def _plausibility(candidate: str, activity: str) -> float:
+    """Local-LLM prior for the compounding brain: how plausible is `candidate` in an
+    `activity` scene (0..1)? Resolves conflicting reads (kitchen: soya yes, rocks no).
+    Cached per (candidate, activity)."""
+    key = (str(candidate).lower().strip(), activity)
+    if key in _PLAUS_CACHE:
+        return _PLAUS_CACHE[key]
+    prompt = (f"In a typical {activity} scene, how plausible is it to see '{candidate}'? "
+              f"Reply with ONLY a number from 0 to 1 (0 = impossible, 1 = very likely).")
+    score = 0.5
+    try:
+        import ask_home
+        out = ask_home._ollama(prompt, MODEL, OLLAMA_HOST, 15)
+        m = re.search(r"\b([01](?:\.\d+)?|0?\.\d+)\b", str(out))
+        if m:
+            score = max(0.0, min(1.0, float(m.group(1))))
+    except Exception:
+        score = 0.5
+    _PLAUS_CACHE[key] = score
+    return score
+
+
 def _moment_perception(moment: str, mdir: Path) -> dict[str, Any]:
     """Assemble a moment's derived perception (objects/texts/caption) for the
     activity identifier + domain specialists."""
@@ -898,7 +923,9 @@ def _ask_impl(payload: dict[str, Any]) -> dict[str, Any]:
     # specialist's structured facts — "how much soya", "what opening".
     try:
         import activity_dispatch
-        analysis = activity_dispatch.analyze(_moment_perception(moment, mdir))
+        _nodes = ((_INSTANCE_GRAPHS.get(moment) or {}).get("consolidated") or {}).get("instances") or []
+        analysis = activity_dispatch.analyze(
+            _moment_perception(moment, mdir), nodes=_nodes, plausibility_fn=_plausibility)
         if analysis and analysis.get("domain_facts"):
             dom = activity_dispatch.answer_domain(question, analysis["domain_facts"])
             if dom and not dom.get("refused"):

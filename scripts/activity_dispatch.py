@@ -16,11 +16,16 @@ if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
 
 
-def analyze(perception: dict) -> dict | None:
+def analyze(perception: dict, nodes: list | None = None,
+            plausibility_fn=None) -> dict | None:
     """Identify the activity and run its specialists over the moment's perception.
 
     perception = {"objects":[str], "texts":[str], "caption": str}
-    Returns {"activity", "confidence", "specialists", "domain_facts": {name: facts}} or None.
+    nodes + plausibility_fn (optional) enable the COMPOUNDING BRAIN: reconcile each
+    object's conflicting reads against the activity prior (kitchen: keep 'soya', drop
+    'rocks'), then enrich the perception with the reconciled identities so specialists
+    see the plausible read, not the noise.
+    Returns {"activity", "confidence", "specialists", "domain_facts", "uncertain"}.
     """
     try:
         import activity_identifier as ai
@@ -30,6 +35,23 @@ def analyze(perception: dict) -> dict | None:
         ident = ai.identify(perception)
     except Exception:
         return None
+
+    activity = ident.get("activity") or "generic"
+    uncertain: list[dict] = []
+    if nodes and plausibility_fn and activity != "generic":
+        try:
+            import context_reconciler as cr
+            recon_nodes = cr.reconcile(nodes, activity, plausibility_fn)
+            for n in recon_nodes:
+                rec = n.get("reconciled") or {}
+                chosen = rec.get("chosen")
+                if chosen:
+                    perception.setdefault("texts", []).append(chosen)
+                    if not rec.get("reliable"):
+                        uncertain.append({"label": chosen,
+                                          "confidence": rec.get("confidence")})
+        except Exception:
+            pass
 
     facts: dict[str, dict] = {}
     for spec in ident.get("specialists", []) or []:
@@ -47,6 +69,7 @@ def analyze(perception: dict) -> dict | None:
         "confidence": ident.get("confidence"),
         "specialists": ident.get("specialists", []),
         "domain_facts": facts,
+        "uncertain": uncertain,
     }
 
 
