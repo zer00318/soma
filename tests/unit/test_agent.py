@@ -115,15 +115,15 @@ def test_no_regex_fastpath_or_hardcoded_brands() -> None:
         assert needle not in src, f"rejected schematization still present: {needle}"
 
 
-def test_question_hints_cover_drink_and_mode_queries() -> None:
-    assert "drink" in agent_mod._question_hints("How can I drink water?")
-    assert "mode" in agent_mod._question_hints(
-        "In which mode is the fan currently running, 0, 1 or 2?"
-    )
+def test_question_hints_are_structural_intents_only() -> None:
+    """M3/I5: hints are intent categories mapping to helper types — the drink/mode/app/battery
+    content lexicons are deleted. Content questions rank via lexical/embedding overlap."""
+    assert "speech" in agent_mod._question_hints("What did she say about the invoice?")
+    assert "count" in agent_mod._question_hints("How many jars are there?")
+    assert "location" in agent_mod._question_hints("Where is the ladder?")
+    hints = agent_mod._question_hints("How can I drink water?")
+    assert "drink" not in hints  # no content-lexicon hints survive
     assert "opened" not in agent_mod._tokens("What app was opened on the laptop?")
-    assert "which" not in agent_mod._tokens(
-        "In which mode is the fan currently running, 0, 1 or 2?"
-    )
 
 
 def test_support_relevance_prefers_positive_drink_evidence() -> None:
@@ -231,46 +231,42 @@ def test_search_context_surfaces_app_specific_screen_state(tmp_path) -> None:
     assert row_ids.index(app_id) < row_ids.index(generic_id)
 
 
-def test_search_context_surfaces_mode_reading_over_off_only_state(tmp_path) -> None:
-    store = TraceMemoryStore(tmp_path / "fan-mode.sqlite3", embedder=StubEmbedder())
+def test_search_context_screen_text_sinks_on_physical_questions(tmp_path) -> None:
+    """M3/I5 structural rule replacing the old mode-lexicon rescue: screen-text rows are
+    demoted on physical-world questions and surface on screen questions."""
+    store = TraceMemoryStore(tmp_path / "screen-rank.sqlite3", embedder=StubEmbedder())
     try:
-        off_id = _write_grounded_observation(
+        room_id = _write_grounded_observation(
             store,
-            text="Fan is off (blades stationary)",
+            text="Fan on the dresser, blades spinning",
             t_ms=1000,
             helper_type="spatial_relation",
             section_kind="relation",
             helper_prompt="spatial_relations",
         )
-        mode_id = _write_grounded_observation(
+        screen_id = _write_grounded_observation(
             store,
-            text="2. Spatial mode ON, pointed at this Mac.",
+            text="Fan speed settings panel with sliders",
             t_ms=1000,
             helper_type="ocr",
             section_kind="screen_text",
             helper_prompt="scene_perception",
         )
 
-        search = agent_mod._search_context(
-            store,
-            "In which mode is the fan currently running, 0, 1 or 2?",
-            max_hops=1,
-            sources=("phone_camera",),
+        physical = agent_mod._search_context(
+            store, "Where is the fan?", max_hops=1, sources=("phone_camera",)
         )
-        rows = TraceMemoryAgent(
-            store,
-            reasoner="heuristic",
-            restrict_sources=("phone_camera",),
-        )._evidence_chain(
-            search,
-            question="In which mode is the fan currently running, 0, 1 or 2?",
+        ranked = [hit.node.id for hit in physical.hits]
+        assert room_id in ranked
+        if screen_id in ranked:
+            assert ranked.index(room_id) < ranked.index(screen_id)
+
+        on_screen = agent_mod._search_context(
+            store, "What was on the screen about the fan?", max_hops=1, sources=("phone_camera",)
         )
+        assert screen_id in [hit.node.id for hit in on_screen.hits]
     finally:
         store.close()
-
-    row_ids = [row["id"] for row in rows[:4]]
-    assert mode_id in row_ids
-    assert row_ids.index(mode_id) < row_ids.index(off_id)
 
 
 def test_search_context_surfaces_flavour_reading_without_subject_overlap(tmp_path) -> None:

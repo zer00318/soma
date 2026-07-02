@@ -18,12 +18,6 @@ COUNT_INTENT_RES = (
                re.IGNORECASE),
     re.compile(r"\b(?:number|count|total)\s+of\s+(?P<subject>.+?)\s*[.!?]*\s*$", re.IGNORECASE),
 )
-EXISTS_RE = re.compile(r"^\s*is there (?P<subject>.+?)\s*\??\s*$", re.IGNORECASE)
-ATTRIBUTE_RE = re.compile(
-    r"^\s*what (?P<attribute>colour|color|flavour|flavor|brand|name) "
-    r"(?:is|are) (?P<subject>.+?)\s*\??\s*$",
-    re.IGNORECASE,
-)
 LOCATION_RE = re.compile(
     r"\b("
     r"next to|beside|underneath|under|behind|in front of|on top of|"
@@ -131,67 +125,11 @@ ABSTRACT_QUERY_WORDS = {
     "time", "colour", "color", "brand", "name", "number", "kind", "type", "amount",
     "price", "size", "count", "flavour", "flavor", "material", "shape", "model", "make", "text",
 }
-LOCATION_ANCHORS = {
-    "adapter",
-    "bed",
-    "bedside",
-    "bottle",
-    "cabinet",
-    "chair",
-    "cord",
-    "counter",
-    "cup",
-    "desk",
-    "dresser",
-    "fan",
-    "glass",
-    "jar",
-    "laptop",
-    "ledge",
-    "mattress",
-    "microphone",
-    "nightstand",
-    "pillow",
-    "shelf",
-    "stand",
-    "suitcase",
-    "surface",
-    "table",
-    "thermal",
-    "thermos",
-    "tray",
-    "water",
-    "window",
-    "windowsill",
-}
-SCREEN_DIRECT_CUES = (
-    "menu bar",
-    "window title",
-    "screen",
-    "transcribed text",
-    "visible text",
-    "sidebar",
-    "main panel",
-)
-SCREEN_REPORT_NOISE = (
-    "weighted score",
-    "21 wrong",
-    "16 / 21",
-    "trace_capture",
-    "eval_report",
-    "local_vision_answers",
-    "the biggest failures",
-    "current hard status",
-    "project audit",
-    "question and frame alignment",
-    "pitch prototype sprint",
-    "autonomous execution framework",
-    "screen capture live stream",
-    "keep recording",
-    "get to 150 200 frames",
-    "the nutella row",
-    "future captures",
-)
+# M3 (invariant I5): the content lexicons that used to live here — a bedroom-specific
+# LOCATION_ANCHORS noun list, SCREEN_REPORT_NOISE literals scraped from our own dev
+# screenshots, a drink-cue lexicon — are DELETED, not relocated. Ranking may key only on
+# STRUCTURE: helper types, metadata kinds, generic location grammar, and lexical/embedding
+# overlap with the question itself.
 AMBIGUITY_CUES = (
     " or ",
     "/",
@@ -331,28 +269,9 @@ def _blob_tokens(node: Any) -> set[str]:
     return {_singularize(token) for token in _normalize(_blob(node)).split() if token}
 
 
-def _match_subject(
-    store: TraceMemoryStore, subject: str, node_types: tuple[str, ...] = ("entity", "observation")
-) -> tuple[Any, ...]:
-    wanted = _tokens(subject)
-    if not wanted:
-        return ()
-    matched = []
-    for node in store.nodes(node_types=node_types):
-        blob_tokens = _blob_tokens(node)
-        if all(token in blob_tokens for token in wanted):
-            matched.append(node)
-    return tuple(matched)
-
-
-def _first_colour(blob: str) -> str | None:
-    for colour in ("green", "red", "blue", "brown", "yellow", "black", "white", "silver", "gold"):
-        if colour in blob:
-            return colour.capitalize()
-    return None
-
-
 def _question_hints(question: str) -> set[str]:
+    """Question INTENT categories. Each maps to structural evidence properties (which helper,
+    which metadata kind) — never to content vocabularies (I5)."""
     lowered = _normalize(question)
     hints: set[str] = set()
     if re.search(r"\b(what did|say|said|transcript|speaking)\b", lowered):
@@ -367,45 +286,21 @@ def _question_hints(question: str) -> set[str]:
         hints.add("location")
     if re.search(r"\b(current|currently|now|opened)\b", lowered):
         hints.add("current")
-    if re.search(r"\b(drink|water|bottle|thermal|thermos|glass|cup)\b", lowered):
-        hints.add("drink")
-    if re.search(r"\b(app|screen|window|laptop|display)\b", lowered):
+    if re.search(r"\b(app|screen|window|display)\b", lowered):
         hints.add("screen")
-    if re.search(r"\b(day|night|morning|afternoon|evening)\b", lowered):
-        hints.add("daytime")
-    if "battery" in lowered or "%" in lowered:
-        hints.add("battery")
-    if "app" in lowered or "opened" in lowered:
-        hints.add("app")
-    if re.search(r"\b(mode|dial|speed|setting|running)\b", lowered) or len(_numbers := re.findall(r"\b\d+\b", lowered)) >= 2:
-        hints.add("mode")
     return hints
 
 
 def _location_specificity(text: str) -> float:
+    """Generic location GRAMMAR only: how concretely does this text place something?
+    Prepositions like 'leaning against'/'on top of' are structural English, not a lexicon."""
     lowered = text.lower()
     strong_phrases = len(STRONG_LOCATION_RE.findall(lowered))
     phrases = len(LOCATION_RE.findall(lowered))
-    anchors = sum(1 for anchor in LOCATION_ANCHORS if anchor in lowered)
-    if phrases == 0 and anchors == 0:
+    if phrases == 0:
         return 0.0
     weak_phrases = max(0, phrases - strong_phrases)
-    return min(1.1, (strong_phrases * 0.45) + (weak_phrases * 0.1) + (min(anchors, 4) * 0.1))
-
-
-def _screen_specificity(text: str) -> float:
-    lowered = text.lower()
-    bonus = sum(0.25 for cue in SCREEN_DIRECT_CUES if cue in lowered)
-    penalty = sum(0.2 for cue in SCREEN_REPORT_NOISE if cue in lowered)
-    return bonus - penalty
-
-
-def _report_noise_penalty(text: str) -> float:
-    lowered = text.lower()
-    hits = sum(1 for cue in SCREEN_REPORT_NOISE if cue in lowered)
-    if hits == 0:
-        return 0.0
-    return min(1.0, hits * 0.3)
+    return min(1.1, (strong_phrases * 0.45) + (weak_phrases * 0.1))
 
 
 def _absence_penalty(text: str, hints: set[str]) -> float:
@@ -418,19 +313,9 @@ def _absence_penalty(text: str, hints: set[str]) -> float:
         or "not confirmed" in lowered
     ):
         return 0.0
-    if hints & {"drink", "app", "mode", "location", "label", "count"}:
+    if hints & {"location", "label", "count"}:
         return 0.9
     return 0.35
-
-
-def _location_anchor_terms(text: str) -> set[str]:
-    lowered = text.lower()
-    anchors = {anchor for anchor in LOCATION_ANCHORS if anchor in lowered}
-    if "back-left" in lowered or "back left" in lowered:
-        anchors.add("back-left")
-    if "front-center" in lowered or "front center" in lowered:
-        anchors.add("front-center")
-    return anchors
 
 
 def _count_conflict(question: str, rows: list[dict[str, Any]]) -> bool:
@@ -439,21 +324,23 @@ def _count_conflict(question: str, rows: list[dict[str, Any]]) -> bool:
         return False
     numbers: set[str] = set()
     for row in rows[:6]:
-        lowered = str(row.get("text", "")).lower()
-        if "drawer" in lowered:
-            continue
-        numbers.update(re.findall(r"\b\d+\b", lowered))
+        numbers.update(re.findall(r"\b\d+\b", str(row.get("text", "")).lower()))
     return len(numbers) > 1
 
 
 def _location_conflict(question: str, rows: list[dict[str, Any]]) -> bool:
+    """Structural: evidence rows that place the subject with STRONG location phrases in more
+    than one distinct place (different `place` values or >=2 distinct strong phrasings)."""
     hints = _question_hints(question)
     if not (hints & {"location", "current"}):
         return False
-    anchors: set[str] = set()
+    places = {str(row.get("place") or "") for row in rows[:6] if row.get("place")}
+    if len(places) > 1:
+        return True
+    strong = set()
     for row in rows[:6]:
-        anchors.update(_location_anchor_terms(str(row.get("text", ""))))
-    return len(anchors) > 1
+        strong.update(m.lower() for m in STRONG_LOCATION_RE.findall(str(row.get("text", ""))))
+    return len(strong) > 2
 
 
 def _multi_instance_conflict(question: str, rows: list[dict[str, Any]]) -> bool:
@@ -508,6 +395,10 @@ def _calibrated_confidence(
 
 
 def _support_relevance(question: str, node: Any) -> tuple[float, float]:
+    """Question-to-evidence relevance from STRUCTURE only (I5): lexical overlap with the
+    question, plus intent->helper-type priors (a speech question prefers the ASR channel, a
+    brand question the OCR channel), plus generic location grammar. No content vocabularies —
+    what the evidence SAYS is matched via lexical/embedding overlap, never a tuned cue list."""
     wanted = _tokens(question)
     blob_tokens = _blob_tokens(node)
     lexical = 0.0
@@ -522,7 +413,7 @@ def _support_relevance(question: str, node: Any) -> tuple[float, float]:
     hint_boost = 0.0
     hints = _question_hints(question)
     if "speech" in hints and (
-        helper in {"whisper", "audio", "speech"}
+        helper in {"whisper", "audio", "speech", "asr"}
         or metadata.get("transcript")
         or "transcript" in lowered
         or "said" in lowered
@@ -540,8 +431,6 @@ def _support_relevance(question: str, node: Any) -> tuple[float, float]:
         or helper == "ocr"
         or helper == "screen_state"
         or helper == "vlm_object"
-        or "label" in lowered
-        or "text" in lowered
     ):
         hint_boost += 0.7
         if helper == "ocr":
@@ -554,75 +443,14 @@ def _support_relevance(question: str, node: Any) -> tuple[float, float]:
         hint_boost += _location_specificity(node.text)
         if helper == "spatial_relation" or helper_prompt == "spatial_relations":
             hint_boost += 0.55
-    if "screen" in hints:
-        hint_boost += _screen_specificity(node.text)
-    if "drink" in hints:
-        drink_cues = (
-            "water bottle",
-            "drinkable",
-            "thermal",
-            "thermos",
-            "steel glass",
-            "steel cup",
-            "stainless steel cup",
-            "glass",
-            "cup",
-            "bottle",
-        )
-        if any(
-            cue in lowered
-            for cue in drink_cues
-        ):
-            hint_boost += 0.95
-        distinct_drink_cues = sum(1 for cue in drink_cues if cue in lowered)
-        if distinct_drink_cues >= 2:
-            hint_boost += min(0.55, 0.15 * distinct_drink_cues)
-    if "mode" in hints:
-        if any(cue in lowered for cue in ("mode", "dial", "speed", "setting")):
-            hint_boost += 1.1
-            if helper == "ocr" or helper == "screen_state" or section_kind == "screen_text":
-                hint_boost += 0.25
-        if re.search(r"\b[012]\b", lowered):
-            hint_boost += 0.25
-        if (
-            "fan is off" in lowered
-            or "appears to be off" in lowered
-            or "blades stationary" in lowered
-            or "blades not blurred" in lowered
-        ):
-            hint_boost -= 0.55
-    if "daytime" in hints and (
-        re.search(r"\b(mon|tue|wed|thu|fri|sat|sun)\b", lowered)
-        or re.search(r"\b\d{1,2}:\d{2}\b", lowered)
-        or "day" in lowered
-        or "night" in lowered
-    ):
-        hint_boost += 0.85
-    if "battery" in hints and ("battery" in lowered or "%" in lowered):
-        hint_boost += 0.95
-    if "app" in hints and (
-        helper == "screen_state"
-        or helper_prompt == "screen_state"
-        or "file edit view window help" in lowered
-        or "chat" in lowered
-        or "cowork" in lowered
-        or "code" in lowered
-        or "claude" in lowered
-    ):
-        hint_boost += 0.95
-        if "app:" in lowered or "claude" in lowered or "anthropic" in lowered:
-            hint_boost += 0.5
+    # Screen-capture channels are for screen questions; on physical-world questions they only
+    # displace room evidence. Structural: keyed on the helper/section kind, not on content.
     if helper == "screen_state" or helper_prompt == "screen_state":
-        hint_boost += 0.4 if hints & {"screen", "daytime", "battery", "app"} else -0.6
-    elif any(cue in lowered for cue in SCREEN_DIRECT_CUES):
-        hint_boost -= 2.0
-    if section_kind == "screen_text" and not (hints & {"screen", "label", "battery", "daytime", "app", "mode"}):
+        hint_boost += 0.4 if "screen" in hints else -0.6
+    if section_kind == "screen_text" and not (hints & {"screen", "label"}):
         hint_boost -= 1.25
-        if helper_prompt != "screen_state" and len(lowered.split()) > 8:
-            hint_boost -= 0.5
     if section_kind == "physical_object":
         hint_boost += 0.2
-    hint_boost -= _report_noise_penalty(node.text)
     hint_boost -= _absence_penalty(node.text, hints)
     return hint_boost + lexical, lexical
 
@@ -642,8 +470,8 @@ def _search_context(
     # individuation under-counts and raw retrieval scored counts better.
     # "count" is now safe to include: the binder authors a DETERMINISTIC count memory from
     # coordinate-individuated instances, not an LLM guess. Surfacing it answers "how many X".
-    _COMPOSED_HINTS = {"location", "current", "drink", "colour", "count"}
-    _RAW_STRONG_HINTS = {"screen", "app", "battery", "label", "mode", "daytime"}
+    _COMPOSED_HINTS = {"location", "current", "colour", "count"}
+    _RAW_STRONG_HINTS = {"screen", "label"}
     needs_composition = bool(hints & _COMPOSED_HINTS) and not (hints & _RAW_STRONG_HINTS)
     if not needs_composition:
         search = SearchSlice(
@@ -793,11 +621,6 @@ class TraceMemoryAgent:
         self._restrict_sources = tuple(restrict_sources) if restrict_sources else None
 
     def answer(self, question: str) -> AgentAnswer:
-        quick = _search_context(self._store, question, max_hops=1, sources=self._restrict_sources)
-        heuristic = self._heuristic_answer(question, quick)
-        if heuristic is not None:
-            return heuristic
-
         expanded = _search_context(self._store, question, max_hops=2, sources=self._restrict_sources)
 
         # (S1 replaced the old coverage-RATIO gate. That gate divided covered-tokens by ALL question
@@ -905,13 +728,6 @@ class TraceMemoryAgent:
             refused=False,
             retrieval_mode=f"permanence:{res.method}",
         )
-
-    def _heuristic_answer(self, question: str, search: SearchSlice) -> AgentAnswer | None:
-        """REMOVED (T2): the brittle COUNT/EXISTS/ATTRIBUTE regex + hardcoded brand/colour
-        fast-path is gone. It short-circuited the grounded reasoner with overfit guesses.
-        Every question now flows to precise retrieval + the evidence-only LLM contract,
-        which answers from what was actually seen or refuses honestly."""
-        return None
 
     @staticmethod
     def _contract_prompt(question: str, rows: list[dict[str, Any]]) -> str:
@@ -1196,7 +1012,7 @@ class TraceMemoryAgent:
             else:
                 support_nodes.sort(key=lambda node: (node.t_ms, node.id))
             support_limit = 3 if question and _question_hints(question) & {
-                "location", "screen", "daytime", "battery", "app", "count"
+                "location", "screen", "count"
             } else 2
             for support_node in support_nodes[:support_limit]:
                 append_row(support_node, round(hit.score * 0.8, 6))
