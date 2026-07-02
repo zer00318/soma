@@ -37,6 +37,12 @@ A **working prototype** that feels like *magic — "it remembers everything"* �
 - Failing #6 → move the heavy compute to a background gemma job; keep my turn light.
 
 ## Iteration log (newest first)
+- _iter M4 (2026-07-02):_ Canonical ledger M4 CODE DONE+committed (90b8e83): on-device
+  OCR→track binding in ContentView.swift (bbox intersection, 'label text:' wording keeps
+  count floor safe), iOS build green, Mac seam locked by 3 hub-path tests. 228 green.
+  LEASH: on-device+frames-deleted config ✓ moat ✓. PENDING founder: device deploy + 5
+  planted branded objects capture (M4 DoD), desk truth + second room (M2 DoD).
+  Next: M5 capture coverage (per-track VLM crops, live crop-zoom OCR, continuous ASR).
 - _iter M3 (2026-07-02):_ Canonical ledger M3 DONE+committed (43320d0): every content lexicon
   deleted from the ranker (dev-screenshot literals, bedroom nouns, drink/mode/app cues + dead
   code); structural-only ranking. DoD: garage 17/18 (was 13/18 at audit), paraphrase 90%.

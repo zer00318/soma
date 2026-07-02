@@ -108,10 +108,12 @@
   (gate ≥90%; the break is an honest refusal on call/phone synonymy — future embedding
   grounding candidate, moat intact). 0 fabrications. Suite 225 green.
 
-**M4 — OCR→object binding at capture ("DeWalt" class).**
-  OCR hits bind to the overlapping track/crop on-device (bbox intersection), so brand/label text
-  attaches to the object instance, not to a floating text row.
-  DoD: 5 planted branded objects in a real capture → ≥4 brand questions answered verbatim.
+**M4 — OCR→object binding at capture ("DeWalt" class). ✅ CODE DONE 2026-07-02 (commit
+  90b8e83); DoD remainder = device deploy + founder capture of 5 planted branded objects.**
+  Track-anchor emission binds intersecting OCR to the track ('label text: "..."' +
+  metadata.bound_text); bound digits are verbatim world text for the count floor (bus-sign
+  test locked). xcodebuild iOS BUILD SUCCEEDED. Mac seam locked by 3 tests through real
+  Hub.ingest. Suite 228 green.
 
 **M5 — Capture coverage & rate.**
   Per-track crops feed the VLM (small/far objects), crop-zoom OCR specialist wired live
