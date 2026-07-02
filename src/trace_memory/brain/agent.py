@@ -10,6 +10,14 @@ from typing import Any
 from trace_memory.store import SearchHit, SearchSlice, TraceMemoryStore
 
 COUNT_RE = re.compile(r"^\s*how many (?P<subject>.+?)\s*\??\s*$", re.IGNORECASE)
+# Count intent is a FAMILY of phrasings, not one anchored sentence shape. (Measured: "Count the
+# mugs for me" bypassed the ^how many anchor and the counting path entirely.)
+COUNT_INTENT_RES = (
+    COUNT_RE,
+    re.compile(r"^\s*count (?:the |my |all (?:the )?)?(?P<subject>.+?)(?:\s+for me)?\s*[.!?]*\s*$",
+               re.IGNORECASE),
+    re.compile(r"\b(?:number|count|total)\s+of\s+(?P<subject>.+?)\s*[.!?]*\s*$", re.IGNORECASE),
+)
 EXISTS_RE = re.compile(r"^\s*is there (?P<subject>.+?)\s*\??\s*$", re.IGNORECASE)
 ATTRIBUTE_RE = re.compile(
     r"^\s*what (?P<attribute>colour|color|flavour|flavor|brand|name) "
@@ -284,19 +292,22 @@ _COUNT_SUBJECT_BREAK = {
 
 
 def _count_subject(question: str) -> str:
-    """The noun phrase actually being counted: tokens of the COUNT_RE subject up to the first
-    verb/preposition, singularized. Empty when the question is not a canonical count form."""
-    m = COUNT_RE.search(question)
-    if not m:
-        return ""
-    head: list[str] = []
-    for word in _normalize(m.group("subject")).split():
-        if word in _COUNT_SUBJECT_BREAK:
-            break
-        if word in STOPWORDS:
+    """The noun phrase actually being counted: tokens of the matched count-intent subject up
+    to the first verb/preposition, singularized. Empty when no count intent is detected."""
+    for pattern in COUNT_INTENT_RES:
+        m = pattern.search(question)
+        if not m:
             continue
-        head.append(_singularize(word))
-    return " ".join(head)
+        head: list[str] = []
+        for word in _normalize(m.group("subject")).split():
+            if word in _COUNT_SUBJECT_BREAK:
+                break
+            if word in STOPWORDS:
+                continue
+            head.append(_singularize(word))
+        if head:
+            return " ".join(head)
+    return ""
 
 
 def _blob(node: Any) -> str:
@@ -350,7 +361,7 @@ def _question_hints(question: str) -> set[str]:
         hints.add("colour")
     if "brand" in lowered or "name" in lowered or "flavour" in lowered or "flavor" in lowered:
         hints.add("label")
-    if COUNT_RE.search(question):
+    if any(pattern.search(question) for pattern in COUNT_INTENT_RES):
         hints.add("count")
     if re.search(r"\b(where|somewhere|located|location)\b", lowered):
         hints.add("location")
@@ -877,15 +888,16 @@ class TraceMemoryAgent:
                 "t_ms": getattr(node, "t_ms", None),
             })
 
-        # Confidence: distinct instances resolved by clustering/LLM are firm; a count carried
-        # only by a single frame's asserted number (floor > instances) is softer and hedged.
-        floor_only = res.floor > len(res.instances)
-        if floor_only:
-            confidence = 0.55
-            answer_text = f"approximately {res.count}"
+        # Calibration comes from the resolver's signal agreement (M1, invariant I4): agreeing
+        # corroborated signals -> firm; disagreeing signals -> an honest RANGE (a confident
+        # pick of one signal is how a wrong count breaks the moat); a single uncorroborated
+        # sighting or floor-only count -> hedged approximate.
+        if res.firm:
+            answer_text, confidence = str(res.count), 0.8
+        elif res.low != res.high:
+            answer_text, confidence = f"between {res.low} and {res.high}", 0.5
         else:
-            confidence = 0.8 if len(res.instances) >= 1 else 0.6
-            answer_text = str(res.count)
+            answer_text, confidence = f"approximately {res.count}", 0.55
         return AgentAnswer(
             answer=answer_text,
             evidence_chain=tuple(rows),

@@ -82,5 +82,7 @@ def test_count_subject_extraction():
     assert _count_subject("How many nutella jars were there in total?") == "nutella jar"
     assert _count_subject("How many mice did you see?") == "mouse"
     assert _count_subject("How many buses did I see?") == "bus"
-    # Non-canonical phrasing: no count subject -> fastpath must fall through.
-    assert _count_subject("Count the mugs for me.") == ""
+    # M1 widened intent to a phrasing family: imperative counting now routes too.
+    assert _count_subject("Count the mugs for me.") == "mug"
+    # No count intent at all -> empty (fastpath falls through).
+    assert _count_subject("Where is the mug?") == ""
