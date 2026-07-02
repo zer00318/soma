@@ -531,7 +531,10 @@ def _search_context(
     if subject_tokens:
         have = {hit.node.id for hit in search.hits}
         keyword_hits: list[tuple[int, Any]] = []
-        for node in store.nodes(node_types=("observation", "entity_memory", "group_memory"), sources=sources):
+        # "abstraction" included (M6): landmark notes bridge the vocabulary gap between what
+        # was READ ("MICHIGAN STATE") and how questions are ASKED ("which university...") —
+        # they only surface when they literally share the question's tokens.
+        for node in store.nodes(node_types=("observation", "entity_memory", "group_memory", "abstraction"), sources=sources):
             if node.id in have:
                 continue
             matched = len(subject_tokens & _blob_tokens(node))
@@ -884,6 +887,16 @@ class TraceMemoryAgent:
         hints = _question_hints(question or "") if question else set()
 
         def append_row(node: Any, score: float, citation_ids: list[str] | None = None) -> None:
+            # "when": human-readable clock time. Raw 13-digit epoch t_ms is incomparable for
+            # a small reasoner (measured: gemma12b INVERTED "before or after" between t_ms
+            # 1782909425990 and 1782909325990 at conf 0.7 — a confident-wrong). HH:MM:SS is
+            # directly comparable text.
+            try:
+                from datetime import datetime, timezone
+                when = datetime.fromtimestamp(node.t_ms / 1000, tz=timezone.utc).strftime(
+                    "%H:%M:%S")
+            except (OverflowError, OSError, ValueError):
+                when = None
             rows.append(
                 {
                     "id": node.id,
@@ -892,6 +905,7 @@ class TraceMemoryAgent:
                     "text": node.text,
                     "place": node.place,
                     "t_ms": node.t_ms,
+                    "when": when,
                     "frame_index": node.metadata.get("frame_index"),
                     "section_kind": node.metadata.get("section_kind"),
                     "helper_prompt": node.metadata.get("helper_prompt"),

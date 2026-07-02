@@ -19,9 +19,44 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Callable
 
+import re
+
 from trace_memory.store.author import AuthoredRecord, LocalLLMAuthor, deterministic_author
 from trace_memory.store.individuate import ObjectCluster, _node_track_id, individuate
 from trace_memory.store.sqlite_store import TraceMemoryStore
+
+# M6 landmark expansion — verbatim text captured on objects ("MICHIGAN STATE", "DEWALT")
+# often answers questions in words the raw capture never contains ("which UNIVERSITY...").
+# At sleep time (unbounded compute) the local model writes ONE clearly-flagged world-
+# knowledge sentence per distinct verbatim, cited to the observations that read it. The
+# note is explicitly "not observed" so the reasoner can use it without claiming sight.
+_VERBATIM_TEXT_RE = re.compile(r'(?:label|ocr|provisional ocr) text: "([^"]{6,90})"', re.IGNORECASE)
+_LANDMARK_PROMPT = (
+    "Text was read off a physical object by a camera: \"{verbatim}\".\n"
+    "In ONE short sentence, state what this text most likely refers to in the world "
+    "(a brand, institution, product, place). Be concrete. If you cannot tell, output "
+    "exactly UNKNOWN."
+)
+_MAX_LANDMARKS_PER_RUN = 8
+
+
+def _landmark_context(verbatim: str, *, model: str, host: str, timeout: int = 60) -> str | None:
+    """One world-knowledge sentence for a verbatim read, or None. Separated for testability."""
+    data_prompt = _LANDMARK_PROMPT.format(verbatim=verbatim)
+    import json as _json
+    import urllib.request as _rq
+    body = {"model": model, "prompt": data_prompt, "stream": False,
+            "options": {"temperature": 0}}
+    try:
+        req = _rq.Request(f"{host.rstrip('/')}/api/generate",
+                          data=_json.dumps(body).encode(),
+                          headers={"content-type": "application/json"})
+        raw = _json.load(_rq.urlopen(req, timeout=timeout)).get("response", "").strip()
+    except Exception:  # noqa: BLE001  no LLM -> no expansion, never a crash
+        return None
+    if not raw or "unknown" in raw.lower()[:20]:
+        return None
+    return raw.splitlines()[0].strip()[:220]
 
 # Author at most this many clusters with the (GPU-serial) local LLM; the rest get the cheap
 # deterministic record. Clusters are ranked by evidence size so the richest objects get the LLM.
@@ -53,10 +88,17 @@ class SleepConsolidator:
         *,
         author: Callable[[ObjectCluster], AuthoredRecord] | None = None,
         max_llm_clusters: int = _MAX_LLM_CLUSTERS,
+        landmark_expansion: bool = True,
+        landmark_context: Callable[..., str | None] = _landmark_context,
     ) -> None:
         self._store = store
         self._author = author if author is not None else LocalLLMAuthor()
         self._max_llm_clusters = max_llm_clusters
+        self._landmark_expansion = landmark_expansion
+        self._landmark_context = landmark_context
+        llm = self._author if isinstance(self._author, LocalLLMAuthor) else None
+        self._llm_model = llm.model if llm else "gemma3:12b-it-qat"
+        self._llm_host = llm.host if llm else "http://127.0.0.1:11434"
 
     def consolidate(self) -> SleepRunSummary:
         # RECONSOLIDATION: the binder's own previous derived output is removed and re-derived
@@ -306,6 +348,74 @@ class SleepConsolidator:
                                  link_id=_stable_id("lnk-count", support_id, count_node.id))
                 existing_links.add(link_key)
                 created_links += 1
+
+        # LANDMARK EXPANSION (M6): one flagged world-knowledge sentence per distinct verbatim
+        # text read off an object, cited to the reading observations. Fills the vocabulary gap
+        # between what the camera read ("MICHIGAN STATE") and how questions are asked ("which
+        # university..."). Skipped silently when no LLM is reachable — enrichment, never a
+        # dependency.
+        if self._landmark_expansion:
+            expanded = 0
+            seen_verbatims: set[str] = set()
+            for cluster in clusters:
+                if expanded >= _MAX_LANDMARKS_PER_RUN:
+                    break
+                if cluster.kind != "entity":
+                    continue
+                for member in cluster.members:
+                    for verbatim in _VERBATIM_TEXT_RE.findall(getattr(member, "text", "") or ""):
+                        key = verbatim.strip().lower()
+                        if key in seen_verbatims or expanded >= _MAX_LANDMARKS_PER_RUN:
+                            continue
+                        seen_verbatims.add(key)
+                        context = self._landmark_context(
+                            verbatim, model=self._llm_model, host=self._llm_host)
+                        if not context:
+                            continue
+                        support_ids = [n.id for n in cluster.members
+                                       if verbatim in (getattr(n, "text", "") or "")]
+                        if not support_ids:
+                            continue
+                        anchor_node = node_by_id.get(support_ids[0])
+                        if anchor_node is None:
+                            continue
+                        node_id = _stable_id("landmark", cluster.label, key)
+                        if self._store.read_observation(node_id) is not None:
+                            continue
+                        note = (f'World-knowledge note (not observed, derived from text read on '
+                                f'the {cluster.label}): "{verbatim}" — {context}')
+                        landmark_node = self._store.write_observation(
+                            text=note,
+                            t_ms=anchor_node.t_ms,
+                            source=anchor_node.source,
+                            source_support={"support_ids": support_ids},
+                            place=anchor_node.place,
+                            provenance={"builder": "sleep", "authored_by": "landmark_expansion"},
+                            metadata={
+                                "helper": "sleep_binder",
+                                "subject_hint": cluster.label,
+                                "memory_kind": "abstraction",
+                                "support_ids": support_ids,
+                                "verbatim": verbatim,
+                                "world_knowledge": True,
+                            },
+                            node_type="abstraction",
+                            derived=True,
+                            immutable_raw=False,
+                            node_id=node_id,
+                        )
+                        expanded += 1
+                        authored_count += 1
+                        for support_id in support_ids:
+                            link_key = (support_id, landmark_node.id, "supports_memory")
+                            if link_key in existing_links:
+                                continue
+                            self._store.link(support_id, landmark_node.id, "supports_memory",
+                                             metadata={"builder": "sleep"},
+                                             link_id=_stable_id("lnk-landmark", support_id,
+                                                                landmark_node.id))
+                            existing_links.add(link_key)
+                            created_links += 1
 
         return SleepRunSummary(
             grouped_observation_count=len(grouped_ids),
