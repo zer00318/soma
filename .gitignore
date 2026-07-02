@@ -104,3 +104,7 @@ ops/cockpit/
 # never commit bundled model weights (GBs)
 trace-native-fastvlm/FastVLM/model/*.safetensors
 models/**/*.safetensors
+
+# day-in-life demo build artifacts (large / regenerable)
+evaluation/day_in_life/*.sqlite3
+evaluation/day_in_life/*.sqlite3-*

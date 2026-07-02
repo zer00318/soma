@@ -1,0 +1,294 @@
+{
+  "summary": {
+    "model": "gemma3:27b-it-qat",
+    "n": 19,
+    "correct": 4,
+    "wrong": 1,
+    "miss": 14,
+    "RAS_pct": 21.1,
+    "halluc_pct": 5.3
+  },
+  "rows": [
+    {
+      "id": "1",
+      "q": "Whose lectures was I listening to?",
+      "answer": "You were listening to a PHYSICS LECTURE.",
+      "confidence": 1.0,
+      "refused": false,
+      "verdict": "miss",
+      "gold": "Old lectures by Mr. Ryan Maccombs (lecturer name shown on the lecture video/scre",
+      "channel": "screen/OCR",
+      "evidence": [
+        "OBJECT | screen text | reads \"PHYSICS'LECTURE\"",
+        "OBJECT | screen text | reads \"PHYSICS LECTURE\"",
+        "OBJECT | screen text | reads \"PHYSICS LECTURE\""
+      ]
+    },
+    {
+      "id": "2",
+      "q": "Which example problem was I on?",
+      "answer": "I didn't capture that clearly enough to answer.",
+      "confidence": 0.2,
+      "refused": true,
+      "verdict": "miss",
+      "gold": "Example 1.6 (physics example on the screen; content was about a field due to a c",
+      "channel": "screen/OCR",
+      "evidence": [
+        "EVENT | nearby speech | transcript: \"good morning good morning but I do yeah see you later\"",
+        "EVENT | nearby speech | transcript: \"Good morning. Good morning. Is that a place I do? I do, yeah. Okay, Jo.\"",
+        "EVENT | nearby speech | transcript: \"Thank you.\""
+      ]
+    },
+    {
+      "id": "3",
+      "q": "What was the colour of my bedsheets and blanket?",
+      "answer": "The bedsheet is grey and white.",
+      "confidence": 0.502,
+      "refused": false,
+      "verdict": "correct",
+      "gold": "Bedsheets: black-and-white stripe pattern (thick white stripes, thin black strip",
+      "channel": "caption/VLM",
+      "evidence": [
+        "OBJECT | scene | A person's hands are holding a striped fabric, likely a bedsheet. The sheet is grey and white. A foot w"
+      ]
+    },
+    {
+      "id": "4",
+      "q": "Did I have any accessories that were visible when I was in bed, and where were they?",
+      "answer": "Gold wrist accessories and a silver wristwatch were visible on hands.",
+      "confidence": 0.7,
+      "refused": false,
+      "verdict": "miss",
+      "gold": "Yes — a band/bracelet on the RIGHT hand/wrist.",
+      "channel": "caption/self-perception",
+      "evidence": [
+        "OBJECT | scene | A person is riding a bicycle with black handlebars and tires. Two other bicycles are parked on the pave",
+        "OBJECT | scene | A hand with gold wrist accessories is visible, holding a black rectangular device.",
+        "OBJECT | scene | Behind the table, there's a person wearing a light grey t-shirt and blue jeans. Another person is parti"
+      ]
+    },
+    {
+      "id": "5",
+      "q": "Do I wear eyewear or glasses?",
+      "answer": "You wear glasses at 7:20:13 and 7:20:15.",
+      "confidence": 0.7,
+      "refused": false,
+      "verdict": "correct",
+      "gold": "Maybe — a glasses holder/case was on the table while putting on the crocs (no gl",
+      "channel": "caption/VLM",
+      "evidence": [
+        "OBJECT | scene | Text overlay reads: \"BIKE TO CLASS 12:25 PM\". A tall building with glass windows and concrete facade is",
+        "OBJECT | scene | The person wears light beige pants, a white t-shirt, and green sneakers. Their hands are visible holdin",
+        "OBJECT | scene | A person’s arms and hands are in the foreground. The person wears a black hoodie and dark pants. They h"
+      ]
+    },
+    {
+      "id": "6",
+      "q": "What outfit was I wearing?",
+      "answer": "You wore a pink t-shirt with \"BREAKFAST CLUB\" printed on it.",
+      "confidence": 0.7,
+      "refused": false,
+      "verdict": "miss",
+      "gold": "Green t-shirt, dark blue sweatpants, and white crocs.",
+      "channel": "caption/self-perception",
+      "evidence": [
+        "OBJECT | scene | Self-view: The wearer appears to be wearing a patterned wristband.",
+        "OBJECT | scene | Part of a person's arm wearing a dark grey sleeve is visible on the left side of the frame.",
+        "OBJECT | scene | The person is wearing a dark grey or black shirt and multiple bracelets."
+      ]
+    },
+    {
+      "id": "7",
+      "q": "Was I wearing a watch?",
+      "answer": "You were seen wearing a watch or bracelet at times.",
+      "confidence": 0.65,
+      "refused": false,
+      "verdict": "correct",
+      "gold": "Yes — a watch with a dark blue band.",
+      "channel": "caption/self-perception",
+      "evidence": [
+        "OBJECT | scene | The wearer appears to be wearing a black shirt and has a wrist accessory, possibly a watch or bracelet.",
+        "OBJECT | scene | A black plate holds scrambled eggs (yellow), sausage links (brown), and diced potatoes (beige/brown). A",
+        "OBJECT | scene | A person wearing a grey t-shirt and dark shorts with white socks is seen from a first-person perspectiv"
+      ]
+    },
+    {
+      "id": "8",
+      "q": "What is my name?",
+      "answer": "The person is wearing a name tag.",
+      "confidence": 0.2,
+      "refused": true,
+      "verdict": "miss",
+      "gold": "Joe (April said it: 'Okay, Joe, see you').",
+      "channel": "ASR/speech",
+      "evidence": [
+        "OBJECT | scene | A person with blonde hair and glasses is wearing a pink t-shirt with \"TH\" printed on it, along with a n",
+        "OBJECT | scene | The brand name \"OVERDRIVE\" is printed on the frame in black lettering."
+      ]
+    },
+    {
+      "id": "9",
+      "q": "What was the name of the person who checked my card, and what details do you know about her?",
+      "answer": "A person with blonde hair and glasses wearing a pink \"TH\" shirt.",
+      "confidence": 0.6,
+      "refused": false,
+      "verdict": "correct",
+      "gold": "April. She wore a pink 'The Breakfast Club' t-shirt, black glasses/specs, is blo",
+      "channel": "caption + ASR (name)",
+      "evidence": [
+        "OBJECT | scene | A person with blonde hair and glasses is wearing a pink t-shirt with \"TH\" printed on it, along with a n",
+        "OBJECT | scene | A self-view shows a person wearing a grey long-sleeved shirt.",
+        "OBJECT | scene | Self-view: The person wears a dark shirt."
+      ]
+    },
+    {
+      "id": "10",
+      "q": "How many calories were in the breakfast I ate, and what did I eat?",
+      "answer": "You ate BREAKFAST; calorie count is unknown.",
+      "confidence": 0.2,
+      "refused": true,
+      "verdict": "miss",
+      "gold": "Scrambled eggs, diced breakfast potatoes/home fries, and ketchup; roughly 495-69",
+      "channel": "VLM food reasoning",
+      "evidence": [
+        "OBJECT | screen text | reads \"BREAKFAST\"",
+        "OBJECT | screen text | reads \"BREAKFAST\"",
+        "OBJECT | screen text | reads \"BREAKFAST\""
+      ]
+    },
+    {
+      "id": "11",
+      "q": "Who were at the table opposite to me?",
+      "answer": "The evidence only shows a person with blonde hair.",
+      "confidence": 0.2,
+      "refused": true,
+      "verdict": "miss",
+      "gold": "Two women — one in a white t-shirt, the other in a white jacket / full-sleeve to",
+      "channel": "caption/VLM",
+      "evidence": [
+        "OBJECT | screen text | reads \"BACK AT DORM\"",
+        "OBJECT | screen text | reads \"BACK AT DORM\"",
+        "OBJECT | screen text | reads \"BACK AT DORM\""
+      ]
+    },
+    {
+      "id": "12",
+      "q": "What game was I playing, what was the highest speed I reached, and on what device was I playing?",
+      "answer": "Playing a skiing video game on a black rectangular device.",
+      "confidence": 0.2,
+      "refused": true,
+      "verdict": "miss",
+      "gold": "Descenders; highest speed ~51 km/h; on Xbox (an Xbox controller was visible).",
+      "channel": "screen/HUD OCR + controller ID",
+      "evidence": [
+        "EVENT | nearby speech | transcript: \"Playing would be where why\"",
+        "OBJECT | scene | A hand with gold wrist accessories is visible, holding a black rectangular device.",
+        "OBJECT | scene | The scene shows a TV screen displaying a video game with a character on skis in a snowy landscape. The "
+      ]
+    },
+    {
+      "id": "13",
+      "q": "I said hi to someone — what was he wearing?",
+      "answer": "He was wearing a grey long-sleeved shirt and patterned wristband.",
+      "confidence": 0.7,
+      "refused": false,
+      "verdict": "miss",
+      "gold": "Greeting was 'Whatsup?'. He wore a green t-shirt and black shorts.",
+      "channel": "caption + ASR (greeting)",
+      "evidence": [
+        "OBJECT | scene | A self-view shows a person wearing a grey long-sleeved shirt.",
+        "OBJECT | screen text | OCR text: \"RECYCLING ¢4 | I\"aLI is Hi, | BREAKFAST | 10:02 AM\"",
+        "OBJECT | screen text | reads \"I\"aLI is Hi,\""
+      ]
+    },
+    {
+      "id": "14",
+      "q": "Where can I buy the macbook skin, and what phone do I use?",
+      "answer": "You use two phones; the location to buy a macbook skin is unknown.",
+      "confidence": 0.2,
+      "refused": true,
+      "verdict": "miss",
+      "gold": "The skin is a topographic/contour-line map design (closest dbrand match 'Area 51",
+      "channel": "VLM + world knowledge",
+      "evidence": [
+        "OBJECT | scene | A person's arm and hand are visible, with skin tones appearing tan/brown. They wear a silver wristwatch",
+        "OBJECT | scene | A hand with light skin tone holds a clipboard with white paper on it. The paper has black text and diag",
+        "OBJECT | scene | Two phones are held in the hand: one displaying a purple app icon, and another showing notes from a \"PH"
+      ]
+    },
+    {
+      "id": "15",
+      "q": "What university was I going to?",
+      "answer": "I didn't capture that clearly enough to answer.",
+      "confidence": 0.2,
+      "refused": true,
+      "verdict": "miss",
+      "gold": "Michigan State University (seen partially as 'chigan State' on a sign/logo).",
+      "channel": "OCR",
+      "evidence": [
+        "EVENT | nearby speech | transcript: \"good morning good morning but I do yeah see you later\"",
+        "EVENT | nearby speech | transcript: \"Good morning. Good morning. Is that a place I do? I do, yeah. Okay, Jo.\"",
+        "EVENT | nearby speech | transcript: \"Thank you.\""
+      ]
+    },
+    {
+      "id": "16",
+      "q": "Where did I leave my keys?",
+      "answer": "I didn't capture that clearly enough to answer.",
+      "confidence": 0.2,
+      "refused": true,
+      "verdict": "miss",
+      "gold": "On the table that has a black tablecloth/cover (last seen there).",
+      "channel": "caption/VLM",
+      "evidence": [
+        "OBJECT | scene | Behind the table, there's a person wearing a light grey t-shirt and blue jeans. Another person is parti",
+        "OBJECT | scene | A green baseball cap with a tree logo and text is visible behind the laptop. A pink baseball cap with a",
+        "EVENT | nearby speech | transcript: \"good morning good morning but I do yeah see you later\""
+      ]
+    },
+    {
+      "id": "17",
+      "q": "When did the physics lecture conclude?",
+      "answer": "The evidence shows the lecture was ongoing at 12:36 PM.",
+      "confidence": 0.9,
+      "refused": false,
+      "verdict": "wrong",
+      "gold": "At 13:30 (left the class around 13:32-13:36) — a clock/timestamp reading.",
+      "channel": "OCR (clock)",
+      "evidence": [
+        "OBJECT | screen text | reads \"PHYSICS'LECTURE\"",
+        "OBJECT | screen text | reads \"PHYSICS LECTURE\"",
+        "OBJECT | screen text | reads \"PHYSICS LECTURE\""
+      ]
+    },
+    {
+      "id": "18",
+      "q": "What was the logo on the mate I fist-bumped?",
+      "answer": "The evidence does not mention a logo on the mate you fist-bumped.",
+      "confidence": 0.2,
+      "refused": true,
+      "verdict": "miss",
+      "gold": "Turks & Caicos Islands.",
+      "channel": "caption/logo recognition",
+      "evidence": [
+        "OBJECT | scene | A green baseball cap with a tree logo and text is visible behind the laptop. A pink baseball cap with a",
+        "OBJECT | scene | A person's arm and hand are reaching out towards a bicycle. The bike is dark grey/black with yellow acc"
+      ]
+    },
+    {
+      "id": "19",
+      "q": "What was the model of the blue vehicle I saw?",
+      "answer": "A dark blue TV screen was partially visible.",
+      "confidence": 0.65,
+      "refused": false,
+      "verdict": "miss",
+      "gold": "Most likely a Ford F-150 (blue pickup truck).",
+      "channel": "caption/vehicle recognition",
+      "evidence": [
+        "OBJECT | scene | A silver laptop sits on a brown wooden desk. The screen displays \"NOTES BEFORE CLASS\" and \"10:48 AM\". A",
+        "OBJECT | scene | A dark blue TV screen is partially visible in the background.",
+        "OBJECT | scene | Text overlay reads: \"BIKE TO CLASS 12:25 PM\". A tall building with glass windows and concrete facade is"
+      ]
+    }
+  ]
+}

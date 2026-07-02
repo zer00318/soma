@@ -962,7 +962,12 @@ class TraceMemoryAgent:
             "model": self._ollama_model,
             "prompt": prompt,
             "stream": False,
-            "options": {"temperature": 0},
+            # DEMO LATENCY: the contract answer is <=12 words + a tiny JSON envelope, so cap
+            # generation at 160 tokens — the model was spending most of its wall-clock emitting
+            # tokens past a complete answer. keep_alive pins the model in VRAM between questions
+            # so the 2nd+ ask in a live demo doesn't pay a cold reload. temperature 0 = stable.
+            "options": {"temperature": 0, "num_predict": 160},
+            "keep_alive": "30m",
         }
         req = urllib.request.Request(
             f"{self._ollama_host}/api/generate",
