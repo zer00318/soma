@@ -37,6 +37,12 @@ A **working prototype** that feels like *magic — "it remembers everything"* �
 - Failing #6 → move the heavy compute to a background gemma job; keep my turn light.
 
 ## Iteration log (newest first)
+- _iter M1 (2026-07-02):_ Canonical ledger M1 DONE+committed (120207b): one count resolver
+  (binder+cluster+floor, hedge-on-disagreement), floor unpoisonable, intent family, type
+  discriminator. Garage DoD 10/10 / 0 confident-wrong; live store 0 confident-wrong. LEASH:
+  caught my own overfit pre-commit (type splitter tuned on clean synthetic broke on real
+  capture — the live store is now a mandatory pre-commit check for counting changes).
+  Next: M2 identity/fragmentation.
 - _iter M0 (2026-07-02):_ Canonical ledger M0 DONE+committed (8a6e34f): unicorn breach closed
   (gate before count fastpath, narrowed count subject, irregular plurals), pytest 211 green at
   HEAD, :8799 zombie dead. DoD measured live (10/10 absent-counts honest, gemma12b). LEASH:

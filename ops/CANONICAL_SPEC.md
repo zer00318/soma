@@ -76,14 +76,17 @@
   one-off reads must hedge (n_frames==1 → soft count), and the consensus filter kills them
   upstream in M5.
 
-**M1 — ONE counting path.**
-  The agent's count answer = binder-authored instance count (I3). `permanence.py` text-clustering
-  demoted to a binder-internal signal; `explicit_count_floor` may only FLAG a discrepancy
-  (hedge), never override upward from unanchored OCR digits (kills the "5 buses from a poster"
-  class). Delete the COUNT_RE routing anchor: count intent detected robustly (embedding or LLM
-  intent tag), not `^how many`.
-  DoD: garage-suite counting block (identical multiples, split-attributes, fragmentation,
-  number-poisoning, phrasing variants) ≥8/10 with 0 confident-wrong.
+**M1 — ONE counting path. ✅ DONE 2026-07-02 (commit 120207b).**
+  `count_instances` is THE resolver: binder-authored + clustering + floor, reconciled.
+  Agreement → firm @0.8; binder disagreement → honest RANGE @0.5; floor-rescue/single-sighting
+  → "approximately N" @0.55. Floor unpoisonable (OCR rows + verbatim "poster reads..." text
+  excluded; adjective-run word counts work). Count intent = phrasing family, not ^how many
+  (LLM intent tagging deferred to M3). Type-modifier discriminator from descriptor phrases
+  only — comma-list labels carry no types (live regression caught pre-commit: over-split
+  agreed with fragmented binder → firm-wrong "3 mice"; now hedged with truth inside range).
+  MEASURED DoD: garage block 10/10, 0 confident-wrong (was ~4/10 w/ 2 confident-wrong);
+  live desk store 0 confident-wrong. Suite 219 green. Hub restarted on new code.
+  → M2 turns the live "between 1 and 3" hedges into firm correct counts by fixing identity.
 
 **M2 — Object identity that survives real capture (THE hard problem, no substitutions).**
   Fix track fragmentation at the binder: cross-track re-ID merge using appearance embedding +
