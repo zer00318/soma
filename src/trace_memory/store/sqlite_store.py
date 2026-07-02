@@ -139,7 +139,12 @@ class TraceMemoryStore:
     def __init__(self, path: str | Path, *, embedder: TextEmbedder | None = None) -> None:
         self.path = str(path)
         self._embedder = embedder or build_default_embedder()
-        self._conn = sqlite3.connect(self.path)
+        # check_same_thread=False: the hub serves requests from ThreadingHTTPServer worker
+        # threads and serializes EVERY store access behind one lock (scripts/trace_hub.py).
+        # Without this flag each request thread died on sqlite's thread-affinity check and
+        # the demo surface answered only its error fallback (caught by the M7 hammer).
+        # Any new multi-threaded caller must bring its own serialization.
+        self._conn = sqlite3.connect(self.path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute(_NODE_SCHEMA)
         self._conn.execute(_LINK_SCHEMA)

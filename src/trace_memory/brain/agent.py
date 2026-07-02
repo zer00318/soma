@@ -624,6 +624,19 @@ class TraceMemoryAgent:
         self._restrict_sources = tuple(restrict_sources) if restrict_sources else None
 
     def answer(self, question: str) -> AgentAnswer:
+        # A question with NO content tokens ("??????", "a", "how many") has nothing to ground
+        # on, which previously SKIPPED the grounding gate entirely and let the reasoner narrate
+        # whatever retrieval coughed up at 0.7 (measured in the M7 hammer). No subject -> ask
+        # for a real question instead of answering about a random object.
+        if not set(_tokens(question)):
+            return AgentAnswer(
+                answer="I need a more specific question — name a thing, place, or moment.",
+                evidence_chain=(),
+                confidence=0.2,
+                refused=True,
+                retrieval_mode="no-subject",
+            )
+
         expanded = _search_context(self._store, question, max_hops=2, sources=self._restrict_sources)
 
         # (S1 replaced the old coverage-RATIO gate. That gate divided covered-tokens by ALL question

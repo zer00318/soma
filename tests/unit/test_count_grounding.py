@@ -86,3 +86,11 @@ def test_count_subject_extraction():
     assert _count_subject("Count the mugs for me.") == "mug"
     # No count intent at all -> empty (fastpath falls through).
     assert _count_subject("Where is the mug?") == ""
+
+
+@pytest.mark.parametrize("junk", ["??????", "a", "how many", "   ", "!!!"])
+def test_no_content_tokens_refuse_specifically(agent, junk):
+    """M7 hammer regression: junk input bypassed the grounding gate (empty subject) and the
+    reasoner narrated random evidence at 0.7. No subject -> structural refusal."""
+    answer = agent.answer(junk)
+    assert answer.refused and answer.confidence <= 0.2
