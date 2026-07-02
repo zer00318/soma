@@ -182,10 +182,39 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def do_POST(self):
-        if not self.path.startswith("/capture/perception"):
-            return self._send(404, {"ok": False, "reason": "unknown path"})
+        parsed = urlparse(self.path)
         length = int(self.headers.get("Content-Length") or 0)
         raw = self.rfile.read(length) if length else b"{}"
+
+        # The iOS app POSTs /ask with {"question": ...} and decodes {answer, source, refused,
+        # citations, model}. (GET /ask?q= is the browser path.) Serve BOTH so the app works.
+        if parsed.path == "/ask":
+            try:
+                body = json.loads(raw)
+            except Exception:
+                body = {}
+            q = str(body.get("question") or body.get("q") or "").strip()
+            if not q:
+                # AskResult.answer is required — never return a body missing it, or the app
+                # throws "the data couldn't be read because it is missing".
+                return self._send(200, {"answer": "Please ask a question.", "refused": True,
+                                        "source": "empty", "citations": [], "model": "trace"})
+            with self.hub.answer_lock:
+                result = self.hub.ask(q)
+            citations = [{"t": None, "label": str(e.get("text", ""))[:120]}
+                         for e in result.get("evidence", [])]
+            return self._send(200, {
+                "answer": result.get("answer", "I don't know"),
+                "refused": bool(result.get("refused")),
+                "source": result.get("mode", "trace"),
+                "citations": citations,
+                "model": "local-gemma",
+                "confidence": result.get("confidence", 0.0),
+                "badge": result.get("badge", ""),
+            })
+
+        if not parsed.path.startswith("/capture/perception"):
+            return self._send(404, {"ok": False, "reason": "unknown path"})
         try:
             packet = json.loads(raw)
         except Exception:
