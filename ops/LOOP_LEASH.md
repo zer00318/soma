@@ -37,6 +37,11 @@ A **working prototype** that feels like *magic — "it remembers everything"* �
 - Failing #6 → move the heavy compute to a background gemma job; keep my turn light.
 
 ## Iteration log (newest first)
+- _iter M6 (2026-07-02):_ Canonical ledger M6 DONE+committed (812894c): landmark expansion
+  (flagged world-knowledge notes; 'which university' answered from OCR 'MICHIGAN STATE'),
+  succession verified, humanized 'when' in evidence (fixed a measured before/after inversion
+  @0.7 — small reasoners can't compare epoch ms). Battery 10/10, 0 confident-wrong, 233 green.
+  LEASH: moat ✓ (notes explicitly 'not observed'). Next: M7 one demo surface.
 - _iter M5 (2026-07-02):_ Canonical ledger M5 CODE DONE+committed (e5b3e9b): per-track VLM
   crop enrichment (fused via track_id, throttled) + ASR delta commits (cumulative-partial
   duplication fixed). iOS build green, 230 tests. Consolidated ALL device-pending DoDs into

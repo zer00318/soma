@@ -137,10 +137,13 @@
 
 ---
 
-**M6 — Sleep-time enrichment.**
-  Landmark/context expansion + succession links ("current location" supersedes) authored during
-  sleep; retrieval surfaces them under the monotonic gate.
-  DoD: temporal/current-state battery block ≥80%.
+**M6 — Sleep-time enrichment. ✅ DONE 2026-07-02 (commit 812894c).**
+  Landmark expansion (cited, '(not observed)'-flagged world-knowledge notes from local gemma
+  per verbatim read; bridges READ-vocab → ASK-vocab); succession verified (current-location =
+  latest, supersedes links); evidence rows carry human-readable 'when' (measured: gemma12b
+  inverted before/after on raw epoch ms at 0.7 — fixed structurally). MEASURED DoD: temporal/
+  current-state/landmark battery 10/10 (gate ≥80%), 0 confident-wrong; 'which university' →
+  'Michigan State University' end-to-end. Suite 233 green.
 
 **M7 — ONE demo surface.**
   /ask hardened (timeout, concurrent asks, evidence rendering) + the phone app's ask view or a
