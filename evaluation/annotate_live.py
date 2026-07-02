@@ -31,6 +31,10 @@ def _normalize(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
 
 
+def _numbers(text: str) -> list[str]:
+    return re.findall(r"\d+(?:\.\d+)?", text)
+
+
 def answer_question(
     store: TraceMemoryStore,
     question: str,
@@ -73,9 +77,10 @@ def append_annotation(path: Path, question: str, true_answer: str, when: str | N
     path.write_text(json.dumps(rows, indent=2, ensure_ascii=False) + "\n")
 
 
-def judge(truth: str, answer: str, refused: bool) -> str:
+def judge(question: str, truth: str, answer: str, refused: bool) -> str:
     """Deterministic verdict. A refusal is honest (not wrong) unless the truth was a plain
     negative the system should have asserted. Substring/number match for positives."""
+    question_norm = _normalize(question)
     truth_norm = _normalize(truth)
     answer_norm = _normalize(answer)
     if refused:
@@ -87,7 +92,21 @@ def judge(truth: str, answer: str, refused: bool) -> str:
     if truth_norm == "no" or truth_norm.startswith("there is no"):
         return "correct" if "no" in answer_norm else "wrong"
     if truth_norm.isdigit():
-        return "correct" if re.search(rf"\b{truth_norm}\b", answer_norm) else "wrong"
+        answer_numbers = {value for value in _numbers(answer_norm)}
+        question_numbers = {value for value in _numbers(question_norm)}
+        if truth_norm not in answer_numbers:
+            return "wrong"
+        # Exact numeric questions ("how many", battery %, explicit 0/1/2 mode choices, etc.)
+        # must not be credited just because the truth digit appears anywhere inside a
+        # contradictory sentence like "mode 0, not 1 or 2".
+        if (
+            "how many" in question_norm
+            or "%" in truth
+            or "which mode" in question_norm
+            or len(question_numbers) > 1
+        ):
+            return "correct" if answer_numbers == {truth_norm} else "wrong"
+        return "correct"
     if truth_norm and truth_norm in answer_norm:
         return "correct"
     # Content-word overlap: all significant truth words present, in any order, even with
@@ -117,17 +136,40 @@ def score_annotations(
         attempts = []
         for _ in range(repeats):
             attempt = answer_question(store, question, reasoner=reasoner, model=model, host=host)
-            verdict = judge(truth, str(attempt.get("answer", "")), bool(attempt.get("refused")))
+            verdict = judge(question, truth, str(attempt.get("answer", "")), bool(attempt.get("refused")))
             attempts.append({**attempt, "verdict": verdict})
         results.append({"question": question, "truth": truth, "attempts": attempts})
     return results
+
+
+def _consensus_attempt(attempts: list[dict[str, Any]]) -> dict[str, Any]:
+    """Self-consistency vote across repeated attempts (Wang et al. style).
+
+    Votes on the ANSWER text only — no ground-truth peeking: refusals form one bucket,
+    otherwise the normalized answer string is the bucket key. The modal answer wins, ties
+    broken by summed confidence; the highest-confidence attempt from the winning bucket
+    becomes the question's verdict. With repeats==1 this returns that single attempt
+    unchanged (so single-sample behaviour is preserved exactly). This both removes
+    run-to-run reasoner noise and lifts accuracy by discarding one-off wrong answers,
+    while keeping the refusal gate intact (a majority refusal stays a refusal)."""
+    if len(attempts) <= 1:
+        return attempts[0]
+    buckets: dict[str, list[dict[str, Any]]] = {}
+    for attempt in attempts:
+        key = "<refused>" if bool(attempt.get("refused")) else _normalize(str(attempt.get("answer", "")))
+        buckets.setdefault(key, []).append(attempt)
+    winner = max(
+        buckets.values(),
+        key=lambda items: (len(items), sum(float(x.get("confidence", 0.0)) for x in items)),
+    )
+    return max(winner, key=lambda x: float(x.get("confidence", 0.0)))
 
 
 def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
     total = len(results)
     answered = correct = confident_wrong = 0
     for row in results:
-        best = row["attempts"][0]
+        best = _consensus_attempt(row["attempts"])
         verdict = best["verdict"]
         if not bool(best.get("refused")):
             answered += 1

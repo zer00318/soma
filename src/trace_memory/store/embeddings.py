@@ -53,7 +53,10 @@ class SentenceTransformerEmbedder:
             os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
             from sentence_transformers import SentenceTransformer
 
-            self._model = SentenceTransformer(self._model_path)
+            # TRACE_EMBED_DEVICE=cpu lets the eval/query path avoid the Metal GPU when a local
+            # LLM (binder/authoring) is using it — running both on MPS OOMs the M2 (~32GB).
+            device = os.environ.get("TRACE_EMBED_DEVICE") or None
+            self._model = SentenceTransformer(self._model_path, device=device)
         return self._model
 
     def embed(self, texts: list[str]) -> list[tuple[float, ...]]:

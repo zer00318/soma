@@ -36,6 +36,14 @@ OLLAMA = "http://127.0.0.1:11434"
 # keep up with the frame stream (27b at ~12 crops/frame was ~3 min/frame -> only a
 # couple frames perceived per capture). Override with TRACE_ATTR_MODEL if needed.
 ATTR_MODEL = os.environ.get("TRACE_ATTR_MODEL", "gemma3:12b-it-qat")
+_GROUNDING_CACHE = (
+    Path.home()
+    / ".cache"
+    / "huggingface"
+    / "hub"
+    / "models--IDEA-Research--grounding-dino-tiny"
+    / "snapshots"
+)
 
 # Open-vocab detector classes. Broad everyday inventory for the demo domains
 # (products, electronics, personal items, furniture). Extend freely — Grounding-DINO
@@ -47,6 +55,10 @@ GROUNDING_CLASSES = [
     "glasses", "wallet", "key", "shoe", "hat", "backpack", "chair", "lamp", "plant",
     "remote", "camera", "speaker", "clock", "snack packet", "tube", "container",
     "pillow", "blanket",
+    # Added 2026-06-30: objects the founder's questions actually ask about but the detector
+    # was never told to look for (crop-zoom captured 0 of these before).
+    "microphone", "tape", "tape roll", "diary", "fan", "thermos", "flask", "water bottle",
+    "suitcase", "mattress", "towel", "shirt", "cloth", "duvet", "power bank", "adapter",
 ]
 
 _GD = {"proc": None, "model": None, "device": None}
@@ -86,17 +98,50 @@ def _jpeg(im: Image.Image, max_side: int = 768, q: int = 92) -> bytes:
     return b.getvalue()
 
 
+def _resolve_grounding_model(default_model: str) -> str:
+    configured = os.environ.get("TRACE_GROUNDING_DINO_MODEL")
+    if configured:
+        return configured
+    if _GROUNDING_CACHE.exists():
+        snapshots = sorted(path for path in _GROUNDING_CACHE.iterdir() if path.is_dir())
+        if snapshots:
+            return str(snapshots[-1])
+    return default_model
+
+
 def _load_gd(model_id: str = "IDEA-Research/grounding-dino-tiny"):
     if _GD["model"] is None:
         import torch
         from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor
-        dev = "mps" if torch.backends.mps.is_available() else "cpu"
-        _GD["proc"] = AutoProcessor.from_pretrained(model_id)
+        resolved_model = _resolve_grounding_model(model_id)
+        local_only = Path(resolved_model).exists()
+        requested_device = os.environ.get("TRACE_GROUNDING_DINO_DEVICE", "").strip().lower()
+        if requested_device:
+            dev = requested_device
+        else:
+            # The founder already validated that the MPS path asserts on this box.
+            # Default to CPU for reliability; opt back into MPS explicitly.
+            dev = "cpu"
+            if not local_only and torch.backends.mps.is_available():
+                dev = "cpu"
+        if local_only:
+            os.environ.setdefault("HF_HUB_OFFLINE", "1")
+            os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+        _GD["proc"] = AutoProcessor.from_pretrained(
+            resolved_model,
+            local_files_only=local_only,
+        )
         try:
-            _GD["model"] = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to(dev)
+            _GD["model"] = AutoModelForZeroShotObjectDetection.from_pretrained(
+                resolved_model,
+                local_files_only=local_only,
+            ).to(dev)
             _GD["device"] = dev
         except Exception:
-            _GD["model"] = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to("cpu")
+            _GD["model"] = AutoModelForZeroShotObjectDetection.from_pretrained(
+                resolved_model,
+                local_files_only=local_only,
+            ).to("cpu")
             _GD["device"] = "cpu"
     return _GD["proc"], _GD["model"], _GD["device"]
 

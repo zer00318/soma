@@ -11,11 +11,14 @@ import numpy as np
 from trace_memory.store.embeddings import TextEmbedder, build_default_embedder
 from trace_memory.store.models import (
     AbstractionRecord,
+    CoordinateFrame,
     LinkRecord,
     MemoryNode,
     NeighborRecord,
     SearchHit,
     SearchSlice,
+    SpatialAnchor,
+    TimeRange,
 )
 
 _NODE_SCHEMA = """
@@ -25,12 +28,18 @@ CREATE TABLE IF NOT EXISTS memory_nodes (
     t_ms            INTEGER NOT NULL,
     node_type       TEXT NOT NULL,
     source          TEXT NOT NULL,
+    helper_type     TEXT,
+    coordinate_frame_json TEXT NOT NULL DEFAULT '{}',
+    time_range_json TEXT NOT NULL DEFAULT '{}',
+    spatial_anchor_json TEXT NOT NULL DEFAULT '{}',
+    source_support_json TEXT NOT NULL DEFAULT '{}',
     place           TEXT,
     pose_json       TEXT NOT NULL,
     text            TEXT NOT NULL,
     provenance_json TEXT NOT NULL,
     metadata_json   TEXT NOT NULL,
     derived         INTEGER NOT NULL,
+    immutable_raw   INTEGER NOT NULL DEFAULT 0,
     embedding_json  TEXT NOT NULL
 )
 """
@@ -50,10 +59,20 @@ CREATE TABLE IF NOT EXISTS memory_links (
 _INDEXES = (
     "CREATE INDEX IF NOT EXISTS idx_memory_nodes_type_t ON memory_nodes(node_type, t_ms)",
     "CREATE INDEX IF NOT EXISTS idx_memory_nodes_place ON memory_nodes(place)",
+    "CREATE INDEX IF NOT EXISTS idx_memory_nodes_helper ON memory_nodes(helper_type)",
     "CREATE INDEX IF NOT EXISTS idx_memory_links_from ON memory_links(from_id)",
     "CREATE INDEX IF NOT EXISTS idx_memory_links_to ON memory_links(to_id)",
     "CREATE INDEX IF NOT EXISTS idx_memory_links_type ON memory_links(link_type)",
 )
+
+_MIGRATION_COLUMNS = {
+    "helper_type": "ALTER TABLE memory_nodes ADD COLUMN helper_type TEXT",
+    "coordinate_frame_json": "ALTER TABLE memory_nodes ADD COLUMN coordinate_frame_json TEXT NOT NULL DEFAULT '{}'",
+    "time_range_json": "ALTER TABLE memory_nodes ADD COLUMN time_range_json TEXT NOT NULL DEFAULT '{}'",
+    "spatial_anchor_json": "ALTER TABLE memory_nodes ADD COLUMN spatial_anchor_json TEXT NOT NULL DEFAULT '{}'",
+    "source_support_json": "ALTER TABLE memory_nodes ADD COLUMN source_support_json TEXT NOT NULL DEFAULT '{}'",
+    "immutable_raw": "ALTER TABLE memory_nodes ADD COLUMN immutable_raw INTEGER NOT NULL DEFAULT 0",
+}
 
 
 def _json_dump(value: Any) -> str:
@@ -80,17 +99,27 @@ def _lexical_overlap(query: str, text: str) -> float:
 
 
 def _row_to_node(row: sqlite3.Row) -> MemoryNode:
+    coordinate_frame = json.loads(row["coordinate_frame_json"]) if "coordinate_frame_json" in row.keys() else {}
+    time_range = json.loads(row["time_range_json"]) if "time_range_json" in row.keys() else {}
+    spatial_anchor = json.loads(row["spatial_anchor_json"]) if "spatial_anchor_json" in row.keys() else {}
+    source_support = json.loads(row["source_support_json"]) if "source_support_json" in row.keys() else {}
     return MemoryNode(
         id=row["id"],
         t_ms=row["t_ms"],
         node_type=row["node_type"],
         source=row["source"],
+        helper_type=row["helper_type"] if "helper_type" in row.keys() else None,
+        coordinate_frame=CoordinateFrame.from_value(coordinate_frame) if coordinate_frame else None,
+        time_range=TimeRange.from_value(time_range, default_t_ms=row["t_ms"]) if time_range else None,
+        spatial_anchor=SpatialAnchor.from_value(spatial_anchor) if spatial_anchor else None,
+        source_support=source_support or {},
         place=row["place"],
         pose=json.loads(row["pose_json"]),
         text=row["text"],
         provenance=json.loads(row["provenance_json"]),
         metadata=json.loads(row["metadata_json"]),
         derived=bool(row["derived"]),
+        immutable_raw=bool(row["immutable_raw"]) if "immutable_raw" in row.keys() else False,
         embedding=tuple(float(value) for value in json.loads(row["embedding_json"])),
     )
 
@@ -114,9 +143,19 @@ class TraceMemoryStore:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute(_NODE_SCHEMA)
         self._conn.execute(_LINK_SCHEMA)
+        self._migrate_schema()
         for statement in _INDEXES:
             self._conn.execute(statement)
         self._conn.commit()
+
+    def _migrate_schema(self) -> None:
+        existing = {
+            str(row["name"])
+            for row in self._conn.execute("PRAGMA table_info(memory_nodes)").fetchall()
+        }
+        for column, statement in _MIGRATION_COLUMNS.items():
+            if column not in existing:
+                self._conn.execute(statement)
 
     def close(self) -> None:
         self._conn.close()
@@ -132,11 +171,17 @@ class TraceMemoryStore:
         t_ms: int,
         source: str,
         provenance: dict[str, Any],
+        helper_type: str | None = None,
+        coordinate_frame: CoordinateFrame | dict[str, Any] | None = None,
+        time_range: TimeRange | dict[str, Any] | None = None,
+        spatial_anchor: SpatialAnchor | dict[str, Any] | None = None,
+        source_support: dict[str, Any] | None = None,
         place: str | None = None,
         pose: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
         node_type: str = "observation",
         derived: bool = False,
+        immutable_raw: bool = False,
         node_id: str | None = None,
     ) -> MemoryNode:
         embedding = self._embedder.embed([text])[0]
@@ -145,36 +190,89 @@ class TraceMemoryStore:
             t_ms=t_ms,
             node_type=node_type,
             source=source,
+            helper_type=helper_type,
+            coordinate_frame=CoordinateFrame.from_value(coordinate_frame) if coordinate_frame is not None else None,
+            time_range=TimeRange.from_value(time_range, default_t_ms=t_ms),
+            spatial_anchor=SpatialAnchor.from_value(spatial_anchor) if spatial_anchor is not None else None,
+            source_support=source_support or {},
             place=place,
             pose=pose,
             text=text,
             provenance=provenance,
             metadata=metadata or {},
             derived=derived,
+            immutable_raw=immutable_raw,
             embedding=embedding,
         )
         self._conn.execute(
             """
             INSERT INTO memory_nodes
-            (id, t_ms, node_type, source, place, pose_json, text, provenance_json, metadata_json, derived, embedding_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, t_ms, node_type, source, helper_type, coordinate_frame_json, time_range_json,
+             spatial_anchor_json, source_support_json, place, pose_json, text, provenance_json,
+             metadata_json, derived, immutable_raw, embedding_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 node.id,
                 node.t_ms,
                 node.node_type,
                 node.source,
+                node.helper_type,
+                _json_dump(node.coordinate_frame.to_dict() if node.coordinate_frame is not None else {}),
+                _json_dump(node.time_range.to_dict() if node.time_range is not None else {}),
+                _json_dump(node.spatial_anchor.to_dict() if node.spatial_anchor is not None else {}),
+                _json_dump(node.source_support),
                 node.place,
                 _json_dump(node.pose),
                 node.text,
                 _json_dump(node.provenance),
                 _json_dump(node.metadata),
                 int(node.derived),
+                int(node.immutable_raw),
                 _json_dump(list(node.embedding)),
             ),
         )
         self._conn.commit()
         return node
+
+    def write_canonical_observation(
+        self,
+        *,
+        text: str,
+        t_ms: int,
+        source: str,
+        helper_type: str,
+        coordinate_frame: CoordinateFrame | dict[str, Any],
+        spatial_anchor: SpatialAnchor | dict[str, Any],
+        provenance: dict[str, Any],
+        source_support: dict[str, Any],
+        time_range: TimeRange | dict[str, Any] | None = None,
+        place: str | None = None,
+        pose: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+        node_type: str = "observation",
+        derived: bool = False,
+        immutable_raw: bool = True,
+        node_id: str | None = None,
+    ) -> MemoryNode:
+        return self.write_observation(
+            text=text,
+            t_ms=t_ms,
+            source=source,
+            helper_type=helper_type,
+            coordinate_frame=coordinate_frame,
+            time_range=time_range,
+            spatial_anchor=spatial_anchor,
+            provenance=provenance,
+            source_support=source_support,
+            place=place,
+            pose=pose,
+            metadata=metadata,
+            node_type=node_type,
+            derived=derived,
+            immutable_raw=immutable_raw,
+            node_id=node_id,
+        )
 
     def link(
         self,
@@ -278,7 +376,11 @@ class TraceMemoryStore:
         for node in candidates:
             cosine = _cosine(query_embedding, node.embedding)
             lexical = _lexical_overlap(query, node.text)
-            boost = 0.05 if node.node_type == "entity" else 0.0
+            boost = 0.0
+            if node.node_type in {"entity", "entity_memory", "event_memory", "group_memory"}:
+                boost = 0.05
+            elif node.node_type == "composed_memory":
+                boost = 0.1
             score = cosine + (0.2 * lexical) + boost
             scored.append(SearchHit(node=node, score=round(score, 6)))
         scored.sort(key=lambda hit: (-hit.score, hit.node.t_ms, hit.node.id))
@@ -324,5 +426,7 @@ class TraceMemoryStore:
     def get_abstractions(self) -> tuple[AbstractionRecord, ...]:
         return tuple(
             AbstractionRecord(node=node)
-            for node in self.nodes(node_types=("abstraction",))
+            for node in self.nodes(
+                node_types=("abstraction", "composed_memory", "entity_memory", "event_memory", "group_memory")
+            )
         )

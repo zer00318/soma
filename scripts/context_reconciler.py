@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from typing import Callable
+from typing import Any, Callable
 
 
 GENERIC_LABELS = {
@@ -39,6 +39,71 @@ def _is_generic(label: str) -> bool:
 
 def _clamp_plausibility(value: float) -> float:
     return max(0.0, min(1.0, float(value)))
+
+
+def reconcile_identity(
+    reads: list[str],
+    *,
+    activity: str | None = None,
+    plausibility_fn: Callable[[str, str], float] | None = None,
+    frame_support: list[Any] | None = None,
+) -> dict:
+    """Pick ONE primary identity for an entity from its conflicting per-frame reads.
+
+    Pure frequency consensus by default; if ``plausibility_fn`` is given it weights
+    each candidate by ``count * plausibility`` (e.g. drop "rocks" while cooking).
+    Network/LLM is OPTIONAL — when ``plausibility_fn`` is ``None`` this is a deterministic,
+    offline frequency vote, so ingestion never hard-depends on ollama.
+
+    Returns ``{"primary": str|None, "confidence": float, "variants": list[str]}`` where
+    ``variants`` are the OTHER non-generic reads (most-frequent first), preserving the
+    original surface form for display.
+    """
+    # Preserve a representative original surface form per normalized label (first seen).
+    display: dict[str, str] = {}
+    order: list[str] = []
+    counts: Counter[str] = Counter()
+    for read in reads:
+        norm = _normalize(read)
+        if not norm or _is_generic(norm):
+            continue
+        if norm not in display:
+            display[norm] = str(read).strip()
+            order.append(norm)
+        counts[norm] += 1
+
+    if not counts:
+        return {"primary": None, "confidence": 0.0, "variants": []}
+
+    use_plausibility = activity is not None and plausibility_fn is not None
+    scored: list[tuple[str, float, int]] = []
+    for norm, count in counts.items():
+        if use_plausibility:
+            plausibility = _clamp_plausibility(plausibility_fn(norm, activity))  # type: ignore[arg-type]
+            if plausibility < 0.2:
+                continue
+            score = count * plausibility
+        else:
+            score = float(count)
+        scored.append((norm, score, count))
+
+    if not scored:
+        # Everything was dropped by plausibility -> fall back to pure frequency.
+        scored = [(norm, float(count), count) for norm, count in counts.items()]
+
+    # Highest score, then highest raw count, then first-seen order as a stable tiebreak.
+    scored.sort(key=lambda item: (-item[1], -item[2], order.index(item[0])))
+
+    primary_norm = scored[0][0]
+    total_score = sum(score for _, score, _ in scored)
+    confidence = scored[0][1] / total_score if total_score else 0.0
+    variants = [display[norm] for norm, _, _ in scored[1:]]
+
+    return {
+        "primary": display[primary_norm],
+        "confidence": round(confidence, 2),
+        "variants": variants,
+    }
 
 
 def reconcile_node(

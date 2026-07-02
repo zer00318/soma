@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.context_reconciler import phrase_uncertainty, reconcile, reconcile_node
+from scripts.context_reconciler import (
+    phrase_uncertainty,
+    reconcile,
+    reconcile_identity,
+    reconcile_node,
+)
 
 
 PLAUSIBILITY = {
@@ -51,6 +56,41 @@ def test_phrase_uncertainty_returns_detail_when_reconciled_identity_is_reliable(
     phrased = phrase_uncertainty({"chosen": "soya", "reliable": True}, "~250 ml")
 
     assert phrased == "~250 ml"
+
+
+def test_reconcile_identity_picks_most_frequent_offline() -> None:
+    result = reconcile_identity(["Doritos", "Doritos", "Chip bag", "Face mask"])
+
+    assert result["primary"] == "Doritos"
+    assert result["confidence"] > 0.4
+    assert "Chip bag" in result["variants"]
+    assert "Doritos" not in result["variants"]
+
+
+def test_reconcile_identity_drops_generic_only_reads() -> None:
+    # "object"/"thing"/"item" are generic; with nothing else there is no identity.
+    result = reconcile_identity(["object", "thing", "item"])
+
+    assert result["primary"] is None
+    assert result["variants"] == []
+
+
+def test_reconcile_identity_preserves_surface_form() -> None:
+    result = reconcile_identity(["PRINGLES", "Pringles can"])
+
+    # First-seen original casing is kept for display.
+    assert result["primary"] == "PRINGLES"
+
+
+def test_reconcile_identity_uses_plausibility_when_provided() -> None:
+    result = reconcile_identity(
+        ["rocks", "soya", "soya"],
+        activity="cooking",
+        plausibility_fn=stub_plausibility,
+    )
+
+    assert result["primary"] == "soya"
+    assert "rocks" not in result["variants"]
 
 
 def test_reconcile_attaches_reconciled_result_and_updates_identity() -> None:

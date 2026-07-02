@@ -1,5 +1,5 @@
 [project]
-name = "soma"
+name = "trace-memory"
 version = "0.1.0"
 description = "Private, text-only memory for unconstrained grounded recall."
 requires-python = ">=3.9"
@@ -23,12 +23,12 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
-testpaths = ["tests/unit"]
+testpaths = ["tests"]
 addopts = "--strict-markers --strict-config"
 
 [tool.coverage.run]
 branch = true
-source = ["soma.domain", "soma.application"]
+source = ["trace_memory.domain", "trace_memory.application"]
 
 [tool.coverage.report]
 fail_under = 80

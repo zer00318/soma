@@ -95,18 +95,18 @@ def _phrase_pattern(phrase: str) -> str:
 
 
 def _scan_phrases(text: str, phrases: set[str]) -> list[dict[str, Any]]:
-    matches: list[dict[str, Any]] = []
     lowered = text.lower()
+    matches: list[dict[str, Any]] = []
     for phrase in sorted(phrases, key=len, reverse=True):
-        for match in re.finditer(_phrase_pattern(phrase), lowered):
-            matches.append(
-                {
-                    "value": phrase,
-                    "start": match.start(),
-                    "end": match.end(),
-                    "raw": text[match.start() : match.end()],
-                }
-            )
+        matches.extend(
+            {
+                "value": phrase,
+                "start": match.start(),
+                "end": match.end(),
+                "raw": text[match.start() : match.end()],
+            }
+            for match in re.finditer(_phrase_pattern(phrase), lowered)
+        )
     matches.sort(key=lambda item: (item["start"], item["end"]))
     return matches
 
@@ -198,9 +198,9 @@ def _closest_mention(
     )
 
 
-def extract(perception: dict[str, Any], fill_fraction: float = 0.5) -> dict[str, Any]:
-    """Extract structured cooking facts from a frame/moment's perception."""
-    segments = _segments(perception)
+def _collect_mentions(
+    segments: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[str]]:
     ingredient_mentions: list[dict[str, Any]] = []
     utensil_mentions: list[dict[str, Any]] = []
     explicit_amount_mentions: list[dict[str, Any]] = []
@@ -208,92 +208,99 @@ def extract(perception: dict[str, Any], fill_fraction: float = 0.5) -> dict[str,
 
     for segment in segments:
         text = segment["text"]
-        for match in _scan_phrases(text, INGREDIENT_WORDS):
-            ingredient_mentions.append(
-                {
-                    "name": _canonical_ingredient(match["value"]),
-                    "kind": segment["kind"],
-                    "segment_index": segment["index"],
-                    "position": segment["base"] + match["start"],
-                }
-            )
-        for match in _scan_phrases(text, UTENSIL_WORDS):
-            utensil_mentions.append(
-                {
-                    "name": match["value"],
-                    "kind": segment["kind"],
-                    "segment_index": segment["index"],
-                    "position": segment["base"] + match["start"],
-                }
-            )
-        for match in _find_explicit_amounts(text):
-            if segment["kind"] != "text":
-                continue
-            explicit_amount_mentions.append(
+        ingredient_mentions.extend(
+            {
+                "name": _canonical_ingredient(match["value"]),
+                "kind": segment["kind"],
+                "segment_index": segment["index"],
+                "position": segment["base"] + match["start"],
+            }
+            for match in _scan_phrases(text, INGREDIENT_WORDS)
+        )
+        utensil_mentions.extend(
+            {
+                "name": match["value"],
+                "kind": segment["kind"],
+                "segment_index": segment["index"],
+                "position": segment["base"] + match["start"],
+            }
+            for match in _scan_phrases(text, UTENSIL_WORDS)
+        )
+        if segment["kind"] == "text":
+            explicit_amount_mentions.extend(
                 {
                     "raw": match["raw"],
                     "kind": segment["kind"],
                     "segment_index": segment["index"],
                     "position": segment["base"] + match["start"],
                 }
+                for match in _find_explicit_amounts(text)
             )
         for action in sorted(ACTION_WORDS):
             if re.search(_phrase_pattern(action), text.lower()) and action not in actions:
                 actions.append(action)
+    return ingredient_mentions, utensil_mentions, explicit_amount_mentions, actions
 
-    utensils = list(dict.fromkeys(mention["name"] for mention in utensil_mentions))
-    ingredients: list[dict[str, Any]] = []
-    seen_ingredients: set[str] = set()
-    unique_ingredient_count = len({mention["name"] for mention in ingredient_mentions})
 
-    for mention in ingredient_mentions:
-        ingredient_name = mention["name"]
-        if ingredient_name in seen_ingredients:
-            continue
-        seen_ingredients.add(ingredient_name)
+def _explicit_amount_for(
+    mention: dict[str, Any],
+    explicit_amount_mentions: list[dict[str, Any]],
+    unique_ingredient_count: int,
+) -> dict[str, Any] | None:
+    explicit_amount = _closest_mention(
+        mention["position"],
+        explicit_amount_mentions,
+        same_segment_only=True,
+        segment_kind=mention["kind"],
+        segment_index=mention["segment_index"],
+    )
+    if explicit_amount is not None or unique_ingredient_count != 1:
+        return explicit_amount
+    return _closest_mention(
+        mention["position"],
+        explicit_amount_mentions,
+        allowed_kinds={"text"},
+    )
 
-        explicit_amount = _closest_mention(
-            mention["position"],
-            explicit_amount_mentions,
-            same_segment_only=True,
-            segment_kind=mention["kind"],
-            segment_index=mention["segment_index"],
+
+def _ingredient_record(
+    mention: dict[str, Any],
+    utensil_mentions: list[dict[str, Any]],
+    explicit_amount_mentions: list[dict[str, Any]],
+    unique_ingredient_count: int,
+    fill_fraction: float,
+) -> dict[str, Any]:
+    explicit_amount = _explicit_amount_for(
+        mention,
+        explicit_amount_mentions,
+        unique_ingredient_count,
+    )
+    utensil = _closest_mention(mention["position"], utensil_mentions)
+    utensil_name = utensil["name"] if utensil is not None else None
+
+    amount_ml: int | None = None
+    if explicit_amount is not None:
+        raw_amount = explicit_amount["raw"]
+        amount_ml = _explicit_amount_to_ml(raw_amount)
+        amount_hedge = f"text showed {raw_amount}; using the label rather than a visual estimate."
+    elif utensil_name in UTENSIL_VOLUME_ML:
+        amount_ml = round(UTENSIL_VOLUME_ML[utensil_name] * fill_fraction)
+        amount_hedge = (
+            f"{_fill_phrase(fill_fraction, utensil_name)} (≈{amount_ml} ml), "
+            "rough visual estimate, no scale."
         )
-        if explicit_amount is None and unique_ingredient_count == 1:
-            explicit_amount = _closest_mention(
-                mention["position"],
-                explicit_amount_mentions,
-                allowed_kinds={"text"},
-            )
+    else:
+        amount_hedge = "amount not measurable from what I saw."
 
-        utensil = _closest_mention(mention["position"], utensil_mentions)
-        utensil_name = utensil["name"] if utensil is not None else None
+    return {
+        "name": mention["name"],
+        "in": utensil_name,
+        "amount_ml": amount_ml,
+        "amount_hedge": amount_hedge,
+    }
 
-        amount_ml: int | None = None
-        if explicit_amount is not None:
-            raw_amount = explicit_amount["raw"]
-            amount_ml = _explicit_amount_to_ml(raw_amount)
-            amount_hedge = (
-                f"text showed {raw_amount}; using the label rather than a visual estimate."
-            )
-        elif utensil_name in UTENSIL_VOLUME_ML:
-            amount_ml = round(UTENSIL_VOLUME_ML[utensil_name] * fill_fraction)
-            amount_hedge = (
-                f"{_fill_phrase(fill_fraction, utensil_name)} (≈{amount_ml} ml), "
-                "rough visual estimate, no scale."
-            )
-        else:
-            amount_hedge = "amount not measurable from what I saw."
 
-        ingredients.append(
-            {
-                "name": ingredient_name,
-                "in": utensil_name,
-                "amount_ml": amount_ml,
-                "amount_hedge": amount_hedge,
-            }
-        )
-
+def _build_summary(ingredients: list[dict[str, Any]], actions: list[str]) -> str:
     if ingredients:
         ingredient_bits = []
         for ingredient in ingredients:
@@ -307,6 +314,40 @@ def extract(perception: dict[str, Any], fill_fraction: float = 0.5) -> dict[str,
 
     if actions:
         summary += f" Possible action: {', '.join(actions)}."
+    return summary
+
+
+def extract(perception: dict[str, Any], fill_fraction: float = 0.5) -> dict[str, Any]:
+    """Extract structured cooking facts from a frame/moment's perception."""
+    segments = _segments(perception)
+    (
+        ingredient_mentions,
+        utensil_mentions,
+        explicit_amount_mentions,
+        actions,
+    ) = _collect_mentions(segments)
+
+    utensils = list(dict.fromkeys(mention["name"] for mention in utensil_mentions))
+    ingredients: list[dict[str, Any]] = []
+    seen_ingredients: set[str] = set()
+    unique_ingredient_count = len({mention["name"] for mention in ingredient_mentions})
+
+    for mention in ingredient_mentions:
+        ingredient_name = mention["name"]
+        if ingredient_name in seen_ingredients:
+            continue
+        seen_ingredients.add(ingredient_name)
+        ingredients.append(
+            _ingredient_record(
+                mention,
+                utensil_mentions,
+                explicit_amount_mentions,
+                unique_ingredient_count,
+                fill_fraction,
+            )
+        )
+
+    summary = _build_summary(ingredients, actions)
 
     return {
         "ingredients": ingredients,
@@ -343,7 +384,11 @@ def answer(cooking_facts: dict[str, Any], question: str) -> dict[str, Any] | Non
     if re.search(r"\bwhat\b", lowered) and re.search(
         r"\b(cook|use|used|ingredient|ingredients)\b", lowered
     ):
-        ingredient_names = [item.get("name") for item in cooking_facts.get("ingredients", []) if item.get("name")]
+        ingredient_names = [
+            item.get("name")
+            for item in cooking_facts.get("ingredients", [])
+            if item.get("name")
+        ]
         if not ingredient_names:
             return {"answer": "I didn't identify any cooking ingredients.", "refused": True}
         unique_names = list(dict.fromkeys(ingredient_names))

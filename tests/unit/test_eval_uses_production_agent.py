@@ -53,3 +53,36 @@ def test_writes_store_eval_with_cockpit_keys(tmp_path) -> None:
     for key in ("answered_pct", "halluc_pct", "n"):
         assert key in payload and key in on_disk
     assert on_disk["n"] == 4
+
+
+def test_judge_rejects_contradictory_mode_answer() -> None:
+    verdict = al.judge(
+        "Is the fan off, on 1 or on 2?",
+        "2",
+        "Fan is off (mode 0), not running in mode 1 or 2.",
+        False,
+    )
+
+    assert verdict == "wrong"
+
+
+def test_judge_accepts_exact_battery_percentage() -> None:
+    verdict = al.judge(
+        "What is the battery percentage on the screen?",
+        "100%",
+        "Battery is at 100%.",
+        False,
+    )
+
+    assert verdict == "correct"
+
+
+def test_judge_accepts_exact_count_answer() -> None:
+    verdict = al.judge(
+        "How many pillows are visible on the bed?",
+        "3",
+        "At least 3 pillows are visible on the bed.",
+        False,
+    )
+
+    assert verdict == "correct"

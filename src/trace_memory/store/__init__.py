@@ -7,24 +7,42 @@ from trace_memory.store.embeddings import (
 from trace_memory.store.ingest import (
     KfIngestResult,
     ShelfIngestResult,
+    ingest_capture_session,
     ingest_kf_memory,
     ingest_validated_shelf,
 )
 from trace_memory.store.models import (
     AbstractionRecord,
+    CoordinateFrame,
     GraphLink,
     LinkRecord,
     MemoryNode,
     NeighborRecord,
     SearchHit,
     SearchSlice,
+    SpatialAnchor,
     StoredObservation,
+    TimeRange,
 )
 from trace_memory.store.sqlite_store import TraceMemoryStore
 from trace_memory.store.sleep import SleepConsolidator, SleepRunSummary
+from trace_memory.store.world import (
+    anchor_centroid,
+    audio_origin_anchor,
+    observation_overlap_score,
+    observation_time_range,
+    projected_crop_anchor,
+    scene_frustum_anchor,
+    session_coordinate_frame,
+    spatial_overlap_score,
+    time_overlap_score,
+    world_point_anchor,
+    world_region_anchor,
+)
 
 __all__ = [
     "AbstractionRecord",
+    "CoordinateFrame",
     "GraphLink",
     "KfIngestResult",
     "LexicalFallbackEmbedder",
@@ -37,10 +55,24 @@ __all__ = [
     "ShelfIngestResult",
     "SleepConsolidator",
     "SleepRunSummary",
+    "SpatialAnchor",
     "StoredObservation",
+    "TimeRange",
     "TraceMemoryStore",
+    "anchor_centroid",
+    "audio_origin_anchor",
     "build_default_embedder",
     "discover_sentence_transformer_path",
+    "ingest_capture_session",
     "ingest_kf_memory",
     "ingest_validated_shelf",
+    "observation_overlap_score",
+    "observation_time_range",
+    "projected_crop_anchor",
+    "scene_frustum_anchor",
+    "session_coordinate_frame",
+    "spatial_overlap_score",
+    "time_overlap_score",
+    "world_point_anchor",
+    "world_region_anchor",
 ]

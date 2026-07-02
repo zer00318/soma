@@ -56,24 +56,115 @@ _UI_TOKENS = (
 
 
 def _norm_name(name: str) -> str:
-    n = name.strip().strip('"').strip().lower()
-    n = re.sub(r"^(a |an |the |visible |some )", "", n)
+    """Normalize a VLM-produced entity name for display."""
+    n = name.strip().strip('"').strip("'").strip().lower()
+    n = re.sub(r"^(a |an |the |visible |some |several |part of |portion of )", "", n)
     n = re.sub(r"^\d+\s+", "", n)          # "3 jars" -> "jars" (count claim, not identity)
     n = re.sub(r"s$", "", n) if len(n) > 4 else n   # crude singularize
     return n.strip()
 
 
-def _parse_line(line: str) -> dict[str, str] | None:
+_ROOT_NOUNS = {
+    "rings": "ring", "ring": "ring",
+    "jars": "jar", "jar": "jar",
+    "laptops": "laptop", "laptop": "laptop", "laptop/computer": "laptop",
+    "spoons": "spoon", "spoon": "spoon",
+    "bottles": "bottle", "bottle": "bottle",
+    "books": "book", "book": "book", "notebook": "book",
+    "tables": "table", "table": "table",
+    "shelf": "shelf", "shelves": "shelf",
+    "cable": "cable", "cables": "cable", "cord": "cable",
+    "charger": "charger", "chargers": "charger",
+    "pesto": "pesto", "nutella": "nutella", "barilla": "barilla",
+}
+
+
+def _merge_key(name: str) -> str:
+    """Derive a merge key for consensus counting. Different descriptions of the
+    same entity should produce the same key: 'jar labeled Nutella', 'jars of nutella',
+    'Nutella jar' -> 'jar nutella'. '3 rings (one silver...)' and 'Two rings' -> 'ring'."""
+    n = name.strip().strip('"').strip("'").strip().lower()
+    n = re.sub(r"^(a |an |the |visible |some |several |part of |portion of )", "", n)
+    n = re.sub(r"^\d+\s+", "", n)
+    n = re.sub(r"\s*\(.*?\)", "", n)
+    n = re.sub(r"\s*(with|displaying|resting|plugged|attached|extending|covering)\s+.*", "", n)
+    n = re.sub(r"\s*on\s+(top|its|the)\b.*", "", n)
+    m = re.match(r"(.+?)\s+label(?:ed|led)\s+['\"]?(\w+)", n)
+    if m:
+        n = f"{m.group(1)} {m.group(2)}"
+    m2 = re.match(r"(.+?)\s+of\s+(.+)", n)
+    if m2:
+        n = f"{m2.group(2)} {m2.group(1)}"
+    words = re.findall(r"[a-zà-ÿ]{3,}", n)
+    # Strip number-words and color-words (they're attributes, not identity)
+    nums = {"one", "two", "three", "four", "five", "six", "seven", "eight",
+            "nine", "ten", "each", "some", "various", "multiple", "several",
+            "including", "possibly", "likely", "appears"}
+    words = [w for w in words if w not in nums]
+    # Map to root nouns for merging
+    rooted = sorted(set(_ROOT_NOUNS.get(w, w) for w in words))
+    # Keep only the 2 most identity-bearing words to avoid over-splitting
+    return " ".join(rooted[:2]) if rooted else n
+
+
+# Surface/location tails describe an object's SURROUNDINGS, not the object. Leaving
+# them in the entity name is how a 1-frame guess ("...on a grey tablecloth") becomes
+# a falsely-asserted entity the brain then reports. Strip them from the display name.
+_SURFACE_TAIL = re.compile(
+    r"\s+(?:resting|sitting|placed|laying|lying|standing|positioned|mounted|perched|"
+    r"on top of|on|atop|next to|in front of|behind|near|against|underneath|beneath)\b.*$",
+    re.IGNORECASE,
+)
+
+
+def _best_name(raw_names: set[str], merge_key: str) -> str:
+    """Pick the cleanest display name for a merged entity. Strips surface/location
+    tails, then prefers the candidate carrying the most identity (merge_key) words,
+    tie-broken by SHORTEST — a clean 'silver spoon' beats 'silver spoon resting on
+    a grey tablecloth'."""
+    if not raw_names:
+        return merge_key
+    key_words = set(merge_key.split())
+    best, best_score = merge_key, (-1, 0)
+    for raw in raw_names:
+        cleaned = _SURFACE_TAIL.sub("", raw).strip().rstrip(",.")
+        if not cleaned:
+            continue
+        low = cleaned.lower()
+        hits = sum(1 for w in key_words if w in low)
+        # more identity words is better; shorter is better (clean over verbose)
+        score = (hits, -len(cleaned))
+        if score > best_score:
+            best, best_score = cleaned, score
+    return best
+
+
+def _parse_line(line: str) -> list[dict[str, str]]:
+    """Parse a caption line into object records. FastVLM often dumps comma-separated
+    lists like 'OBJECT | jar, spoon, laptop, charger' — split them into individual
+    entities so each can be consensus-tracked independently."""
     parts = [p.strip() for p in line.split("|")]
     if len(parts) < 2 or parts[0].upper() not in ("OBJECT", "EVENT"):
-        return None
-    return {
-        "kind": parts[0].upper(),
-        "name": parts[1],
-        "attrs": parts[2] if len(parts) > 2 else "",
-        "relation": parts[3] if len(parts) > 3 else "",
-        "certainty": parts[4] if len(parts) > 4 else "",
-    }
+        return []
+    kind = parts[0].upper()
+    name_field = parts[1]
+    attrs = parts[2] if len(parts) > 2 else ""
+    items = [n.strip() for n in re.split(r",\s*(?:and\s+)?|(?:^|\s)and\s+", name_field) if n.strip()]
+    if not items:
+        return []
+    results = []
+    for item in items:
+        clean = re.sub(r"^(a |an |the )", "", item.strip(), flags=re.IGNORECASE).strip()
+        if not clean:
+            continue
+        results.append({
+            "kind": kind,
+            "name": clean,
+            "attrs": attrs if len(items) == 1 else "",
+            "relation": parts[3] if len(parts) > 3 else "",
+            "certainty": parts[4] if len(parts) > 4 else "",
+        })
+    return results
 
 
 def build_scene(records: list[dict[str, Any]]) -> dict[str, Any]:
@@ -93,7 +184,7 @@ def build_scene(records: list[dict[str, Any]]) -> dict[str, Any]:
         names_here = [
             _norm_name(p["name"])
             for ln in (r.get("caption") or "").splitlines()
-            if (p := _parse_line(ln))
+            for p in _parse_line(ln)
         ]
         ocr_blob = " ".join(r.get("ocr") or []).lower()
         if (
@@ -126,24 +217,72 @@ def build_scene(records: list[dict[str, Any]]) -> dict[str, Any]:
             if any(tok in low for tok in _SYSTEM_TOKENS):
                 dropped["system_text"] += 1
                 continue
-            p = _parse_line(ln)
-            if not p or p["kind"] != "OBJECT":
+            parsed = _parse_line(ln)
+            if not parsed:
+                # Parse mac_vision bullet points: "*   a MacBook laptop"
+                bullet = re.match(r"^\s*[\*\-]\s+(.+)", ln)
+                if bullet and r.get("source") == "mac_vision":
+                    phrase = bullet.group(1).strip().rstrip(".")
+                    # Don't split inside parentheses
+                    phrase_no_parens = re.sub(r"\([^)]*\)", "", phrase)
+                    items = re.split(r",\s*(?:and\s+)?|\s+and\s+", phrase_no_parens)
+                    # If the original had parens, keep the full phrase as-is for single items
+                    if "(" in phrase and len(items) <= 2:
+                        items = [phrase]
+                    for item in items:
+                        name = _norm_name(item)
+                        if not name or len(name) < 3:
+                            continue
+                        skip = ("here's what", "image", "visible", "present",
+                                "following", "observation", "person")
+                        if any(s in name for s in skip):
+                            continue
+                        if name in _SCREEN_DEVICES:
+                            dropped["screen_device"] += 1
+                            continue
+                        key = _merge_key(item)
+                        ent = objects[key]
+                        ent["frames"].add(t)
+                        ent["raw_names"].add(item.strip())
                 continue
-            name = _norm_name(p["name"])
-            if not name or name in ("text surface", "object"):
-                continue
-            if name in _SCREEN_DEVICES:
-                dropped["screen_device"] += 1
-                continue
-            ent = objects[name]
-            ent["frames"].add(t)
-            ent["raw_names"].add(p["name"].strip())
-            a = p["attrs"].strip()
-            if a and a.lower() not in ("visible object", "yes", "detected"):
-                ent["attrs"].append(a)
+            for p in parsed:
+                if p["kind"] != "OBJECT":
+                    continue
+                name = _norm_name(p["name"])
+                if not name or name in ("text surface", "object"):
+                    continue
+                if name in _SCREEN_DEVICES:
+                    dropped["screen_device"] += 1
+                    continue
+                key = _merge_key(p["name"])
+                ent = objects[key]
+                ent["frames"].add(t)
+                ent["raw_names"].add(p["name"].strip())
+                a = p["attrs"].strip()
+                if a and a.lower() not in ("visible object", "yes", "detected"):
+                    ent["attrs"].append(a)
 
         for line in ocr:  # nothing else; ocr handled above
             pass
+
+    # Post-merge: if key A is a subset of key B's words, absorb A into B.
+    # e.g. "pesto" is subset of "jar pesto" → merge.
+    keys = list(objects.keys())
+    for i, k1 in enumerate(keys):
+        w1 = set(k1.split())
+        for k2 in keys[i + 1:]:
+            if k2 not in objects:
+                continue
+            w2 = set(k2.split())
+            if w1 < w2 or w2 < w1:
+                parent = k1 if w1 > w2 else k2
+                child = k2 if w1 > w2 else k1
+                if child not in objects or parent not in objects:
+                    continue
+                objects[parent]["frames"] |= objects[child]["frames"]
+                objects[parent]["attrs"].extend(objects[child]["attrs"])
+                objects[parent]["raw_names"] |= objects[child]["raw_names"]
+                del objects[child]
 
     total_frames = len({r.get("t") for r in records}) or 1
     out_objects = []
@@ -163,20 +302,43 @@ def build_scene(records: list[dict[str, Any]]) -> dict[str, Any]:
             conf = "medium"
         else:
             conf = "low"
+        best_name = _best_name(ent["raw_names"], name)
         out_objects.append(
             {
-                "name": name,
+                "name": _norm_name(best_name),
+                "merge_key": name,
                 "frames_seen": n,
                 "confidence": conf,
                 "attrs": sorted(set(ent["attrs"]))[:6],
+                "raw_names": sorted(ent["raw_names"]),
                 "t_span": [min(ent["frames"]), max(ent["frames"])],
             }
         )
     out_objects.sort(key=lambda o: o["frames_seen"], reverse=True)
+
+    # OCR entity extraction: find product names/brands that recur across multiple
+    # frames in the world text. A word appearing in 3+ OCR frames is a real label.
+    ocr_words: dict[str, set] = defaultdict(set)
+    for w in world_text:
+        t = w.get("t")
+        text = w.get("text", "")
+        for token in re.findall(r"[A-Za-zÀ-ÿ]{3,}", text):
+            ocr_words[token.lower()].add(t)
+    ocr_entities = []
+    noise = {"ocr", "text", "the", "and", "with", "for", "from", "that",
+             "this", "are", "was", "has", "had", "not", "but", "grat",
+             "grats", "gratis", "gran", "gra"}
+    for word, frames in sorted(ocr_words.items(), key=lambda x: -len(x[1])):
+        if word in noise or len(word) < 3:
+            continue
+        if len(frames) >= 3:
+            ocr_entities.append({"text": word, "frames_seen": len(frames)})
+
     return {
         "objects": out_objects,
         "world_text": world_text,
         "on_screen": on_screen,
+        "ocr_entities": ocr_entities,
         "dropped": dropped,
         "total_frames": total_frames,
     }
@@ -200,6 +362,11 @@ def _scene_brief(scene: dict[str, Any]) -> str:
             wt.append(w["text"][:120])
     lines.append("\nREADABLE TEXT ON PHYSICAL OBJECTS (labels/signs):")
     lines += [f"  - {t}" for t in wt[:12]] or ["  (none)"]
+    ocr_ents = scene.get("ocr_entities", [])
+    if ocr_ents:
+        lines.append("\nRECURRING LABEL TEXT (seen across multiple frames — reliable):")
+        for e in ocr_ents[:15]:
+            lines.append(f"  - \"{e['text']}\" (in {e['frames_seen']} frames)")
     lines.append(f"\nON-SCREEN CONTENT the wearer was looking at ({len(scene['on_screen'])} fragments) — "
                  "this is a SCREEN/VIDEO, NOT the physical surroundings; ignore unless asked about a screen/video.")
     return "\n".join(lines)

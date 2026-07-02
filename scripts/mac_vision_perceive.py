@@ -12,11 +12,18 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import re
 import urllib.request
 from pathlib import Path
 
 HOST = "http://127.0.0.1:11434"
 MODEL = "gemma3:12b-it-qat"
+
+
+def _frame_sort_key(path: Path) -> tuple[int, str]:
+    stem = path.stem
+    m = re.search(r"(\d+)", stem)
+    return (int(m.group(1)) if m else 0, stem)
 
 
 def _gen(prompt: str, images: list[str] | None = None, timeout: int = 240) -> str:
@@ -30,13 +37,31 @@ def _gen(prompt: str, images: list[str] | None = None, timeout: int = 240) -> st
     return json.load(urllib.request.urlopen(req, timeout=timeout))["response"].strip()
 
 
+def perceive_frame_b64(img_b64: str) -> str:
+    """Perceive a single frame already base64-encoded in memory (no disk). Used by
+    the offline video perceiver so no raw frame ever touches the filesystem."""
+    prompt = (
+        "This is one frame from a person's first-person camera (a live feed). "
+        "List what is actually visible, concisely. READ any text/labels/brand names "
+        "visible on products, signs, or packaging — spell them out exactly. Count "
+        "items when there are multiples (e.g. '3 jars' not 'jars'). Note colours "
+        "and materials of objects. If a laptop/phone/TV screen is visible, say it's "
+        "a screen and what is on it. Only what you see — do not guess. 1-8 short "
+        "bullet lines."
+    )
+    return _gen(prompt, images=[img_b64])
+
+
 def perceive_frame(path: Path) -> str:
     img = base64.b64encode(path.read_bytes()).decode()
     prompt = (
         "This is one frame from a person's first-person camera (a live feed). "
-        "List what is actually visible, concisely. Name brands/products whose label "
-        "is legible. If a laptop/phone/TV screen is visible, say it's a screen and "
-        "what is on it. Only what you see — do not guess. 1-5 short bullet lines."
+        "List what is actually visible, concisely. READ any text/labels/brand names "
+        "visible on products, signs, or packaging — spell them out exactly. Count "
+        "items when there are multiples (e.g. '3 jars' not 'jars'). Note colours "
+        "and materials of objects. If a laptop/phone/TV screen is visible, say it's "
+        "a screen and what is on it. Only what you see — do not guess. 1-8 short "
+        "bullet lines."
     )
     return _gen(prompt, images=[img])
 
@@ -77,7 +102,7 @@ def main() -> int:
     ])
     args = ap.parse_args()
 
-    frames = sorted(Path(args.frames_dir).glob("*.jpg"), key=lambda p: int(p.stem.split(".")[0]))
+    frames = sorted(Path(args.frames_dir).glob("*.jpg"), key=_frame_sort_key)
     if not frames:
         print("no frames")
         return 1
