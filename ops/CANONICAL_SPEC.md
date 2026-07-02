@@ -67,12 +67,14 @@
 > the Chief. A sub-agent's "passed" is not acceptance. Every item ships with its held-out
 > battery questions added by the Chief BEFORE implementation.
 
-**M0 — Close the unicorn breach + repo red. (≤1 day)**
-  Move `_permanence_count` behind the S1 grounding gate; count subject must match the counted
-  label itself (irregular plurals handled); delete/fix the 3 orphaned test files so committed
-  pytest is green; kill the :8799 zombie process and its launcher.
-  DoD: count-of-absent battery (unicorns/flamingos/dogs ×10 phrasings) → 100% refuse; committed
-  `pytest -q` green; only :8765 serves.
+**M0 — Close the unicorn breach + repo red. ✅ DONE 2026-07-02 (commit 8a6e34f).**
+  Count fastpath moved behind the S1 gate; `_count_subject` narrows to the counted noun phrase;
+  irregular plurals handled; 3 orphaned test files deleted, M0 regression battery + hub seam
+  tests added. MEASURED: 10/10 truly-absent count questions honest on live :8765 + gemma12b
+  (0 fabricated counts); committed `pytest -q` = 211 passed; :8799 zombie killed, no respawners.
+  NOTE for M1/M5: a 1-frame VLM misread ("snake" = hanging cable) is countable evidence —
+  one-off reads must hedge (n_frames==1 → soft count), and the consensus filter kills them
+  upstream in M5.
 
 **M1 — ONE counting path.**
   The agent's count answer = binder-authored instance count (I3). `permanence.py` text-clustering
