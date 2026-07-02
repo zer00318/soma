@@ -1,0 +1,328 @@
+{
+  "summary": {
+    "answered_pct": 7,
+    "halluc_pct": 46.7,
+    "n": 15,
+    "correct": 1,
+    "answered": 10,
+    "confident_wrong": 7,
+    "gate_met": false
+  },
+  "results": [
+    {
+      "question": "What was the capture protocol I read out?",
+      "truth": "record a bounded window start to stop then send 15 questions",
+      "attempts": [
+        {
+          "answer": "The evidence does not mention a capture protocol.",
+          "refused": true,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "b375c98f-2c1f-450e-b4c6-ca0c47169c39",
+            "4a96428c-dade-4ed6-a44a-8e6c6608fc1f",
+            "0ab44b93-097f-4879-b904-32f4ed88c99e",
+            "a418506c-424d-4880-95a3-0f05c69370da",
+            "7934bbe0-8366-43c2-8b78-7dadf108408b",
+            "fbd95f13-bea9-4a32-b5d9-b3be9201258a"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "What mode is the fan in, 0, 1, or 2?",
+      "truth": "2",
+      "attempts": [
+        {
+          "answer": "The evidence does not specify the fan's mode.",
+          "refused": true,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "a0861efe-2f45-4646-ae8e-8d4f5d7f08bf",
+            "81ed79a5-2c97-450e-91f1-826e4e57ab13",
+            "5af21651-99e9-47a3-b018-b90655bd65ca",
+            "4a96428c-dade-4ed6-a44a-8e6c6608fc1f",
+            "34aa63cc-617c-45c8-8abe-3cff1069c263",
+            "82d33c90-869e-437b-9938-d749b028b6c6"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "What colour shoes do I use?",
+      "truth": "white sneakers",
+      "attempts": [
+        {
+          "answer": "White and Grey Puma sneakers.",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "4b0ca1d7-7be2-4ad2-8a95-db943fe6f424",
+            "75c346f3-1896-489f-894f-9ddeaeff8c4b",
+            "a9837dff-b6b6-4718-be54-be6deb837559",
+            "82d33c90-869e-437b-9938-d749b028b6c6",
+            "34aa63cc-617c-45c8-8abe-3cff1069c263",
+            "49725e45-0f67-42b6-b3ff-5a7253bb53f3"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "What is the brand of the shoes?",
+      "truth": "Puma",
+      "attempts": [
+        {
+          "answer": "Puma",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "4b0ca1d7-7be2-4ad2-8a95-db943fe6f424",
+            "81ed79a5-2c97-450e-91f1-826e4e57ab13",
+            "75c346f3-1896-489f-894f-9ddeaeff8c4b",
+            "2976d80f-3529-4b71-b0f1-bc2ee97b876c",
+            "82d33c90-869e-437b-9938-d749b028b6c6",
+            "e138c53e-b7bb-458f-b680-8aed97f25bd2"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        }
+      ]
+    },
+    {
+      "question": "How can I drink water?",
+      "truth": "there is a thermal bottle, a white bottle and a steel glass",
+      "attempts": [
+        {
+          "answer": "I see a silver bottle and jars of Nutella.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "dc4fb7d2-af0b-4ae5-a140-d94a76a210a5",
+            "ce97026d-518c-4dac-9c72-1348565ee641",
+            "2976d80f-3529-4b71-b0f1-bc2ee97b876c",
+            "30e70e3b-97fe-4480-a8aa-09ce8191eab5",
+            "a418506c-424d-4880-95a3-0f05c69370da",
+            "42de1ffd-aa1e-4281-8aa6-d48f16514f7b"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Is the closet open?",
+      "truth": "partially, the right one is open",
+      "attempts": [
+        {
+          "answer": "The evidence does not mention a closet, open or closed.",
+          "refused": true,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "e6082768-d6ee-4bfb-acb9-387bf1bc9da4",
+            "a0861efe-2f45-4646-ae8e-8d4f5d7f08bf",
+            "9d6c20e6-a4ee-4343-b5ee-0daecff1ea34",
+            "2976d80f-3529-4b71-b0f1-bc2ee97b876c",
+            "e629fe74-fc33-4684-bbe6-633205fc555a",
+            "a418506c-424d-4880-95a3-0f05c69370da"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "What is the pink thing near the fan?",
+      "truth": "a t-shirt",
+      "attempts": [
+        {
+          "answer": "There is a bag of tortilla chips with red and yellow design.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "a0861efe-2f45-4646-ae8e-8d4f5d7f08bf",
+            "81ed79a5-2c97-450e-91f1-826e4e57ab13",
+            "82d33c90-869e-437b-9938-d749b028b6c6",
+            "2976d80f-3529-4b71-b0f1-bc2ee97b876c",
+            "4a96428c-dade-4ed6-a44a-8e6c6608fc1f",
+            "38c6449c-fa00-45db-bf13-86976d6b16f1"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Are the blinds open or closed?",
+      "truth": "closed",
+      "attempts": [
+        {
+          "answer": "The window has a white frame.",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "a0861efe-2f45-4646-ae8e-8d4f5d7f08bf",
+            "81ed79a5-2c97-450e-91f1-826e4e57ab13",
+            "d91eeffc-c496-4463-b7cd-8ec03e68ed7e",
+            "a418506c-424d-4880-95a3-0f05c69370da",
+            "7934bbe0-8366-43c2-8b78-7dadf108408b",
+            "4a96428c-dade-4ed6-a44a-8e6c6608fc1f"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "How many sellotapes are there?",
+      "truth": "two",
+      "attempts": [
+        {
+          "answer": "The evidence does not mention sellotape.",
+          "refused": true,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "ce97026d-518c-4dac-9c72-1348565ee641",
+            "e34e2100-4443-4d53-ab60-0df172adda4f",
+            "42de1ffd-aa1e-4281-8aa6-d48f16514f7b",
+            "18cd0613-5d97-429f-a5f3-12be6d6b1bdc",
+            "2976d80f-3529-4b71-b0f1-bc2ee97b876c",
+            "3e9eb560-736a-47ce-9882-3837ec12ff0a"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "Which side is the nutella I am currently using on?",
+      "truth": "right side",
+      "attempts": [
+        {
+          "answer": "The Nutella is on a white shelf, next to pesto and other items.",
+          "refused": false,
+          "confidence": 0.8,
+          "evidence_ids": [
+            "42de1ffd-aa1e-4281-8aa6-d48f16514f7b",
+            "2976d80f-3529-4b71-b0f1-bc2ee97b876c",
+            "7934bbe0-8366-43c2-8b78-7dadf108408b",
+            "3e9eb560-736a-47ce-9882-3837ec12ff0a",
+            "43f7fd3b-a264-4c90-a731-7755b2e66dbe",
+            "fbd95f13-bea9-4a32-b5d9-b3be9201258a"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Do I have a microphone near me, and where is it?",
+      "truth": "yes, on the right bed side table",
+      "attempts": [
+        {
+          "answer": "There are white earbuds near a phone.",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "b375c98f-2c1f-450e-b4c6-ca0c47169c39",
+            "dc4fb7d2-af0b-4ae5-a140-d94a76a210a5",
+            "a418506c-424d-4880-95a3-0f05c69370da",
+            "c39e01b1-c4dc-4a58-a408-7cb6ea737cf8",
+            "9d6c20e6-a4ee-4343-b5ee-0daecff1ea34",
+            "2976d80f-3529-4b71-b0f1-bc2ee97b876c"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "What is the flavour of the pesto?",
+      "truth": "peperoncino",
+      "attempts": [
+        {
+          "answer": "The label says \"Pesto Barilla\".",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "2976d80f-3529-4b71-b0f1-bc2ee97b876c",
+            "42de1ffd-aa1e-4281-8aa6-d48f16514f7b",
+            "7934bbe0-8366-43c2-8b78-7dadf108408b",
+            "fbd95f13-bea9-4a32-b5d9-b3be9201258a",
+            "3e9eb560-736a-47ce-9882-3837ec12ff0a",
+            "a418506c-424d-4880-95a3-0f05c69370da"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "What flavour is my pringles can?",
+      "truth": "classic paprika",
+      "attempts": [
+        {
+          "answer": "The Pringles can is orange, black and white.",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "e138c53e-b7bb-458f-b680-8aed97f25bd2",
+            "2976d80f-3529-4b71-b0f1-bc2ee97b876c",
+            "38c6449c-fa00-45db-bf13-86976d6b16f1",
+            "82d33c90-869e-437b-9938-d749b028b6c6",
+            "6d496146-c934-4071-b623-808673f5849e",
+            "fbd95f13-bea9-4a32-b5d9-b3be9201258a"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "What is the battery percentage of my mac?",
+      "truth": "100%",
+      "attempts": [
+        {
+          "answer": "I cannot determine the battery percentage of your mac.",
+          "refused": true,
+          "confidence": 0.9,
+          "evidence_ids": [
+            "4a96428c-dade-4ed6-a44a-8e6c6608fc1f",
+            "2976d80f-3529-4b71-b0f1-bc2ee97b876c",
+            "b375c98f-2c1f-450e-b4c6-ca0c47169c39",
+            "30e70e3b-97fe-4480-a8aa-09ce8191eab5",
+            "a9837dff-b6b6-4718-be54-be6deb837559",
+            "ce97026d-518c-4dac-9c72-1348565ee641"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "What colour is my dairy?",
+      "truth": "blue",
+      "attempts": [
+        {
+          "answer": "The dairy is brown, white, and yellow.",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "38c6449c-fa00-45db-bf13-86976d6b16f1",
+            "6d496146-c934-4071-b623-808673f5849e",
+            "75c346f3-1896-489f-894f-9ddeaeff8c4b",
+            "82d33c90-869e-437b-9938-d749b028b6c6",
+            "a9837dff-b6b6-4718-be54-be6deb837559",
+            "49725e45-0f67-42b6-b3ff-5a7253bb53f3"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    }
+  ]
+}

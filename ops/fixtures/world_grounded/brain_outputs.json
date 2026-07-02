@@ -1,0 +1,199 @@
+[
+  {
+    "question": "What did the person with the green shirt say?",
+    "answer": "I don't know",
+    "refused": true,
+    "confidence": 0.15,
+    "reasoner": "heuristic",
+    "evidence_chain": [
+      {
+        "id": "mem-8d3ea8aaa51ba0c3d5c6",
+        "type": "event_memory",
+        "score": 0.814563,
+        "text": "person A with green and ribbed; person A saying \"hello there\"",
+        "place": null,
+        "t_ms": 1000,
+        "frame_index": null,
+        "section_kind": null,
+        "helper_prompt": null,
+        "helper_type": "sleep_binder",
+        "citation_ids": [
+          "683726cb-f4d9-4e2d-9d6f-9096eced2ecc",
+          "908c5500-f1ef-4863-83ef-d5ac6e3313f4",
+          "f6fe40ed-27f8-4a1f-98c2-385c3833e092"
+        ]
+      },
+      {
+        "id": "f6fe40ed-27f8-4a1f-98c2-385c3833e092",
+        "type": "observation",
+        "score": 0.65165,
+        "text": "person A transcript: hello there",
+        "place": null,
+        "t_ms": 1300,
+        "frame_index": null,
+        "section_kind": null,
+        "helper_prompt": null,
+        "helper_type": "whisper",
+        "citation_ids": []
+      },
+      {
+        "id": "908c5500-f1ef-4863-83ef-d5ac6e3313f4",
+        "type": "observation",
+        "score": 0.65165,
+        "text": "person A shirt colour is green",
+        "place": null,
+        "t_ms": 1000,
+        "frame_index": null,
+        "section_kind": null,
+        "helper_prompt": null,
+        "helper_type": "colour",
+        "citation_ids": []
+      },
+      {
+        "id": "mem-3c0ffad3323b55baf510",
+        "type": "event_memory",
+        "score": 0.506458,
+        "text": "person B with blue; person B saying \"see you soon\"",
+        "place": null,
+        "t_ms": 2000,
+        "frame_index": null,
+        "section_kind": null,
+        "helper_prompt": null,
+        "helper_type": "sleep_binder",
+        "citation_ids": [
+          "28139d60-4c50-41a8-8538-10927e156848",
+          "a6836f46-a7cb-446e-ae63-13c724eb1600"
+        ]
+      },
+      {
+        "id": "28139d60-4c50-41a8-8538-10927e156848",
+        "type": "observation",
+        "score": 0.405166,
+        "text": "person B transcript: see you soon",
+        "place": null,
+        "t_ms": 2100,
+        "frame_index": null,
+        "section_kind": null,
+        "helper_prompt": null,
+        "helper_type": "whisper",
+        "citation_ids": []
+      },
+      {
+        "id": "a6836f46-a7cb-446e-ae63-13c724eb1600",
+        "type": "observation",
+        "score": 0.405166,
+        "text": "person B shirt colour is blue",
+        "place": null,
+        "t_ms": 2000,
+        "frame_index": null,
+        "section_kind": null,
+        "helper_prompt": null,
+        "helper_type": "colour",
+        "citation_ids": []
+      }
+    ],
+    "expect_subject": "person A",
+    "expect_words": [
+      "hello",
+      "there"
+    ]
+  },
+  {
+    "question": "What colour was person B's shirt?",
+    "answer": "I don't know",
+    "refused": true,
+    "confidence": 0.15,
+    "reasoner": "heuristic",
+    "evidence_chain": [
+      {
+        "id": "mem-3c0ffad3323b55baf510",
+        "type": "event_memory",
+        "score": 0.598167,
+        "text": "person B with blue; person B saying \"see you soon\"",
+        "place": null,
+        "t_ms": 2000,
+        "frame_index": null,
+        "section_kind": null,
+        "helper_prompt": null,
+        "helper_type": "sleep_binder",
+        "citation_ids": [
+          "28139d60-4c50-41a8-8538-10927e156848",
+          "a6836f46-a7cb-446e-ae63-13c724eb1600"
+        ]
+      },
+      {
+        "id": "a6836f46-a7cb-446e-ae63-13c724eb1600",
+        "type": "observation",
+        "score": 0.478534,
+        "text": "person B shirt colour is blue",
+        "place": null,
+        "t_ms": 2000,
+        "frame_index": null,
+        "section_kind": null,
+        "helper_prompt": null,
+        "helper_type": "colour",
+        "citation_ids": []
+      },
+      {
+        "id": "28139d60-4c50-41a8-8538-10927e156848",
+        "type": "observation",
+        "score": 0.478534,
+        "text": "person B transcript: see you soon",
+        "place": null,
+        "t_ms": 2100,
+        "frame_index": null,
+        "section_kind": null,
+        "helper_prompt": null,
+        "helper_type": "whisper",
+        "citation_ids": []
+      },
+      {
+        "id": "mem-8d3ea8aaa51ba0c3d5c6",
+        "type": "event_memory",
+        "score": 0.508739,
+        "text": "person A with green and ribbed; person A saying \"hello there\"",
+        "place": null,
+        "t_ms": 1000,
+        "frame_index": null,
+        "section_kind": null,
+        "helper_prompt": null,
+        "helper_type": "sleep_binder",
+        "citation_ids": [
+          "683726cb-f4d9-4e2d-9d6f-9096eced2ecc",
+          "908c5500-f1ef-4863-83ef-d5ac6e3313f4",
+          "f6fe40ed-27f8-4a1f-98c2-385c3833e092"
+        ]
+      },
+      {
+        "id": "908c5500-f1ef-4863-83ef-d5ac6e3313f4",
+        "type": "observation",
+        "score": 0.406991,
+        "text": "person A shirt colour is green",
+        "place": null,
+        "t_ms": 1000,
+        "frame_index": null,
+        "section_kind": null,
+        "helper_prompt": null,
+        "helper_type": "colour",
+        "citation_ids": []
+      },
+      {
+        "id": "683726cb-f4d9-4e2d-9d6f-9096eced2ecc",
+        "type": "observation",
+        "score": 0.406991,
+        "text": "person A shirt texture is ribbed",
+        "place": null,
+        "t_ms": 1200,
+        "frame_index": null,
+        "section_kind": null,
+        "helper_prompt": null,
+        "helper_type": "texture",
+        "citation_ids": []
+      }
+    ],
+    "expect_subject": "person B",
+    "expect_words": [
+      "blue"
+    ]
+  }
+]

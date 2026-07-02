@@ -1,0 +1,33 @@
+{
+  "summary": {
+    "grouped_observation_count": 5,
+    "abstraction_count": 2,
+    "composed_memory_count": 2,
+    "link_count": 10
+  },
+  "memories": [
+    {
+      "id": "mem-8d3ea8aaa51ba0c3d5c6",
+      "node_type": "event_memory",
+      "text": "person A with green and ribbed; person A saying \"hello there\"",
+      "support_ids": [
+        "683726cb-f4d9-4e2d-9d6f-9096eced2ecc",
+        "908c5500-f1ef-4863-83ef-d5ac6e3313f4",
+        "f6fe40ed-27f8-4a1f-98c2-385c3833e092"
+      ],
+      "subject_hint": "person A",
+      "memory_kind": "event_memory"
+    },
+    {
+      "id": "mem-3c0ffad3323b55baf510",
+      "node_type": "event_memory",
+      "text": "person B with blue; person B saying \"see you soon\"",
+      "support_ids": [
+        "28139d60-4c50-41a8-8538-10927e156848",
+        "a6836f46-a7cb-446e-ae63-13c724eb1600"
+      ],
+      "subject_hint": "person B",
+      "memory_kind": "event_memory"
+    }
+  ]
+}

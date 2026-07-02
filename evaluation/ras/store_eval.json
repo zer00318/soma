@@ -1,0 +1,9 @@
+{
+  "answered_pct": 19,
+  "halluc_pct": 9.5,
+  "n": 21,
+  "correct": 4,
+  "answered": 21,
+  "confident_wrong": 2,
+  "gate_met": false
+}

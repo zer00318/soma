@@ -1,0 +1,58 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TRACE — a memory you can trust</title>
+<style>
+:root{{--bg:#0a0b10;--card:#14161f;--line:#232634;--txt:#e8eaf0;--dim:#8b90a3;
+--good:#34d399;--warn:#fbbf24;--accent:#7c9cff}}
+*{{box-sizing:border-box}}
+body{{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#161a2b,#0a0b10);
+color:var(--txt);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+-webkit-font-smoothing:antialiased;padding:32px 18px 80px}}
+.wrap{{max-width:760px;margin:0 auto}}
+h1{{font-size:30px;letter-spacing:-.5px;margin:0 0 4px}}
+.tag{{color:var(--dim);margin:0 0 30px;font-size:15px}}
+.card{{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;
+margin:14px 0;cursor:pointer;transition:.15s;user-select:none}}
+.card:hover{{border-color:#33384a}}
+.beat{{font-size:11px;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:6px}}
+.q{{font-size:18px;font-weight:600}}
+.a{{margin-top:14px;font-size:17px;display:none;animation:fade .25s ease}}
+.card.open .a{{display:block}}
+.badge{{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
+padding:3px 10px;border-radius:999px;margin-bottom:10px}}
+.b-good{{background:rgba(52,211,153,.12);color:var(--good);border:1px solid rgba(52,211,153,.3)}}
+.b-refuse{{background:rgba(251,191,36,.12);color:var(--warn);border:1px solid rgba(251,191,36,.3)}}
+.dot{{width:7px;height:7px;border-radius:50%;background:currentColor}}
+.ev{{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px}}
+.chip{{font-size:11px;color:var(--dim);background:#0e1018;border:1px solid var(--line);
+border-radius:8px;padding:4px 9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.hint{{color:var(--dim);font-size:13px;margin-top:6px}}
+.foot{{color:var(--dim);font-size:13px;text-align:center;margin-top:34px;line-height:1.7}}
+@keyframes fade{{from{{opacity:0;transform:translateY(4px)}}to{{opacity:1}}}}
+</style></head><body><div class="wrap">
+<h1>TRACE</h1>
+<p class="tag">A memory for everything you see &mdash; that you can actually trust. Tap a question.</p>
+<div id="cards"></div>
+<p class="foot">On-device &middot; raw video is deleted after reading &middot; only the words it saw are kept.<br>
+Every answer here is the real engine&rsquo;s output over a genuine capture of this room.</p>
+</div>
+<script>
+const DATA = {"store": "data/trace_store_prototype2.sqlite3", "model": "gemma3:12b-it-qat", "entries": [{"beat": "recall", "question": "What food and snacks are in my room?", "answer": "Watermelon, cake slice, burrito, tortilla chips, fish fillet.", "confidence": 0.95, "refused": false, "evidence": ["Watermelon \u2014 Red, green, black; Open; Tilted", "Phone case \u2014 Black, red, orange; Plastic; Upright", "Cake slice \u2014 Red, orange, black, white; Open; Tilted", "Backpack \u2014 Black, orange, red; Fabric; Closed; Upright"], "model": "gemma3:12b-it-qat"}, {"beat": "brands", "question": "What brands of hazelnut spread did you see?", "answer": "Nutella, Granella", "confidence": 0.95, "refused": false, "evidence": ["hazelnut spread jar: Hazelnut spread jar \u2014 Brown, white, yellow; Glass; Full; Upright; text \"Granella\". colour: brown, w", "Hazelnut spread jar \u2014 Brown, white, yellow; Glass; Full; Upright; text \"Granella\"", "spread: Spread \u2014 Brown, white; Plastic; Full; Upright. colour: brown, white; state: full.", "Spread \u2014 Brown, white; Plastic; Full; Upright"], "model": "gemma3:12b-it-qat"}, {"beat": "detail", "question": "What flavour is the Barilla pesto?", "answer": "Pesto Genovese Barilla, Pesto con Peperoncino", "confidence": 0.95, "refused": false, "evidence": ["There is one pesto jar described as full and upright with text 'Pestle' in the room. Distinct pesto jar count: 1 (Only o", "Pesto jar \u2014 Green, blue, yellow; Glass; Full; Tilted; text \"Barilla\"", "Pesto jar \u2014 Green, blue, yellow; Glass; Full; Tilted; text \"Barilla Pesto Peperoncino\"", "Pesto jar \u2014 Green, blue, red; Glass; Full; Upright; text \"Barilla PESTO con Peperoncino\""], "model": "gemma3:12b-it-qat"}, {"beat": "listing", "question": "What is on my bedside table?", "answer": "Nutella jars, a pesto jar, a tomato paste jar, tortilla chips, a notebook, a power strip, and phones.", "confidence": 0.7, "refused": false, "evidence": ["Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Table:** White, flat surface.\n*   ", "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Laptop:** Black with black keyboar", "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Laptop:** Silver/gray metal body, ", "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Laptop:** Silver/gray metal body, "], "model": "gemma3:12b-it-qat"}, {"beat": "attribute", "question": "What colour is the blanket?", "answer": "Pink", "confidence": 1.0, "refused": false, "evidence": ["A pink fabric towel was observed tilted and upright. colour: Pink; state: Tilted, Upright; material: Fabric.", "Towel \u2014 Pink; Fabric; Tilted", "Towel \u2014 Pink; Fabric; Tilted", "cloth: Cloth \u2014 Pink; Fabric; Upright. colour: pink."], "model": "gemma3:12b-it-qat"}, {"beat": "presence", "question": "Is there a fan in the room?", "answer": "Yes, there is one fan that is on and upright.", "confidence": 0.7, "refused": false, "evidence": ["There is one fan that is on and upright. It appears to be made of plastic and metal. Distinct fan count: 1 (All observat", "Fan \u2014 Black, silver; Plastic, metal; On; Upright", "Fan \u2014 Black, silver; Plastic, metal; On; Upright", "A power strip is present. It is white and black, made of plastic, and was observed tilted. Current/most-recent location:"], "model": "gemma3:12b-it-qat"}, {"beat": "moat", "question": "What is the wifi password written on the wall?", "answer": "I didn't capture that clearly enough to answer.", "confidence": 0.2, "refused": true, "evidence": ["Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Table:** White, rectangular surfac", "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Table:** White, flat surface.\n*   ", "Here's a breakdown of what is literally visible in the image:\n\n**Objects & Materials:**\n\n*   **Laptop:** Black with silv", "Here's a breakdown of what is literally visible in the image:\n\n**Objects & Description:**\n\n*   **Laptop:** Silver/gray m"], "model": "gemma3:12b-it-qat"}, {"beat": "moat", "question": "Did you see my passport anywhere?", "answer": "I didn't capture that clearly enough to answer.", "confidence": 0.2, "refused": true, "evidence": ["Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Laptop:** Black with black keyboar", "Here's a breakdown of what is literally visible in the image:\n\n**Objects & Materials:**\n\n*   **Laptop:** Black with silv", "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Laptop:** Silver/gray metal body, ", "Here's an analysis of the image based on what is literally visible:\n\n**Objects:**\n\n*   **Laptop:** Silver/gray metal bod"], "model": "gemma3:12b-it-qat"}, {"beat": "moat", "question": "What was the phone number on the whiteboard?", "answer": "The phone number on the whiteboard is unreadable.", "confidence": 0.7, "refused": false, "evidence": ["Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Table:** White, rectangular surfac", "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Laptop:** Silver/gray metal body, "], "model": "gemma3:12b-it-qat"}]};
+const LABEL = {"recall": "IT REMEMBERS EVERYTHING", "brands": "IT READS THE FINE PRINT", "detail": "DOWN TO THE FLAVOUR", "listing": "IT KNOWS WHERE THINGS ARE", "attribute": "IT NOTICES DETAILS", "presence": "IT ANSWERS WHAT IT SAW", "moat": "IT WILL NOT MAKE THINGS UP"};
+const cards = document.getElementById('cards');
+DATA.entries.forEach(e => {{
+  const d = document.createElement('div'); d.className='card';
+  const refused = e.refused;
+  const badge = refused
+    ? '<div class="badge b-refuse"><span class="dot"></span>WON\'T INVENT IT &mdash; it never saw this</div>'
+    : '<div class="badge b-good"><span class="dot"></span>GROUNDED &middot; confidence '+Math.round(e.confidence*100)+'%</div>';
+  const ev = (e.evidence||[]).map(x=>'<span class="chip">'+x.replace(/</g,'&lt;')+'</span>').join('');
+  d.innerHTML = '<div class="beat">'+(LABEL[e.beat]||e.beat.toUpperCase())+'</div>'
+    + '<div class="q">'+e.question+'</div>'
+    + '<div class="hint">tap to reveal</div>'
+    + '<div class="a">'+badge+'<div>'+e.answer+'</div>'
+    + (ev?'<div class="ev">'+ev+'</div>':'')+'</div>';
+  d.onclick=()=>{{d.classList.toggle('open'); const h=d.querySelector('.hint'); if(h)h.style.display=d.classList.contains('open')?'none':'block';}};
+  cards.appendChild(d);
+}});
+</script></body></html>

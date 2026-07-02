@@ -1,0 +1,32 @@
+--- scripts/instance_brain_wire.py
++++ scripts/instance_brain_wire.py (worker)
+@@ -67,20 +67,18 @@
+          Set refused=True if the answer contains 'I don't have' or similar refusal.
+       5. Return None if there is no graph or the graph has zero nodes.
+ 
++    STUB — worker task: wire_answer_from_graph.
+     """
+     graph = graphs_store.get(moment)
+-    if not graph or not graph.get("nodes"):
++    if not graph or len(graph["nodes"]) == 0:
+         return None
+-    instance_graph.render_graph(graph)
+-    ans = instance_graph.answer(graph, question)
+-    refused = "don't have" in ans.lower() or "do not have" in ans.lower()
+-    return {
+-        "answer": ans,
+-        "source": "instance_graph",
+-        "refused": refused,
+-        "graph_nodes": len(graph["nodes"]),
+-        "graph_edges": len(graph["edges"]),
+-    }
++
++    graph_summary = instance_graph.render_graph(graph)
++    answer = instance_graph.answer(graph, question)
++    refused = "I don't have" in answer or "don't have that" in answer
++
++    return {"answer": answer, "source": "instance_graph", "refused": refused,
++            "graph_nodes": len(graph["nodes"]), "graph_edges": len(graph["edges"])}
+ 
+ 
+ def graph_to_text_record(graph: dict) -> str:

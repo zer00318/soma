@@ -1,0 +1,11 @@
+{
+  "updated_unix": 1782666000,
+  "mode": "phase1_overhaul",
+  "phase": "serial_dispatch",
+  "task": "07_controlled_demo_lock",
+  "next": [
+    "08_bedroom_capture_overhaul",
+    "09_frontier_demo_number",
+    "10_dominant_failure_only"
+  ]
+}

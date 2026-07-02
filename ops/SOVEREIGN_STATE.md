@@ -261,6 +261,42 @@ A pitch-ready [Context → Prompt → Answer] ambient-memory prototype. Target =
 
 ---
 [STATE_MANIFEST]
+- cycle: 11 (2026-06-28) — PHASE 1 OVERHAUL / ACTIVE COMMANDER-IN-CHIEF
+- LEASH: goal=fastest real jump in pitch-readiness percentage; verified=best current bedroom frontier artifact is
+  `33% answered / 14.3% hallucination` and the canonical store eval is still gate-failing; therefore the lever is
+  not more side features but better demo capture + frontier measurement + one-class-only patching. founder-#1=YES
+  (explicit order: stop judging, liquidate dead work, create a ruthless serial execution engine, and update the
+  state manifest).
+- hard pivot:
+  1. Pitch mode LOCKED to `controlled curated demo` until measured gates are green.
+  2. Biggest-lift lane LOCKED to `capture quality -> frontier room cycle -> measured artifact -> dominant class patch`.
+  3. All specialist/binder/planner percentage work is FROZEN as non-critical-path.
+- canonical execution ledger:
+  `ops/SERIAL_EXECUTION_LEDGER_2026-06-28_PHASE1_OVERHAUL.md`
+- active serial queue:
+  S7 `07_controlled_demo_lock.md`
+  -> S8 `08_bedroom_capture_overhaul.md`
+  -> S9 `09_frontier_demo_number.md`
+  -> S10 `10_dominant_failure_only.md`
+  -> re-S9
+  -> S11 `11_truth_surface_final.md`
+- deployed engine pieces:
+  - `scripts/run_phase1_serial.sh` = sanctioned dispatcher for the current serial queue
+  - `scripts/run_frontier_room_cycle.sh` = one-command machine lane: keyframes -> frontier ingest -> coverage probe
+    -> frontier eval
+  - `scripts/probe_bedroom_coverage.py` = machine check for whether the store even contains the facts required for
+    the 21Q demo
+- immediate next 3 autonomous actions:
+  1. Run `./scripts/run_phase1_serial.sh 07` to align every founder-facing state surface to controlled-demo mode.
+  2. Run `./scripts/run_phase1_serial.sh 08` and `09` on the latest dense bedroom capture; read the coverage probe
+     before touching the brain.
+  3. Patch only the single dominant measured miss class; if the artifact worsens, revert immediately.
+- roadblock being cleared: a month of staying in the same digits by spreading effort across dead-end families and
+  reading telemetry as readiness. This cycle replaces that with one brutal loop centered on the only thing that can
+  move the number fast: evidence quality on the exact pitch corpus.
+
+---
+[STATE_MANIFEST]
 - cycle: 11 (2026-06-24) — COCKPIT OVERHAUL DONE, LIVE44 PAUSED ON HOST INSTABILITY
 - LEASH: goal=BOTH — the cockpit overhaul directly serves deliverable #1 (a truthful founder surface) and keeps #2
   honest; verified=`/engine.json` now exposes the actual product story + runtime live44 status, the HTML surface was
@@ -405,3 +441,41 @@ A pitch-ready [Context → Prompt → Answer] ambient-memory prototype. Target =
   wire the reasoner into /ask and prove a store-cited live answer; (3) kick the MACHINE-lane real eval over
   the n=11 gold to replace UNMEASURED with the first honest store number.
 - roadblock: founder must answer T5 (fully-live broken vs digital-led demo) — it reshapes the 4 days.
+
+---
+[STATE_MANIFEST]
+- cycle: 15 (2026-06-28) — PHASE 1 EXECUTION ENGINE: LIQUIDATE, FREEZE, SERIALIZE
+- LEASH: goal=stop the workforce from farming dashboard motion and force every machine hour into the truthful surface, the live path, and the real number; verified=repo audit + runtime artifact read + full test suite (`400 passed`) + focused live-path gate (`19 passed`) by the Chief; founder-#1=YES (explicit Commander mandate to liquidate tasks, deploy a 24/7 serial engine, and hand over executable scripts/prompts).
+- what shipped:
+  1. Replaced the ledger with a Phase-1 command version in `ops/SERIAL_EXECUTION_LEDGER_2026-06-27.md`: kill-list, serial queue, first-batch commands, operating law.
+  2. FROZE the only stale pending Codex item by moving `ops/codex_queue/pending/13_kf_memory_persistence.md` to `ops/codex_queue/frozen/13_kf_memory_persistence.md`.
+  3. Authored the first sanctioned task briefs:
+     - `ops/serial_queue/01_truth_surface_demotion.md`
+     - `ops/serial_queue/02_store_agent_primary.md`
+     - `ops/serial_queue/03_real_number_runtime.md`
+  4. Added the dispatch surface `scripts/run_phase1_serial.sh`.
+- command truth now in force:
+  - `44%` = planner math, not readiness.
+  - `80%` = ops telemetry, not answer quality.
+  - `90%` = stale checklist theater, not prototype status.
+  - official readiness remains ~18% until T1→T3 move the measured artifacts.
+- next 3 autonomous actions:
+  1. Run `./scripts/run_phase1_serial.sh 01` and demote fake progress bars from the founder cockpit.
+  2. Run `./scripts/run_phase1_serial.sh 02` and harden/prove the store-agent-first live path.
+  3. Run `./scripts/run_phase1_serial.sh 03` overnight and let `evaluation/ras/store_eval.json` dictate the next patch.
+- roadblock being cleared: the workforce had enough real substrate to look busy, but not enough command discipline to stop mixing ops motion with product truth. This cycle narrows all sanctioned work to one serial line only.
+
+---
+[STATE_MANIFEST]
+- cycle: 2026-06-28 (Commander-in-Chief, EXECUTION — measured the real number on the new recording)
+- HARD PIVOT: from architecture-judging to raw execution. Greenfield store+agent is the judged path
+  (src/trace_memory/brain/agent.py); ask_home + specialists/instance/activity/world_binder FROZEN.
+- MEASURED TRUTH (frontier, clean store, 21 founder Qs): correct 0 / halluc 76.2% / gate FAILED.
+  Diagnosis = (A) CAPTURE: perceived 8 of 3053 frames (0.26%). Brain works; perception is the wall.
+- EXECUTED: build_demo_store.py (killed 79% mac_screen self-homework pollution; 413-node clean store);
+  measured store_eval; reperceive_recording.py (dense 2fps blur-gated) RUNNING into demo store.
+- SERIAL QUEUE: reperceive -> re-measure -> refusal gate (halluc<10%) -> geometric count -> truth surface.
+- NEXT: poll /tmp/reperceive.log; on completion re-measure 21Q; then refusal gate. Founder must choose
+  passive-partial vs deliberate-richer re-record (facts like fan dial/battery may not be in this footage).
+- LEASH: number is MEASURED (not planner math); pollution found by reading nodes; capture-vs-brain
+  diagnosed mechanically (truths absent from store), not guessed. Gate still unmet — honest.

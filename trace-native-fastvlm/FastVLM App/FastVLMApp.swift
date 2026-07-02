@@ -21,9 +21,11 @@ struct FastVLMApp: App {
             ContentView()
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background {
+            if phase == .active {
+                VideoRecorder.shared.configure(hubURL: hubURL)
+            } else if phase == .background {
                 if spatialMode { TraceARKitEngine.shared.saveWorldMap() }
-                // Finalize + upload the FULL recorded video to the Mac.
+                // Final flush only if the user explicitly armed recording.
                 VideoRecorder.shared.finishAndUpload(hubURL: hubURL)
             }
         }

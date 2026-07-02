@@ -1,0 +1,21 @@
+# WG08 dominant failure patch result
+
+- Dominant failure chosen: retrieval/conflict. The measured bedroom store contains the needed facts, but physical `where/current` questions were still surfacing generic authored memories and screen-report transcript rows ahead of the raw observation that actually carried the grounded location/app evidence.
+- Files changed:
+  - `src/trace_memory/brain/agent.py`
+  - `tests/unit/test_world_grounded_memory.py`
+- Tests run:
+  - `.venv/bin/python -m pytest tests/unit/test_world_grounded_memory.py -k 'specific_location or relevant_citation_support'`
+  - Result: `2 passed, 5 deselected`
+- Real artifact replay:
+  - Replayed the patched agent over `data/trace_store_frontier.sqlite3` (real phone-derived bedroom store).
+  - Confirmed the screen/app conflict path improved enough to surface the `Claude File Edit View Window Help` row (`350922ec-35d9-4df9-b71b-9d0ed9a3dc67`) ahead of the later Codex-report rows for the laptop-app question.
+  - Physical blanket / current-jar conflicts are still not cleanly resolved on the full real store, so no frontier score gain is claimed from this run.
+- Build/install attempts:
+  - Verified the iPhone is physically present over USB via `system_profiler SPUSBDataType`.
+  - Ran `bash scripts/deploy_ios.sh`.
+  - Retried the same `xcodebuild` device build with SwiftPM/clang caches redirected into `/private/tmp`.
+  - Both builds failed before bundle production because SwiftPM manifest resolution still tried to write under `/Users/zer00/.cache` and `/Users/zer00/Library/Caches`, which are not writable in this sandbox. No fresh app install or on-device launch happened in this session.
+- Residual risk:
+  - The patch is intentionally narrow and only touches retrieval/conflict ranking. It does not change helper output, refusal thresholds, or the authored-memory text format.
+  - The real bedroom store still has unresolved physical-location conflicts (`blanket currently`, `current nutella jar`). Those remain the next measured misses if WG08 is revisited.

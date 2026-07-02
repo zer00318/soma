@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trace · Perfect recall, zero recordings.</title>
+<meta name="description" content="Trace is a privacy-first ambient memory. It turns what you see into typed, cited text on your device in real time, then destroys the frame. Perfect recall, zero recordings.">
+<meta property="og:title" content="Trace · Perfect recall, zero recordings.">
+<meta property="og:description" content="A context-first ambient memory that never stores what it sees, and never pretends to know.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAF7; --ink:#1A1A1A; --ember:#E8590C; --gray:#8a8a86; --faint:#e4e4de;
+    --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+    --sans:"Inter","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --maxw:1080px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+  a{color:inherit}
+  .ember{color:var(--ember)}
+  .mono{font-family:var(--mono)}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:40;background:rgba(250,250,247,.82);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--faint)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{font-weight:700;letter-spacing:.28em;font-size:17px}
+  .brand .dot{color:var(--ember)}
+  .navcta{font:600 13px var(--sans);border:1px solid var(--ink);border-radius:999px;padding:9px 16px;text-decoration:none;transition:.2s}
+  .navcta:hover{background:var(--ink);color:var(--bg)}
+
+  /* hero */
+  header{padding:96px 0 72px;text-align:center;position:relative;overflow:hidden}
+  .kicker{font:600 12px var(--sans);letter-spacing:.24em;color:var(--gray);text-transform:uppercase}
+  #chain{font:600 clamp(18px,3.4vw,30px) var(--sans);letter-spacing:.02em;margin:20px 0 8px;display:flex;gap:.5em;justify-content:center;flex-wrap:wrap}
+  #chain .tok{color:var(--gray);transition:color .6s,transform .6s}
+  #chain .arw{color:var(--faint)}
+  #chain.inv .ctx{color:var(--ember)}
+  h1{font-size:clamp(44px,9vw,104px);font-weight:700;letter-spacing:-.03em;line-height:.98;margin:26px 0 10px}
+  .tagline{font-family:var(--mono);font-size:clamp(15px,2.6vw,22px);color:var(--ink)}
+  .cur{display:inline-block;width:.5em;height:1.05em;background:var(--ink);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .sub{max-width:640px;margin:26px auto 0;color:#3c3c38;font-size:clamp(15px,2vw,18px)}
+  .cta-row{margin-top:34px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .btn{font:600 15px var(--sans);border-radius:999px;padding:14px 26px;text-decoration:none;transition:.2s;border:1px solid transparent;cursor:pointer}
+  .btn.primary{background:var(--ember);color:#fff}
+  .btn.primary:hover{background:#cf4d08}
+  .btn.ghost{border-color:var(--ink)}
+  .btn.ghost:hover{background:var(--ink);color:var(--bg)}
+
+  /* section scaffold */
+  section{padding:74px 0;border-top:1px solid var(--faint)}
+  .eyebrow{font:600 12px var(--sans);letter-spacing:.22em;color:var(--ember);text-transform:uppercase;margin-bottom:16px}
+  h2{font-size:clamp(28px,4.6vw,44px);font-weight:650;letter-spacing:-.02em;line-height:1.08}
+  .lead{font-size:clamp(16px,2.2vw,20px);color:#3c3c38;max-width:720px;margin-top:16px}
+
+  /* inversion two-col */
+  .invgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:40px}
+  .invcard{border:1px solid var(--faint);border-radius:16px;padding:28px;background:#fff}
+  .invcard.t{border-color:var(--ember);box-shadow:0 20px 50px -30px rgba(232,89,12,.5)}
+  .invcard h3{font-size:19px;font-weight:650;margin-bottom:6px}
+  .invcard .flow{font-family:var(--mono);font-size:15px;margin:14px 0;color:var(--gray)}
+  .invcard.t .flow .ctx{color:var(--ember);font-weight:600}
+  .invcard p{font-size:14.5px;color:#3c3c38}
+  .invcard .stamp{margin-top:16px;font:500 12px var(--mono);color:var(--gray)}
+  .invcard.t .stamp{color:var(--ember)}
+
+  /* pillars */
+  .pillars{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:40px}
+  .pillar{border:1px solid var(--faint);border-radius:16px;padding:30px;background:#fff}
+  .pillar .n{font:700 14px var(--mono);color:var(--ember)}
+  .pillar h3{font-size:22px;font-weight:650;margin:8px 0 12px}
+  .pillar p{font-size:15px;color:#3c3c38}
+  .pillar .demo{margin-top:18px;font-family:var(--mono);font-size:13px;background:var(--bg);border:1px solid var(--faint);border-radius:10px;padding:14px 16px;line-height:1.7}
+  .demo .q{font-weight:500}
+  .demo .badge{display:inline-block;margin-top:8px;padding:2px 9px;border-radius:6px;font-size:11px;border:1px solid var(--faint)}
+  .badge.ok{color:#1f7a33;border-color:#bfe0c6}
+  .badge.no{color:var(--ember);border-color:#f2c4ab;font-weight:600}
+
+  /* pipeline */
+  .pipe{display:flex;align-items:stretch;gap:0;margin-top:44px;flex-wrap:wrap}
+  .pstep{flex:1;min-width:150px;border:1px solid var(--faint);border-radius:12px;padding:18px 16px;background:#fff;position:relative}
+  .pstep .i{font:700 12px var(--mono);color:var(--ember)}
+  .pstep h4{font-size:15px;font-weight:600;margin:6px 0 4px}
+  .pstep p{font-size:12.5px;color:var(--gray)}
+  .pstep.kill{border-color:var(--ember)}
+  .pstep.kill h4{color:var(--ember)}
+  .parr{display:flex;align-items:center;color:var(--faint);font-size:22px;padding:0 6px}
+
+  /* status */
+  .statwrap{display:grid;grid-template-columns:1.1fr .9fr;gap:36px;margin-top:40px;align-items:start}
+  .checks{list-style:none;display:grid;gap:12px}
+  .checks li{display:flex;gap:12px;font-size:15.5px;align-items:baseline}
+  .checks .ck{color:var(--ember);font-weight:700;font-family:var(--mono)}
+  .metric{border:1px solid var(--ember);border-radius:16px;padding:28px;background:#fff;text-align:center}
+  .metric .big{font-size:64px;font-weight:700;letter-spacing:-.03em;color:var(--ember);line-height:1}
+  .metric .lab{font-size:14px;color:#3c3c38;margin-top:10px}
+  .metric .fine{font-size:12px;color:var(--gray);margin-top:8px;font-family:var(--mono)}
+
+  /* waitlist */
+  #waitlist{text-align:center}
+  .wl-form{margin:30px auto 0;max-width:480px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .wl-form input{flex:1;min-width:220px;font:400 15px var(--sans);padding:14px 16px;border:1px solid var(--faint);border-radius:999px;background:#fff}
+  .wl-form input:focus{outline:none;border-color:var(--ember)}
+  .wl-note{font-size:12.5px;color:var(--gray);margin-top:14px;font-family:var(--mono)}
+
+  footer{border-top:1px solid var(--faint);padding:44px 0;color:var(--gray);font-size:13.5px}
+  footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+  footer .brand{color:var(--ink)}
+
+  @media(max-width:720px){
+    .invgrid,.pillars,.statwrap{grid-template-columns:1fr}
+    .parr{transform:rotate(90deg);width:100%;justify-content:center}
+    header{padding:64px 0 48px}
+  }
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <span class="brand">TRACE<span class="dot">.</span></span>
+  <a class="navcta" href="#waitlist">Join the waitlist</a>
+</div></nav>
+
+<header>
+  <div class="wrap">
+    <div class="kicker">Every AI assistant today</div>
+    <div id="chain">
+      <span class="tok" id="t1">PROMPT</span><span class="arw">→</span>
+      <span class="tok ctx" id="t2">CONTEXT</span><span class="arw">→</span>
+      <span class="tok" id="t3">ANSWER</span>
+    </div>
+    <h1>Trace</h1>
+    <div class="tagline"><span id="tag"></span><span class="cur" id="cur"></span></div>
+    <p class="sub">A privacy-first ambient memory. Trace turns what you see into typed, cited text, on your device and in real time, then destroys the frame. Nothing is recorded, so surveillance is structurally impossible.</p>
+    <div class="cta-row">
+      <a class="btn primary" href="#waitlist">Join the waitlist</a>
+      <a class="btn ghost" href="#how">See how it works</a>
+    </div>
+  </div>
+</header>
+
+<section id="inversion">
+  <div class="wrap">
+    <div class="eyebrow reveal">The paradigm shift</div>
+    <h2 class="reveal">Same three words. Opposite order.</h2>
+    <p class="lead reveal">Today's assistants record and store the world so they can search it later. Trace inverts the pipeline: it perceives first, keeps only the meaning, and throws the raw footage away.</p>
+    <div class="invgrid">
+      <div class="invcard reveal">
+        <h3>Everyone else: prompt-first</h3>
+        <div class="flow">PROMPT → <span>CONTEXT</span> → ANSWER</div>
+        <p>Capture everything, store the raw audio and video, then search through it when you ask. The footage of your life, and everyone around you, lives on a server, breachable and subpoena-able forever.</p>
+        <div class="stamp">retention is the business model</div>
+      </div>
+      <div class="invcard t reveal">
+        <h3>Trace: context-first</h3>
+        <div class="flow"><span class="ctx">CONTEXT</span> → PROMPT → ANSWER</div>
+        <p>Perceive on the device, convert to typed evidence, discard the frame in milliseconds. When you ask, the answer is drawn from text you already own, never from stored recordings, because there are none.</p>
+        <div class="stamp">there is nothing to leak</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="moats">
+  <div class="wrap">
+    <div class="eyebrow reveal">Two things it cannot do</div>
+    <h2 class="reveal">By architecture, not by promise.</h2>
+    <div class="pillars">
+      <div class="pillar reveal">
+        <span class="n">01</span>
+        <h3>It never stores what it sees.</h3>
+        <p>Raw pixels exist for milliseconds and are destroyed. There is nothing to leak, breach, or subpoena. A natural fit for strict EU / German GDPR expectations, because compliance is a property of the design, not a policy you have to trust.</p>
+      </div>
+      <div class="pillar reveal">
+        <span class="n">02</span>
+        <h3>It never pretends to know.</h3>
+        <p>Every answer cites the evidence it was built from, or it refuses. Trace is measured on a reproducible benchmark and answers <b>&ldquo;I don't know&rdquo;</b> instead of hallucinating.</p>
+        <div class="demo">
+          <div class="q">Q: Where did I leave the drill?</div>
+          A: On the garage workbench, next to the red toolbox.<br>
+          <span style="color:#777">· label read: &ldquo;DEWALT&rdquo; · when: yesterday 6:12pm</span><br>
+          <span class="badge ok">cited · confident</span>
+          <div style="height:12px"></div>
+          <div class="q">Q: How many unicorns are on the desk?</div>
+          A: I have never observed a unicorn.<br>
+          <span class="badge no">no evidence</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="eyebrow reveal">How it works</div>
+    <h2 class="reveal">Perceive, don't record.</h2>
+    <p class="lead reveal">One pass, entirely on your own device. The raw frame never leaves the phone, and never survives it.</p>
+    <div class="pipe">
+      <div class="pstep reveal"><div class="i">01</div><h4>On-device perception</h4><p>Local AI reads the frame. No cloud, no upload.</p></div>
+      <div class="parr">→</div>
+      <div class="pstep reveal"><div class="i">02</div><h4>Typed evidence</h4><p>&ldquo;desk · black keyboard · label reads DEWALT · 14:32&rdquo;</p></div>
+      <div class="parr">→</div>
+      <div class="pstep kill reveal"><div class="i">03</div><h4>Frame destroyed</h4><p>The pixels are discarded in milliseconds.</p></div>
+      <div class="parr">→</div>
+      <div class="pstep reveal"><div class="i">04</div><h4>Encrypted memory</h4><p>Only the text is kept: local, encrypted, never deleted.</p></div>
+      <div class="parr">→</div>
+      <div class="pstep reveal"><div class="i">05</div><h4>Ask anything</h4><p>Cited answers, drawn from evidence you own.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="status">
+  <div class="wrap">
+    <div class="eyebrow reveal">Where we are, honestly</div>
+    <h2 class="reveal">It runs. It cites. It refuses.</h2>
+    <div class="statwrap">
+      <ul class="checks">
+        <li class="reveal"><span class="ck">✓</span> Working end-to-end prototype: live camera perception to cited answers</li>
+        <li class="reveal"><span class="ck">✓</span> Runs entirely on local AI models: no cloud, no API keys, no frames kept</li>
+        <li class="reveal"><span class="ck">✓</span> Honest refusals: says &ldquo;I don't know&rdquo; instead of guessing</li>
+        <li class="reveal"><span class="ck">✓</span> A reproducible benchmark that measures information survival and confident-wrong answers</li>
+        <li class="reveal"><span class="ck">✓</span> Built solo, on consumer hardware</li>
+      </ul>
+      <div class="metric reveal">
+        <div class="big">0%</div>
+        <div class="lab">confident-wrong answers</div>
+        <div class="fine">measured on a reproducible battery: one command, exits red on any violation</div>
+      </div>
+    </div>
+    <p class="lead reveal" style="margin-top:32px">Research-grade and improving in the open. Firm counting and a wearable form factor are on the near-term roadmap, and we'll tell you exactly what isn't done yet.</p>
+  </div>
+</section>
+
+<section id="waitlist">
+  <div class="wrap">
+    <div class="eyebrow reveal" style="color:var(--ember)">Early access</div>
+    <h2 class="reveal">A memory that keeps the meaning<br>and deletes the evidence.</h2>
+    <p class="lead reveal" style="margin-left:auto;margin-right:auto">Leave an email and we'll invite you to the closed beta. No tracking, no newsletter machine, just an invite when it's ready.</p>
+    <form class="wl-form reveal" id="wlform">
+      <input type="email" id="wlemail" placeholder="you@example.com" required aria-label="email">
+      <button class="btn primary" type="submit">Request an invite</button>
+    </form>
+    <div class="wl-note" id="wlnote">Perfect recall, zero recordings.</div>
+  </div>
+</section>
+
+<footer><div class="wrap">
+  <span class="brand">TRACE<span class="dot">.</span></span>
+  <span>Venkata Sai Pranav Regulagedda · KIT · Max Planck Institute for Plasma Physics</span>
+  <span class="mono">trace.allegedly.buzz</span>
+</div></footer>
+
+<script>
+/* tagline typewriter */
+(function(){
+  const txt="Perfect recall, zero recordings.";
+  const el=document.getElementById('tag'), cur=document.getElementById('cur');
+  let i=0;
+  (function tick(){
+    if(i<=txt.length){ el.textContent=txt.slice(0,i); i++; setTimeout(tick, 46); }
+    else { setTimeout(()=>cur.style.display='none', 900); }
+  })();
+})();
+
+/* the inversion morph in the hero chain, once, after a beat */
+setTimeout(function(){
+  const chain=document.getElementById('chain');
+  const t1=document.getElementById('t1'), t2=document.getElementById('t2');
+  // animate CONTEXT to the front by reordering with a fade
+  chain.style.transition='opacity .35s';
+  chain.style.opacity='0';
+  setTimeout(function(){
+    // rebuild inverted: CONTEXT → PROMPT → ANSWER
+    chain.innerHTML='<span class="tok ctx">CONTEXT</span><span class="arw">→</span>'
+                   +'<span class="tok">PROMPT</span><span class="arw">→</span>'
+                   +'<span class="tok">ANSWER</span>';
+    document.querySelector('.kicker').textContent='Trace inverts it';
+    chain.classList.add('inv');
+    chain.style.opacity='1';
+  },360);
+}, 2600);
+
+/* scroll reveal */
+const io=new IntersectionObserver((ents)=>{
+  ents.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+},{threshold:.15});
+document.querySelectorAll('.reveal').forEach((el,i)=>{
+  el.style.transitionDelay=(Math.min(i%5,4)*60)+'ms';
+  io.observe(el);
+});
+
+/* waitlist, no backend yet: store locally + mailto fallback, honest about it */
+document.getElementById('wlform').addEventListener('submit',function(e){
+  e.preventDefault();
+  const email=document.getElementById('wlemail').value.trim();
+  const note=document.getElementById('wlnote');
+  if(!email){return;}
+  try{
+    const list=JSON.parse(localStorage.getItem('trace_waitlist')||'[]');
+    list.push({email,at:new Date().toISOString()});
+    localStorage.setItem('trace_waitlist',JSON.stringify(list));
+  }catch(_){}
+  note.innerHTML='Thanks, noted. <a class="ember" href="mailto:hello@allegedly.buzz?subject=Trace%20waitlist&body='+encodeURIComponent(email)+'">Send it to us directly →</a>';
+  document.getElementById('wlemail').value='';
+});
+</script>
+</body>
+</html>

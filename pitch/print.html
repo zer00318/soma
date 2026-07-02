@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trace · KIT Gründerschmiede</title>
+<style>
+  :root{
+    --bg:#FAFAF7; --ink:#1A1A1A; --ember:#E8590C; --gray:#8a8a86; --faint:#d8d8d2;
+    --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,monospace;
+    --sans:"Inter","Helvetica Neue",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);overflow:hidden;font-family:var(--sans);color:var(--ink)}
+  #viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  #stage{width:1280px;height:720px;position:relative;transform-origin:center center}
+  .slide{position:absolute;inset:0;padding:70px 90px;opacity:0;visibility:hidden}
+  .slide.active{opacity:1;visibility:visible}
+
+  /* chrome */
+  #hud{position:fixed;bottom:18px;right:24px;font:11px var(--mono);color:var(--gray);letter-spacing:.08em;z-index:50}
+  #progress{position:fixed;bottom:0;left:0;height:2px;background:var(--ember);width:0;z-index:50;transition:width .5s cubic-bezier(.7,0,.3,1)}
+
+  /* type system */
+  h1{font-size:54px;font-weight:650;letter-spacing:-0.02em;line-height:1.08}
+  h2{font-size:40px;font-weight:650;letter-spacing:-0.02em;line-height:1.12}
+  .kicker{font:600 12px var(--sans);letter-spacing:.22em;color:var(--gray);text-transform:uppercase}
+  .mono{font-family:var(--mono)}
+  .ember{color:var(--ember)}
+  .gray{color:var(--gray)}
+  .rule{height:1px;background:var(--ink);opacity:.25;transform-origin:center;transform:scaleX(0)}
+  .hairline{border:1px solid rgba(26,26,26,.14);border-radius:10px}
+  .cursor{display:inline-block;width:9px;height:1.05em;background:var(--ink);vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* ---------- S1 title ---------- */
+  #s1{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  #chainwrap{position:absolute;top:150px;left:0;right:0}
+  #chain{display:flex;justify-content:center;gap:26px;font:600 34px var(--sans);letter-spacing:.02em}
+  #chain .tok{position:relative}
+  #chain .arrow{color:var(--gray);font-weight:300}
+  #chainlabel{margin-bottom:26px}
+  #wordmark{font-size:120px;font-weight:700;letter-spacing:.34em;margin-top:120px;opacity:0;text-indent:.34em}
+  #tagline{font:400 21px var(--mono);margin-top:8px;min-height:30px;color:var(--ink)}
+  #s1foot{position:absolute;bottom:56px;left:0;right:0;text-align:center;font-size:14px;color:var(--gray);opacity:0}
+
+  /* ---------- S2 problem ---------- */
+  #s2 h1{text-align:center;margin-top:6px}
+  #s2cols{display:flex;gap:44px;margin-top:44px;height:400px}
+  .s2col{flex:1;position:relative}
+  .s2colhead{font:600 13px var(--sans);letter-spacing:.2em;color:var(--gray);text-transform:uppercase;margin-bottom:14px}
+  #vignette{background:#fff;padding:22px;position:relative;height:212px;overflow:hidden}
+  #vigscene{font-size:15px;color:var(--gray);line-height:1.5}
+  #bubble{margin:16px auto 0;width:78%;background:var(--bg);border:1px solid var(--faint);border-radius:16px;padding:14px 18px;font:400 17px var(--mono)}
+  #vigline{margin-top:18px;font-size:17.5px;line-height:1.45;font-weight:550;opacity:0}
+  #vigline b{color:var(--ember);font-weight:650}
+  .clip{background:#fff;border:1px solid var(--faint);padding:12px 14px;font-size:13.5px;line-height:1.35;color:#444;box-shadow:0 6px 18px rgba(0,0,0,.06);position:absolute;width:300px;opacity:0}
+  .clip .src{display:block;margin-top:6px;font:500 10px var(--mono);letter-spacing:.08em;color:var(--gray);text-transform:uppercase}
+  #ledger{position:absolute;bottom:0;left:0;right:0;font:400 15.5px var(--mono);color:var(--ink);background:#fff;border:1px solid var(--faint);border-radius:8px;padding:14px 18px;opacity:0}
+  #ledger .num{color:var(--ember);font-weight:600}
+  #s2hinge{position:absolute;bottom:44px;left:90px;right:90px;text-align:center;opacity:0}
+  #s2hinge .t{font-size:19px;font-style:italic;margin-top:14px}
+  #s2hinge b{color:var(--ember);font-style:normal}
+
+  /* ---------- S3 solution ---------- */
+  #s3 h1{margin-bottom:6px}
+  #s3sub{font-size:17px;color:var(--gray);max-width:900px;line-height:1.45}
+  #pipe{display:flex;align-items:center;gap:0;margin-top:40px;height:150px;position:relative}
+  .pnode{background:#fff;border:1px solid var(--faint);border-radius:10px;padding:13px 15px;font:500 12.5px var(--mono);text-align:center;line-height:1.4;opacity:.28;position:relative;z-index:2}
+  .pnode.lit{opacity:1}
+  .parrow{width:34px;height:1px;background:var(--faint);flex:none;position:relative;z-index:1}
+  #frameThumb{width:104px;height:74px;border-radius:8px;position:relative;overflow:hidden;flex:none}
+  #frameGrid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(6,1fr)}
+  #frameGrid i{background-image:linear-gradient(135deg,#7a8aa0 0%,#b7c4cf 30%,#5d6b57 55%,#c8b89a 75%,#3f4a5a 100%);background-size:104px 74px}
+  #dot{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--ember);top:50%;left:0;margin-top:-6px;opacity:0;z-index:3;box-shadow:0 0 14px rgba(232,89,12,.55)}
+  #pillars{display:flex;gap:36px;margin-top:44px}
+  .pillar{flex:1;background:#fff;border:1px solid var(--faint);border-radius:12px;padding:24px 28px;opacity:0}
+  .pillar .num{font:700 15px var(--mono);color:var(--ember)}
+  .pillar h3{font-size:21px;font-weight:650;margin:6px 0 10px}
+  .pillar p{font-size:15px;line-height:1.5;color:#3c3c38}
+  .pillar .demo{margin-top:14px;font:400 13.5px var(--mono);background:var(--bg);border:1px solid var(--faint);border-radius:8px;padding:12px 14px;line-height:1.6;min-height:74px}
+  #s3hinge{margin-top:34px;text-align:center;font-size:19px;font-style:italic;opacity:0}
+  #s3hinge b{color:var(--ember);font-style:normal}
+
+  /* ---------- S4 status ---------- */
+  #s4stamps{display:flex;gap:22px;justify-content:center;margin-top:4px}
+  #s4stamps h2{font-size:44px;opacity:0}
+  #s4sub{text-align:center;color:var(--gray);font-size:16px;margin-top:12px;opacity:0}
+  #panels{display:flex;gap:30px;margin-top:36px;justify-content:center}
+  .panel{width:340px;background:#fff;border:1px solid var(--faint);border-radius:16px;padding:18px;opacity:0}
+  .panel .ph{font:600 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--gray);margin-bottom:10px}
+  .panel .scr{background:var(--bg);border:1px solid var(--faint);border-radius:10px;padding:14px;font:400 12.5px var(--mono);line-height:1.65;min-height:190px}
+  .scr .q{font-weight:600}
+  .scr .ev{color:#555;opacity:0}
+  .scr .badge{display:inline-block;margin-top:8px;padding:3px 8px;border-radius:6px;font-size:11px;border:1px solid var(--faint)}
+  .badge.ok{color:#1f7a33;border-color:#bfe0c6}
+  .badge.no{color:var(--ember);border-color:#f2c4ab;font-weight:600}
+  .panel .cap{font-size:12px;color:var(--gray);margin-top:10px;line-height:1.4}
+  #inv{display:flex;gap:18px;justify-content:center;margin-top:30px;font:500 12.5px var(--mono);flex-wrap:wrap}
+  #inv span{opacity:0}
+  #inv .ck{color:var(--ember);font-weight:700}
+  #s4corner{position:absolute;bottom:40px;right:90px;font-size:13px;color:var(--gray);opacity:0}
+
+  /* ---------- S5 goals ---------- */
+  #spine{position:absolute;left:90px;right:90px;top:340px;height:2px;background:var(--ember);transform-origin:left;transform:scaleX(0)}
+  #horizons{display:flex;gap:34px;margin-top:96px}
+  .hz{flex:1;opacity:0}
+  .hz .hzt{font:700 13px var(--mono);color:var(--ember);letter-spacing:.06em}
+  .hz h3{font-size:21px;font-weight:650;margin:4px 0 12px}
+  .lane{background:#fff;border:1px solid var(--faint);border-radius:10px;padding:13px 16px;margin-bottom:10px;font-size:13.5px;line-height:1.5}
+  .lane .lt{font:600 10.5px var(--sans);letter-spacing:.18em;color:var(--gray);text-transform:uppercase;display:block;margin-bottom:4px}
+  #countSnap{display:inline-block;font-family:var(--mono);color:var(--ember);font-weight:600}
+  #s5foot{position:absolute;bottom:42px;left:90px;font-size:13px;color:var(--gray);opacity:0}
+
+  /* ---------- S6 team ---------- */
+  #teamrow{display:flex;gap:28px;margin-top:44px;align-items:stretch}
+  .tcard{background:#fff;border:1px solid var(--faint);border-radius:14px;padding:26px;opacity:0}
+  #founder{width:452px}
+  #founder h3{font-size:22px;font-weight:650}
+  #founder .aff{font-size:13.5px;color:var(--gray);margin:4px 0 14px}
+  #founder p{font-size:14.5px;line-height:1.55;color:#3c3c38}
+  #founder .quote{margin-top:16px;font-size:15.5px;font-weight:600;color:var(--ember);line-height:1.45}
+  #strata{width:172px;display:flex;flex-direction:column-reverse;gap:7px;justify-content:flex-start;padding-top:34px}
+  #strata div{background:#fff;border:1px solid var(--faint);border-radius:7px;padding:9px 12px;font:500 11.5px var(--mono);opacity:0}
+  #rightcol{width:300px;display:flex;flex-direction:column;gap:14px}
+  #collab{width:100%;padding:22px}
+  #collab h4{font-size:16px;font-weight:650}
+  #collab p{font-size:13px;line-height:1.5;color:#3c3c38;margin-top:8px}
+  #openseat{width:100%;border:2px dashed var(--ember);background:transparent;border-radius:14px;padding:22px;opacity:0}
+  #openseat h4{font-size:16px;font-weight:650;color:var(--ember)}
+  #openseat p{font-size:13px;line-height:1.5;color:#3c3c38;margin-top:8px}
+  #s6foot{position:absolute;bottom:42px;left:90px;font-size:13px;color:var(--gray);opacity:0}
+
+  /* ---------- S7 market ---------- */
+  #s7 h1{font-size:38px}
+  #mkt{display:flex;gap:46px;margin-top:34px}
+  #funnelcol{width:620px}
+  .fbar{height:56px;border-radius:8px;color:#fff;display:flex;align-items:center;padding:0 18px;font:600 15px var(--sans);margin-bottom:14px;transform-origin:left;opacity:0;position:relative}
+  #tam{background:#2e2e2a;width:100%}
+  #sam{background:#55554e;width:30%}
+  #som{background:var(--ember);width:12%}
+  .fbar .fl{font:500 12px var(--mono);position:absolute;right:-8px;transform:translateX(100%);color:var(--ink);width:240px;line-height:1.4}
+  #eq{font:500 15px var(--mono);margin-top:6px;opacity:0}
+  #eq .res{color:var(--ember);font-weight:700}
+  #stage2{margin-top:26px;background:#fff;border:1px solid var(--faint);border-radius:12px;padding:18px 20px;opacity:0}
+  #stage2 h4{font-size:16px;font-weight:650}
+  #stage2 p{font-size:13.5px;line-height:1.5;color:#3c3c38;margin-top:6px}
+  #stage2 .big{color:var(--ember);font-weight:650}
+  #whynow{flex:1}
+  #whynow h4{font:600 12px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--gray);margin-bottom:12px}
+  #curves{background:#fff;border:1px solid var(--faint);border-radius:12px;padding:10px}
+  .wn{font-size:13px;line-height:1.45;margin-top:10px;opacity:0}
+  .wn b{font-weight:650}
+  #s7foot{position:absolute;bottom:38px;left:90px;right:90px;font-size:12px;color:var(--gray);opacity:0}
+
+  /* ---------- S8 competitors ---------- */
+  #s8 h1{text-align:center;font-size:40px}
+  #quad{position:relative;width:640px;height:420px;margin:30px auto 0}
+  #quadsvg{position:absolute;inset:0;overflow:visible}
+  .axlabel{position:absolute;font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gray);opacity:0}
+  .qdot{position:absolute;display:flex;flex-direction:column;align-items:center;gap:5px;opacity:0;transform:translate(-50%,-50%)}
+  .qdot i{width:13px;height:13px;border-radius:50%;background:#9b9b95;display:block}
+  .qdot span{font:500 11.5px var(--sans);color:#555;white-space:nowrap;background:rgba(250,250,247,.85);padding:1px 5px;border-radius:4px}
+  #tracedot i{background:var(--ember);width:16px;height:16px;box-shadow:0 0 0 0 rgba(232,89,12,.5)}
+  #tracedot span{color:var(--ember);font-weight:700}
+  .ring{position:absolute;border:1.5px solid var(--ember);border-radius:50%;width:16px;height:16px;left:50%;top:0;transform:translate(-50%,-50%);opacity:0;pointer-events:none}
+  #killshot{text-align:center;margin-top:26px;font-size:18px;font-style:italic;opacity:0}
+  #killshot b{color:var(--ember);font-style:normal}
+  #preempt{position:absolute;right:64px;bottom:88px;width:330px;background:#fff;border:1px solid var(--faint);border-radius:12px;padding:16px 18px;opacity:0}
+  #preempt h5{font-size:13px;font-weight:700;margin-bottom:6px}
+  #preempt p{font-size:12px;line-height:1.5;color:#3c3c38}
+
+  /* ---------- S9 business ---------- */
+  #s9 h1{font-size:40px}
+  #s9 h1 span{display:inline-block}
+  #streams{display:flex;gap:30px;margin-top:24px}
+  .stream{flex:1;background:#fff;border:1px solid var(--faint);border-radius:14px;padding:18px 22px;opacity:0;position:relative}
+  .stream h3{font-size:18px;font-weight:650}
+  .stream .tag{font:600 10.5px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:7px}
+  .stream p{font-size:13.5px;line-height:1.5;color:#3c3c38;margin-top:7px}
+  .stream .mline{margin-top:10px;font:500 12px var(--mono);background:var(--bg);border:1px solid var(--faint);border-radius:8px;padding:9px 12px;line-height:1.55}
+  .mline b{color:var(--ember)}
+  #charmgrid{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+  #charmgrid i{width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f6f6f2,#dcdcd4);border:1px solid var(--faint);opacity:0;display:block}
+  #charmgrid i.o{background:radial-gradient(circle at 35% 30%,#ff8a4d,var(--ember));border-color:var(--ember)}
+  #layerplane{height:10px;border-radius:5px;background:var(--ember);margin-top:14px;transform-origin:left;transform:scaleX(0)}
+  #devices{display:flex;gap:12px;margin-top:11px;flex-wrap:wrap}
+  #devices span{font:500 11.5px var(--mono);border:1px solid var(--faint);border-radius:7px;padding:6px 10px;background:var(--bg);opacity:0}
+  #precedent{margin-top:18px;text-align:center;font-size:16px;font-style:italic;opacity:0}
+  #precedent b{color:var(--ember);font-style:normal}
+  #s9foot{position:absolute;bottom:34px;left:90px;right:90px;font-size:12px;color:var(--gray);opacity:0}
+
+  /* ---------- S10 close ---------- */
+  #asks{margin-top:36px;display:flex;flex-direction:column;gap:16px}
+  .ask{display:flex;align-items:center;gap:0;opacity:0}
+  .ask .a{width:430px;background:#fff;border:1px solid var(--faint);border-radius:10px;padding:13px 17px;font-size:14.5px;font-weight:600;line-height:1.35}
+  .ask .arr{flex:none;width:90px;height:2px;background:var(--ember);position:relative;transform-origin:left;margin:0 0}
+  .ask .arr:after{content:"";position:absolute;right:-1px;top:-4px;border-left:9px solid var(--ember);border-top:5px solid transparent;border-bottom:5px solid transparent}
+  .ask .b{flex:1;font-size:13.5px;color:#3c3c38;line-height:1.4;padding-left:16px}
+  #offer{margin-top:34px;font:500 17px var(--mono);opacity:0}
+  #closebeat{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;visibility:hidden}
+  #closebeat .chain2{font:600 40px var(--sans);letter-spacing:.02em}
+  #closebeat .chain2 b{color:var(--ember)}
+  #closebeat .tg{font:400 22px var(--mono);margin-top:18px}
+  #closebeat .contact{margin-top:56px;font-size:14px;color:var(--gray);text-align:center;line-height:1.8}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+  <!-- ============ SLIDE 1 ============ -->
+  <section class="slide" id="s1">
+    <div id="chainwrap">
+      <div id="chainlabel" class="kicker" style="text-align:center">Every AI assistant today</div>
+      <div id="chain">
+        <span class="tok" id="tPrompt">PROMPT</span><span class="arrow">→</span>
+        <span class="tok" id="tContext">CONTEXT</span><span class="arrow">→</span>
+        <span class="tok" id="tAnswer">ANSWER</span>
+      </div>
+    </div>
+    <div id="wordmark">TRACE</div>
+    <div id="tagline"></div>
+    <div id="s1foot">Venkata Sai Pranav Regulagedda · KIT / Max Planck Institute for Plasma Physics · KIT Gründerschmiede · July 2026</div>
+  </section>
+
+  <!-- ============ SLIDE 2 ============ -->
+  <section class="slide" id="s2">
+    <h1 id="s2h">Remember everything, or respect everyone?</h1>
+    <div id="s2cols">
+      <div class="s2col">
+        <div class="s2colhead">Forget</div>
+        <div id="vignette" class="hairline">
+          <div id="vigscene">A conference. A handshake. A face you know you've met.</div>
+          <div id="bubble">…what was his name?<span class="cursor" id="bubcur" style="display:none"></span></div>
+        </div>
+        <div id="vigline">Your context is not just digital. It's the room you're in, the label you read, the person in front of you. <b>Today's AI is blind to all of it.</b></div>
+      </div>
+      <div class="s2col">
+        <div class="s2colhead">Record</div>
+        <div class="clip" style="top:20px;left:0;transform:rotate(-2deg)">7 million AI camera glasses sold in 2025, triple the year before.<span class="src">EssilorLuxottica · CNBC 2026</span></div>
+        <div class="clip" style="top:116px;left:44px;transform:rotate(1.4deg)">Humane's always-on AI Pin: shut down; assets sold to HP for $116M.<span class="src">TechCrunch · Feb 2025</span></div>
+        <div class="clip" style="top:212px;left:12px;transform:rotate(-1deg)">EU bans untargeted facial-image scraping &amp; real-time biometric ID.<span class="src">EU AI Act · in force Feb 2025</span></div>
+        <div id="ledger">1 wearer × 1 waking day of 1080p video ≈ <span class="num" id="gbcount">0</span> GB<br><span class="gray">= other people's faces, voices and screens, retained on a server, searchable forever.</span></div>
+      </div>
+    </div>
+    <div id="s2hinge">
+      <div class="rule" id="s2rule"></div>
+      <div class="t">Both sides lose. The dilemma is architectural: assistants that must <b>store context to use it</b> will always end here.</div>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 3 ============ -->
+  <section class="slide" id="s3">
+    <h1>Perceive, don't record.</h1>
+    <div id="s3sub">Trace is a context-first ambient memory. It turns what the camera sees into typed, cited text evidence, on the device and in real time, then destroys the frame.</div>
+    <div id="pipe">
+      <div id="frameThumb"><div id="frameGrid"></div></div>
+      <div class="parrow"></div>
+      <div class="pnode" data-p="1">on-device<br>perception<br><span class="gray">local AI · no cloud</span></div>
+      <div class="parrow"></div>
+      <div class="pnode" data-p="2" style="text-align:left">typed evidence<br><span class="gray">"desk · black keyboard ·<br>label reads DEWALT · 14:32"</span></div>
+      <div class="parrow"></div>
+      <div class="pnode" data-p="3"><b class="ember">frame<br>destroyed</b></div>
+      <div class="parrow"></div>
+      <div class="pnode" data-p="4">encrypted<br>local memory 🔒</div>
+      <div class="parrow"></div>
+      <div class="pnode" data-p="5">ask anything,<br>anytime</div>
+      <div id="dot"></div>
+    </div>
+    <div id="pillars">
+      <div class="pillar" id="pil1">
+        <span class="num">①</span><h3>Never stores what it sees.</h3>
+        <p>Raw pixels live for milliseconds. There is nothing to leak, subpoena, or breach. Surveillance is <b>structurally impossible</b>, not policy promised. Native GDPR fit.</p>
+      </div>
+      <div class="pillar" id="pil2">
+        <span class="num">②</span><h3>Never pretends to know.</h3>
+        <p>Every answer cites its evidence, or refuses.</p>
+        <div class="demo" id="refusal1"></div>
+      </div>
+    </div>
+    <div id="s3hinge">It cannot violate your privacy, and it cannot lie to you. <b>By architecture, not by promise.</b></div>
+  </section>
+
+  <!-- ============ SLIDE 4 ============ -->
+  <section class="slide" id="s4">
+    <div id="s4stamps"><h2 id="st1">It runs.</h2><h2 id="st2">It cites.</h2><h2 id="st3">It refuses.</h2></div>
+    <div id="s4sub">Working end-to-end prototype: live camera perception to cited answers, entirely on local models. No cloud. No API keys. No frames kept.</div>
+    <div id="panels">
+      <div class="panel" id="pan1"><div class="ph">① It runs</div>
+        <div class="scr">live capture · iPhone<br><br><span class="gray">14:31:58</span> desk · monitor · mug<br><span class="gray">14:32:04</span> black keyboard<br><span class="gray">14:32:09</span> label text: "DEWALT"<br><span class="gray">14:32:15</span> person entered · left<br><br><span class="gray">frames kept: 0</span></div>
+        <div class="cap">Real-time perception overlay; evidence lines appear as they are seen.</div>
+      </div>
+      <div class="panel" id="pan2"><div class="ph">② It cites</div>
+        <div class="scr"><span class="q">Q: Where did I leave the drill?</span><br><br>A: On the garage workbench, next to the red toolbox.<br><br><span class="ev" id="ev1">· seen: drill, workbench, garage</span><br><span class="ev" id="ev2">· label read: "DEWALT"</span><br><span class="ev" id="ev3">· when: yesterday, 6:12 pm</span><br><span class="badge ok" id="okbadge">cited · confident</span></div>
+        <div class="cap">Every answer carries its evidence rows and a calibrated badge.</div>
+      </div>
+      <div class="panel" id="pan3"><div class="ph">③ It refuses</div>
+        <div class="scr"><span class="q">Q: How many unicorns are on the desk?</span><br><br><span id="refusal2"></span><br><br><span class="badge no" id="nobadge" style="opacity:0">no evidence</span></div>
+        <div class="cap"><b>Measured: 0% confident-wrong answers</b> on a reproducible benchmark battery.</div>
+      </div>
+    </div>
+    <div id="inv">
+      <span><i class="ck">✓</i> on-device perception (iPhone, real-time)</span>
+      <span><i class="ck">✓</i> text-evidence memory, encrypted, never deleted</span>
+      <span><i class="ck">✓</i> local LLM answering, no cloud</span>
+      <span><i class="ck">✓</i> 240+ automated tests</span>
+      <span><i class="ck">✓</i> one-command reproducible benchmark</span>
+    </div>
+    <div id="s4corner">Built solo, on consumer hardware.</div>
+  </section>
+
+  <!-- ============ SLIDE 5 ============ -->
+  <section class="slide" id="s5">
+    <h1>From research prototype to Europe's memory layer.</h1>
+    <div id="spine"></div>
+    <div id="horizons">
+      <div class="hz" id="hz1"><div class="hzt">HORIZON 1 · now → 6 mo</div><h3>Harden</h3>
+        <div class="lane"><span class="lt">R&amp;D</span>Counting precision: today Trace answers <span id="countSnap">"between 2 and 3"</span> rather than guess. Goal: firm counts without sacrificing 0% confident-wrong · multi-room memory · 10 daily-use testers</div>
+        <div class="lane"><span class="lt">Market</span>Landing page + waitlist · privacy / local-AI community presence · first demo videos</div>
+      </div>
+      <div class="hz" id="hz2"><div class="hzt">HORIZON 2 · 6 → 12 mo</div><h3>EXIST phase</h3>
+        <div class="lane"><span class="lt">R&amp;D</span>Wearable form factor: capture moves from iPhone to the glasses-clip charm · closed beta, 100 users</div>
+        <div class="lane"><span class="lt">Market</span>Co-founder onboard · brand + content engine · IP &amp; open-source licensing settled · first design-partner talks (EU device makers)</div>
+      </div>
+      <div class="hz" id="hz3"><div class="hzt">HORIZON 3 · 12 → 24 mo</div><h3>Ship</h3>
+        <div class="lane"><span class="lt">R&amp;D</span>Public product, multi-device</div>
+        <div class="lane"><span class="lt">Market</span>First revenue · seed round raised on beta traction</div>
+      </div>
+    </div>
+    <div id="s5foot">Budget philosophy: stipend-phase spend concentrates on R&amp;D and marketing. No offices, no overhead theater.</div>
+  </section>
+
+  <!-- ============ SLIDE 6 ============ -->
+  <section class="slide" id="s6">
+    <h1>Built by one person. Designed for three.</h1>
+    <div id="teamrow">
+      <div class="tcard" id="founder">
+        <h3>Venkata Sai Pranav Regulagedda</h3>
+        <div class="aff">Founder · KIT · thesis at Max Planck Institute for Plasma Physics</div>
+        <p><b>Materials scientist by training, full-stack AI builder by proof:</b> iOS capture app, real-time on-device perception, encrypted memory store, local-LLM answering, and the reproducible honesty benchmark. Every layer, one person.</p>
+        <div class="quote">"I didn't come from computer science. I came from measurement science. That's why Trace refuses to guess."</div>
+      </div>
+      <div id="strata">
+        <div>① iOS capture app</div>
+        <div>② real-time perception</div>
+        <div>③ encrypted memory store</div>
+        <div>④ local-LLM answering</div>
+        <div>⑤ honesty benchmark</div>
+      </div>
+      <div id="rightcol">
+        <div class="tcard" id="collab">
+          <h4>Research collaborator</h4>
+          <p><b>Latheesh Roy</b> · CSE, remote. Works under Pranav's mentorship on the 0%-hallucination research line: refusal calibration and the benchmark battery.</p>
+          <p class="gray" style="font-size:11.5px;margin-top:9px">Deliberately not a co-founder tile. The honest label.</p>
+        </div>
+        <div id="openseat">
+          <h4>Product / ML Engineer</h4>
+          <p><b>Co-founder seat: open.</b> Owns perception R&amp;D and the wearable port. Sought through KIT's engineering and Gründerschmiede network.</p>
+        </div>
+      </div>
+    </div>
+    <div id="s6foot">EXIST eligibility: KIT-affiliated founder · team completion is an explicit Horizon-2 milestone.</div>
+  </section>
+
+  <!-- ============ SLIDE 7 ============ -->
+  <section class="slide" id="s7">
+    <h1>Every "personalized" AI answer needs <span style="border-bottom:3px solid var(--ember)">physical</span> context.<br>Only Trace can supply it without surveillance.</h1>
+    <div id="mkt">
+      <div id="funnelcol">
+        <div class="fbar" id="tam">TAM · AI smart glasses / wearables<span style="position:absolute;right:18px;top:50%;transform:translateY(-50%);color:#fff;opacity:.9;font:500 13px var(--mono)">≈ €8 to 15B by 2030</span></div>
+        <div class="fbar" id="sam">SAM · EU/DACH privacy segment<span class="fl">≈ €2B <span style="color:var(--gray)">· the harder the law, the bigger our edge</span></span></div>
+        <div class="fbar" id="som">SOM<span class="fl" id="somfl">DACH early adopters · bottom-up ↓</span></div>
+        <div id="eq">100k reachable enthusiasts × 15% × €5/mo × 12 = <span class="res" id="eqres">€0.0M ARR</span> <span class="gray">within 24 mo of launch</span></div>
+        <div id="stage2">
+          <h4>Stage 2 · the platform market: the context layer for all AI</h4>
+          <p>Siri, Gemini, ChatGPT: every assistant is racing toward personalized answers, and personalization needs your <b>physical</b> life. None can capture it without becoming a surveillance product.</p>
+          <p>Trace as licensed context layer: <b>&gt;2B phones already run local AI</b>. Even €1/user/mo across a fraction of the billions of assistant endpoints is <span class="big">a multi-€B annual platform market.</span> Wearables are the wedge.</p>
+        </div>
+      </div>
+      <div id="whynow">
+        <h4>Why now · three converging curves</h4>
+        <div id="curves">
+          <svg width="100%" height="180" viewBox="0 0 420 180" id="curvesvg">
+            <line x1="330" y1="10" x2="330" y2="170" stroke="#E8590C" stroke-width="1.5" stroke-dasharray="4 4" id="nowline" opacity="0"/>
+            <text x="336" y="22" font-size="11" fill="#E8590C" font-family="monospace" id="nowtext" opacity="0">2026 · now</text>
+            <path d="M10,160 C120,150 220,120 330,40" fill="none" stroke="#1A1A1A" stroke-width="2" class="curve"/>
+            <path d="M10,165 C140,160 240,130 330,70" fill="none" stroke="#8a8a86" stroke-width="2" class="curve"/>
+            <path d="M10,170 C160,168 260,150 330,100" fill="none" stroke="#c9c9c2" stroke-width="2" class="curve"/>
+          </svg>
+        </div>
+        <div class="wn"><b>1 · On-device AI crossed the threshold.</b> &gt;2B phones now run local AI; sub-20ms on-device vision. Trace was impossible 24 months ago.</div>
+        <div class="wn"><b>2 · AI wearables ship in volume.</b> 7M glasses sold in 2025, while the pure recorders (Humane, Limitless) died at the privacy wall.</div>
+        <div class="wn"><b>3 · EU AI Act is live.</b> Biometric and facial-scraping bans since Feb 2025. "Structurally non-retaining" becomes procurement criteria.</div>
+      </div>
+    </div>
+    <div id="s7foot">TAM: Grand View Research ($8.26B smart glasses by 2030) · IDC (installed base &gt;80M units). SAM/SOM are stated bottom-up assumptions. Full assumption table in appendix; every number carries a source or a stated assumption.</div>
+  </section>
+
+  <!-- ============ SLIDE 8 ============ -->
+  <section class="slide" id="s8">
+    <h1>Everyone else must choose:<br>see your world, or respect it.</h1>
+    <div id="quad">
+      <svg id="quadsvg" viewBox="0 0 640 420">
+        <line id="qx" x1="320" y1="210" x2="320" y2="210" stroke="#1A1A1A" stroke-width="1.5" opacity=".35"/>
+        <line id="qy" x1="320" y1="210" x2="320" y2="210" stroke="#1A1A1A" stroke-width="1.5" opacity=".35"/>
+        <rect id="qhl" x="320" y="0" width="320" height="210" fill="#E8590C" opacity="0"/>
+      </svg>
+      <div class="axlabel" style="right:-10px;top:198px">Physical-world context →</div>
+      <div class="axlabel" style="left:-10px;top:198px">← Digital-only</div>
+      <div class="axlabel" style="left:266px;top:-24px">Zero retention ↑</div>
+      <div class="axlabel" style="left:258px;bottom:-24px">↓ Raw data retained</div>
+      <div class="qdot" style="left:78%;top:82%"  data-q><i></i><span>Meta Ray-Ban / AI glasses</span></div>
+      <div class="qdot" style="left:62%;top:64%"  data-q><i></i><span>Rewind · Limitless</span></div>
+      <div class="qdot" style="left:24%;top:30%"  data-q><i></i><span>Apple Intelligence · Gemini</span></div>
+      <div class="qdot" style="left:14%;top:78%"  data-q><i></i><span>Notion / PKM tools</span></div>
+      <div class="qdot" id="tracedot" style="left:80%;top:20%"><i></i><span>TRACE</span>
+        <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+      </div>
+    </div>
+    <div id="killshot"><span class="rule" id="ksrule" style="display:block;margin:0 auto 12px;max-width:560px"></span>Physical context has always required retention. That's why this quadrant is empty. The two purpose-built recorders of this generation, Humane and Limitless, are already dead or absorbed. <b>Trace's architecture is the first way in.</b></div>
+    <div id="preempt">
+      <h5>Why won't Apple or Google just build this?</h5>
+      <p>Their business models monetize retained data and engagement; their privacy stack deliberately stops at your digital life. A zero-retention physical layer contradicts their data economics. If the giants want this capability, they license it or acquire it. <b>Both outcomes require Trace to exist first.</b></p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 9 ============ -->
+  <section class="slide" id="s9">
+    <h1><span id="h9a">The device wins adoption.</span> <span id="h9b" class="ember">The layer earns the money.</span></h1>
+    <div id="streams">
+      <div class="stream" id="str1">
+        <span class="tag">Stream 1 · Consumer · adoption engine</span>
+        <h3>Trace Membership · priced to spread</h3>
+        <p>One low monthly price (target <b>€4 to 6/mo</b>), charm included. Clips to your existing glasses; seasonal editions keep it a fashion object, not a gadget.</p>
+        <div id="charmgrid"></div>
+        <div class="mline">BOM ~€15 to 25 at volume <span class="gray">(display-less: Ray-Ban's costliest part, &gt;50% of its BOM, removed)</span><br>→ membership covers hardware and logistics<br>→ consumer margin ≈ 0, <b>by design</b></div>
+        <div class="mline">marginal compute cost ≈ <b>€0</b>. The AI runs on the customer's phone.<br><span class="gray">We can afford adoption pricing forever; cloud-AI competitors structurally cannot.</span></div>
+      </div>
+      <div class="stream" id="str2">
+        <span class="tag">Stream 2 · B2B licensing · profit engine</span>
+        <h3>The context layer, licensed per device</h3>
+        <p>To eyewear brands, wearable makers, and assistant platforms that need physical context without surveillance liability. Software licensing at ~100% gross margin.</p>
+        <p>Every membership user is proof, benchmark data, and negotiating leverage for this stream.</p>
+        <div id="layerplane"></div>
+        <div id="devices"><span>glasses</span><span>pendant</span><span>earbuds</span><span>assistant OS</span><span>…one licensed layer</span></div>
+      </div>
+    </div>
+    <div id="precedent">Arm (~$1.8B/yr) doesn't sell chips; Dolby (~$1.2B/yr) doesn't sell speakers. Each licenses a layer into devices it doesn't build. <b>Trace doesn't need to profit on charms; it needs to become the layer every device licenses.</b></div>
+    <div id="s9foot">Price points are validation targets for the EXIST phase, not commitments. Consumer pricing research is an explicit Horizon-1 milestone.</div>
+  </section>
+
+  <!-- ============ SLIDE 10 ============ -->
+  <section class="slide" id="s10">
+    <h1>Four asks. Each one unblocks a milestone.</h1>
+    <div id="asks">
+      <div class="ask"><div class="a">1 · EXIST-Gründerstipendium application prep</div><div class="arr"></div><div class="b">funds Horizons 1 and 2: counting-precision R&amp;D, the wearable charm port, the first marketing engine</div></div>
+      <div class="ask"><div class="a">2 · Incubation coaching: milestones &amp; go-to-market</div><div class="arr"></div><div class="b">fills the open seat: the Product/ML-engineer co-founder search runs through this</div></div>
+      <div class="ask"><div class="a">3 · Mentoring on IP, open-source licensing &amp; GDPR positioning</div><div class="arr"></div><div class="b">locks the auditable-core licensing model, the legal spine of the B2B stream</div></div>
+      <div class="ask"><div class="a">4 · Access to mentors &amp; early-stage deep-tech investors</div><div class="arr"></div><div class="b">the Horizon-3 seed round, raised on beta traction instead of promises</div></div>
+    </div>
+    <div id="offer"></div>
+    <div id="closebeat">
+      <div class="chain2"><b>CONTEXT</b> <span class="gray" style="font-weight:300">→</span> PROMPT <span class="gray" style="font-weight:300">→</span> ANSWER</div>
+      <div class="tg">Perfect recall, zero recordings.</div>
+      <div class="contact">Venkata Sai Pranav Regulagedda<br>KIT · Max Planck Institute for Plasma Physics<br>trace.allegedly.buzz</div>
+    </div>
+  </section>
+
+</div></div>
+<div id="hud">1 / 10</div>
+<div id="progress"></div>
+
+
+<style id="printcss">
+  html,body{overflow:visible!important;height:auto!important;background:#FAFAF7}
+  #viewport{position:static!important;display:block!important;overflow:visible!important;height:auto!important}
+  #stage{position:static!important;transform:none!important;width:1280px!important;height:auto!important;margin:0 auto!important}
+  .slide{position:relative!important;inset:auto!important;opacity:1!important;visibility:visible!important;display:block!important;width:1280px!important;height:720px!important;overflow:hidden!important;page-break-after:always;break-after:page;border-bottom:1px solid #e4e4de}
+  .slide:last-child{page-break-after:auto;border-bottom:none}
+  #hud,#progress{display:none!important}
+  @page{ size:1280px 720px; margin:0 }
+  @media print{ .slide{border-bottom:none} }
+</style>
+
+<script>
+/* ---- static print builder: bake every slide into its final state, no animation ---- */
+// build frame grid + charm grid (same as the live deck)
+(function(){
+  const fg=document.getElementById('frameGrid');
+  for(let r=0;r<6;r++)for(let c=0;c<8;c++){const i=document.createElement('i');i.style.backgroundPosition=`${-c*13}px ${-r*12.33}px`;fg.appendChild(i);}
+  const cg=document.getElementById('charmgrid');
+  for(let k=0;k<24;k++){const i=document.createElement('i');if(k===0)i.classList.add('o');cg.appendChild(i);}
+})();
+// reveal all slides + every element that animations leave at opacity:0
+document.querySelectorAll('.slide').forEach(s=>s.classList.add('active'));
+document.querySelectorAll('#stage *').forEach(el=>{ if(getComputedStyle(el).opacity==='0') el.style.opacity='1'; });
+// neutralize scaleX(0) reveals
+document.querySelectorAll('.fbar,.rule,#spine,#layerplane,.ask .arr').forEach(e=>e.style.transform='scaleX(1)');
+
+/* slide 1: final inverted chain + wordmark */
+document.getElementById('chainlabel').textContent='Trace inverts it';
+(function(){
+  const chain=document.getElementById('chain');
+  chain.innerHTML='<span class="tok" style="color:#E8590C">CONTEXT</span><span class="arrow">→</span>'
+                 +'<span class="tok" style="color:#8a8a86">PROMPT</span><span class="arrow">→</span>'
+                 +'<span class="tok" style="color:#8a8a86">ANSWER</span>';
+  const cw=document.getElementById('chainwrap'); cw.style.transform='scale(.8)'; cw.style.transformOrigin='center top';
+  document.getElementById('wordmark').style.opacity='1';
+  document.getElementById('tagline').textContent='Perfect recall, zero recordings.';
+  document.getElementById('s1foot').style.opacity='1';
+})();
+
+/* slide 2 */
+document.getElementById('gbcount').textContent='50';
+
+/* slide 3 */
+document.querySelectorAll('#s3 .pnode').forEach(n=>n.classList.add('lit'));
+document.getElementById('dot').style.opacity='0';
+document.getElementById('refusal1').innerHTML='Q: How many unicorns are on the desk?<br>A: I have never observed a unicorn.  [no evidence]';
+
+/* slide 4 */
+document.getElementById('refusal2').textContent='A: I have never observed that.';
+document.getElementById('nobadge').style.opacity='1';
+
+/* slide 7 */
+document.getElementById('eqres').textContent='€0.9M ARR';
+document.getElementById('nowline').setAttribute('opacity','0.5');
+document.getElementById('nowtext').setAttribute('opacity','1');
+
+/* slide 8: draw quad axes to full, hide expanding rings */
+document.getElementById('qx').setAttribute('y1','0');document.getElementById('qx').setAttribute('y2','420');
+document.getElementById('qy').setAttribute('x1','0');document.getElementById('qy').setAttribute('x2','640');
+document.querySelectorAll('#tracedot .ring').forEach(r=>r.style.opacity='0');
+
+/* slide 10: reveal asks + offer, keep the closebeat outro hidden */
+document.getElementById('offer').textContent="The prototype runs on my phone. I'll demo it in this room, today.";
+document.getElementById('closebeat').style.display='none';
+</script>
+</body>
+</html>

@@ -59,36 +59,43 @@ plan in ops/SOVEREIGN_STATE.md.
 5. **RETIRED — do NOT revive:** `scripts/trace_app.py` (an OCR-only LAN web app + `web/trace_app.html`,
    `scripts/phone_perceive.py`) — the tunnel. The native app supersedes it entirely.
 
-## WHAT TO DO NEXT (real frontiers — verify the capture, then the substrate, then the number)
-1. **TEST THE REAL ON-PHONE CAPTURE** (the immediate next step; needs the founder to open the app).
-   Open TRACE on the iPhone → grant camera + trust the developer profile (Settings → General → VPN &
-   Device Management) → point at a scene → ask. Observe FastVLM/YOLO/OCR/speech quality + pace live.
-   Munich report flagged OCR-accept weak, vision/detector strong. Tune capture from what's actually weak.
-2. **Typed event-log substrate (blueprint CL-1).** Memory is still a flat string dossier; the blueprint's
-   root move is a typed append-only `Observation` event log (`src/trace_memory/domain/observation.py`
-   exists; `adapters/sqlite_eventlog.py` seed exists). Make it load-bearing. Enables binding + persistence.
-3. **Premise-gate 3-mode (ANSWER/CORRECT/REFUSE)** at the `build_evidence_dossier` seam + populate
-   `refutation_cue` (blueprint §4). The WS1 self/world guard (`scripts/self_world_guard.py`) is a
-   structural piece of this already.
-4. **The trustworthy number (the pitch gate):** n≥100 frozen human gold on REAL multi-modal captures
-   (not OCR-only), score the real `ask_home`, 95% CIs, target ≥40% correct / <10% halluc. Needs founder.
+## ██ UPDATED STATE (2026-06-26 post-Codex-sprint) — docs were behind, now corrected ██
 
-## WHAT WAS BUILT THIS SPRINT — real vs dead-end (don't repeat the dead-ends)
-- **REAL, keep:** EXPAND/understanding layer (`inject_expand.py`, commit de7d581 — the paradigm "Prompt");
-  WS1 self/world binding guard (`self_world_guard.py`, 29d3030 — kills "a sign's name became my name");
-  temporal/identity binder (`inject_bind.py`, 40eebb9, validated 96.9% precision, wired for recurrence);
-  PII scrub at storage seams; the anti-tunnel leash.
-- **DEAD-ENDS, measured, do NOT repeat:** the OCR web app (346d6d5 — retire it); caption-enrichment
-  experiments on Mac OCR/caption-only memories — dense (43.2%/13.6%), merge (38.6%/15.0%), 27b
-  (40.9%/14.3%) all WORSE than base (45.5%/4.8%). **Lesson: more text/capacity WITHOUT binding raises
-  hallucination** (blueprint §5.1, measured 4 ways). Those Mac memories are a DEGENERATE single-channel
-  slice; the real capture is the native multi-modal one.
+**All 12 Codex tasks are DONE.** `ops/codex_queue/done/` has 03–12. 301 tests pass.
+`src/trace_memory/adapters/live_eventlog.py` (1461 lines) is the load-bearing brain layer.
+It's wired as **Source 1** in `scripts/trace_brain_server.py` — answers: count, existence,
+attribute/label, open-scene, spatial (where/left/right/side), temporal (first/order/before/after),
+speech (what was said, did anyone mention X). Honest refusals on everything.
+
+**iOS maxDim is 1920** (ContentView.swift:2758). Not staged — deployed. kf_memory.json has
+249 real entries including INSTANCE-format captions from the higher-res pipeline.
+
+## WHAT TO DO NEXT (as of 2026-06-26, post-sprint)
+1. **Verify live_eventlog on REAL phone captures** — unit tests pass (synthetic data); the
+   real question is whether `events.db` from phone ingests + `answer_question` gives correct
+   answers on actual multi-modal scenes. Ask the founder to run the app and collect a 30-frame
+   scene, then query it. This is the honest verification gap.
+2. **P1 — ARKit persistence slice.** The architecture says: detect one object, drop an ARAnchor
+   at its world position, move camera away+back, confirm same node same world spot. NOT built yet.
+   This is the falsifiable core of the spatial engine. Build it before anything else in the
+   spatial stack.
+3. **The trustworthy number (the pitch gate):** n≥100 frozen human gold on REAL multi-modal
+   captures, score against `answer_question` (not ask_home), 95% CIs, target ≥40%/<10% halluc.
+   Needs founder. `evaluation/score_real_capture.py` + gold template exist (Codex task 09).
+4. **Update SOVEREIGN_STATE.md** — it has not been updated since cycle 2–3 and is stale.
+
+## WHAT WAS BUILT (full picture through 2026-06-26)
+- **Codex tasks 03–12** (all in done/): cross-frame binder, two-zone answer, honest number eval,
+  cockpit rich view, eventlog pose/spatial, eventlog e2e integration, real capture scorer,
+  open-scene answer, spatial/temporal QA, audio/speech channel. All in `live_eventlog.py`.
+- **EXPAND/injection layer** (`inject_expand.py`), self/world guard (`self_world_guard.py`),
+  identity binder (`inject_bind.py`), PII scrub, anti-tunnel leash.
+- **DEAD-ENDS, do NOT repeat:** OCR web app; Mac caption-enrichment experiments (dense/merge/27b)
+  all WORSE than base. Lesson: more text without binding raises hallucination.
 
 ## HONEST NUMBERS (what they mean)
-- The 44-question battery on OCR/caption-only Mac memory caps ~45.5% correct / 4.8% halluc. That's the
-  BLINDFOLDED proxy (no live multi-modal capture). It is NOT the product number. The real number needs
-  the native multi-modal capture + n≥100 gold (above). Do NOT grind the 44 further — it's capped + it's
-  the wrong (OCR/caption-only) substrate.
+- 44-question OCR-only battery: ~45.5% correct / 4.8% halluc — blindfolded proxy (wrong substrate).
+  Do NOT grind this. The real number needs live multi-modal captures + n≥100 gold.
 
 ## OPERATING RULES
 - Local LLMs majorly; Codex sparingly + time-boxed; preserve Claude tokens.

@@ -1,0 +1,22 @@
+{
+  "01_truth_surface_demotion": {
+    "status": "validated",
+    "note": "Founder dashboard demoted fake readiness bars; focused tests passed."
+  },
+  "02_store_agent_primary": {
+    "status": "validated",
+    "note": "Store-agent winning path tightened; wiring flag only on real wins."
+  },
+  "07_controlled_demo_lock": {
+    "status": "pending",
+    "note": "Founder-facing state surfaces must be normalized to controlled curated demo mode."
+  },
+  "08_bedroom_capture_overhaul": {
+    "status": "pending",
+    "note": "Coverage probe and frontier room cycle determine whether the capture contains the needed facts."
+  },
+  "09_frontier_demo_number": {
+    "status": "pending",
+    "note": "The next sanctioned number is the frontier bedroom artifact, not planner math."
+  }
+}

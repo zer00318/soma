@@ -1,0 +1,38 @@
+--- scripts/instance_graph.py
++++ scripts/instance_graph.py (worker)
+@@ -46,9 +46,33 @@
+ 
+     STUB — to be implemented by the local-LLM worker (task: instance_categorize).
+     Returns a category like 'snack', 'condiment', 'electronics', 'beverage',
+-    'food', 'clothing', 'furniture', else the cleaned detector label.
++    'food', 'clothing', else the cleaned detector label.
+     """
+-    return (det_label or name or "object").strip().lower()
++    keyword_map = {
++        "lays": "snack", "doritos": "snack", "pringles": "snack", "chips": "snack",
++        "tortilla": "snack", "crisps": "snack",
++        "iphone": "electronics", "macbook": "electronics", "samsung": "electronics",
++        "galaxy": "electronics", "laptop": "electronics", "monitor": "electronics",
++        "phone": "electronics", "ipad": "electronics",
++        "heinz": "condiment", "ketchup": "condiment", "mustard": "condiment",
++        "mayo": "condiment", "sauce": "condiment",
++        "coke": "beverage", "pepsi": "beverage", "water": "beverage", "juice": "beverage",
++        "soda": "beverage",
++        "nutella": "food", "jam": "food", "bread": "food", "cheese": "food",
++        "shoe": "clothing", "shirt": "clothing", "adidas": "clothing", "nike": "clothing",
++        "pants": "clothing",
++    }
++
++    name_lower = name.lower()
++    text_lower = text.lower()
++
++    for keyword, category in keyword_map.items():
++        if keyword in name_lower or keyword in text_lower:
++            return category
++
++    cleaned_det_label = (det_label or name or "object").strip().lower()
++    cleaned_det_label = re.sub(r"^(a |an |the )", "", cleaned_det_label)
++    return cleaned_det_label
+ 
+ 
+ def _rel(a: dict, b: dict) -> str | None:

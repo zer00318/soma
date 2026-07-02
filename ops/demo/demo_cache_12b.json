@@ -1,0 +1,130 @@
+{
+  "store": "data/trace_store_prototype2.sqlite3",
+  "model": "gemma3:12b-it-qat",
+  "entries": [
+    {
+      "beat": "recall",
+      "question": "What food and snacks are in my room?",
+      "answer": "Watermelon, cake slice, burrito, tortilla chips, fish fillet.",
+      "confidence": 0.95,
+      "refused": false,
+      "evidence": [
+        "Watermelon \u2014 Red, green, black; Open; Tilted",
+        "Phone case \u2014 Black, red, orange; Plastic; Upright",
+        "Cake slice \u2014 Red, orange, black, white; Open; Tilted",
+        "Backpack \u2014 Black, orange, red; Fabric; Closed; Upright"
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "brands",
+      "question": "What brands of hazelnut spread did you see?",
+      "answer": "Nutella, Granella",
+      "confidence": 0.95,
+      "refused": false,
+      "evidence": [
+        "hazelnut spread jar: Hazelnut spread jar \u2014 Brown, white, yellow; Glass; Full; Upright; text \"Granella\". colour: brown, w",
+        "Hazelnut spread jar \u2014 Brown, white, yellow; Glass; Full; Upright; text \"Granella\"",
+        "spread: Spread \u2014 Brown, white; Plastic; Full; Upright. colour: brown, white; state: full.",
+        "Spread \u2014 Brown, white; Plastic; Full; Upright"
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "detail",
+      "question": "What flavour is the Barilla pesto?",
+      "answer": "Pesto Genovese Barilla, Pesto con Peperoncino",
+      "confidence": 0.95,
+      "refused": false,
+      "evidence": [
+        "There is one pesto jar described as full and upright with text 'Pestle' in the room. Distinct pesto jar count: 1 (Only o",
+        "Pesto jar \u2014 Green, blue, yellow; Glass; Full; Tilted; text \"Barilla\"",
+        "Pesto jar \u2014 Green, blue, yellow; Glass; Full; Tilted; text \"Barilla Pesto Peperoncino\"",
+        "Pesto jar \u2014 Green, blue, red; Glass; Full; Upright; text \"Barilla PESTO con Peperoncino\""
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "listing",
+      "question": "What is on my bedside table?",
+      "answer": "Nutella jars, a pesto jar, a tomato paste jar, tortilla chips, a notebook, a power strip, and phones.",
+      "confidence": 0.7,
+      "refused": false,
+      "evidence": [
+        "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Table:** White, flat surface.\n*   ",
+        "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Laptop:** Black with black keyboar",
+        "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Laptop:** Silver/gray metal body, ",
+        "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Laptop:** Silver/gray metal body, "
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "attribute",
+      "question": "What colour is the blanket?",
+      "answer": "Pink",
+      "confidence": 1.0,
+      "refused": false,
+      "evidence": [
+        "A pink fabric towel was observed tilted and upright. colour: Pink; state: Tilted, Upright; material: Fabric.",
+        "Towel \u2014 Pink; Fabric; Tilted",
+        "Towel \u2014 Pink; Fabric; Tilted",
+        "cloth: Cloth \u2014 Pink; Fabric; Upright. colour: pink."
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "presence",
+      "question": "Is there a fan in the room?",
+      "answer": "Yes, there is one fan that is on and upright.",
+      "confidence": 0.7,
+      "refused": false,
+      "evidence": [
+        "There is one fan that is on and upright. It appears to be made of plastic and metal. Distinct fan count: 1 (All observat",
+        "Fan \u2014 Black, silver; Plastic, metal; On; Upright",
+        "Fan \u2014 Black, silver; Plastic, metal; On; Upright",
+        "A power strip is present. It is white and black, made of plastic, and was observed tilted. Current/most-recent location:"
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "moat",
+      "question": "What is the wifi password written on the wall?",
+      "answer": "I didn't capture that clearly enough to answer.",
+      "confidence": 0.2,
+      "refused": true,
+      "evidence": [
+        "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Table:** White, rectangular surfac",
+        "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Table:** White, flat surface.\n*   ",
+        "Here's a breakdown of what is literally visible in the image:\n\n**Objects & Materials:**\n\n*   **Laptop:** Black with silv",
+        "Here's a breakdown of what is literally visible in the image:\n\n**Objects & Description:**\n\n*   **Laptop:** Silver/gray m"
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "moat",
+      "question": "Did you see my passport anywhere?",
+      "answer": "I didn't capture that clearly enough to answer.",
+      "confidence": 0.2,
+      "refused": true,
+      "evidence": [
+        "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Laptop:** Black with black keyboar",
+        "Here's a breakdown of what is literally visible in the image:\n\n**Objects & Materials:**\n\n*   **Laptop:** Black with silv",
+        "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Laptop:** Silver/gray metal body, ",
+        "Here's an analysis of the image based on what is literally visible:\n\n**Objects:**\n\n*   **Laptop:** Silver/gray metal bod"
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "moat",
+      "question": "What was the phone number on the whiteboard?",
+      "answer": "The phone number on the whiteboard is unreadable.",
+      "confidence": 0.7,
+      "refused": false,
+      "evidence": [
+        "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Table:** White, rectangular surfac",
+        "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Laptop:** Silver/gray metal body, "
+      ],
+      "model": "gemma3:12b-it-qat"
+    }
+  ]
+}

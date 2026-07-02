@@ -1,0 +1,5 @@
+{"t": 1782625175, "kind": "daemon_start", "detail": "serial chief daemon booted"}
+{"t": 1782625342, "kind": "daemon_start", "detail": "serial chief daemon booted"}
+{"t": 1782625412, "kind": "daemon_start", "detail": "serial chief daemon booted"}
+{"t": 1782625412, "kind": "lane_blocked", "detail": "waiting for annotate_live lane to clear", "extra": {"blocking_pids": [30880]}}
+{"t": 1782625442, "kind": "lane_clear", "detail": "annotate_live lane cleared; starting eval cycle"}

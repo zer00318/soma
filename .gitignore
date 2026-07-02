@@ -108,3 +108,13 @@ models/**/*.safetensors
 # day-in-life demo build artifacts (large / regenerable)
 evaluation/day_in_life/*.sqlite3
 evaluation/day_in_life/*.sqlite3-*
+
+# Large binaries / downloads — never in git (regenerated from downloads)
+models/
+vendor/
+trace-native-fastvlm/FastVLM/
+trace-native-fastvlm/device_captures/
+*.safetensors
+*.mlpackage/
+*.gguf
+ggml-*.bin

@@ -1,0 +1,454 @@
+{
+  "summary": {
+    "answered_pct": 14,
+    "halluc_pct": 38.1,
+    "n": 21,
+    "correct": 3,
+    "answered": 12,
+    "confident_wrong": 8,
+    "gate_met": false
+  },
+  "results": [
+    {
+      "question": "How many nutella jars were there in total?",
+      "truth": "5",
+      "attempts": [
+        {
+          "answer": "Two Nutella jars were seen.",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "6e00c30b-d243-4372-8031-4acd9390fc37",
+            "72f33222-ace1-4911-871e-9043773ca333",
+            "7310159d-db95-4741-a29d-fdadbdcc4baf",
+            "71d76190-acad-42c0-8641-421ca6ae3c6f",
+            "6cf06c40-1f89-44a7-987e-5bec8051ce18",
+            "8c830cfa-b76a-4025-95ff-d4fd0fcdd04d"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Where are the empty nutella jars?",
+      "truth": "On the bedside table next to the extension cord and power adapters.",
+      "attempts": [
+        {
+          "answer": "The Nutella jars are full and brown, white, or yellow.",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "6e00c30b-d243-4372-8031-4acd9390fc37",
+            "72f33222-ace1-4911-871e-9043773ca333",
+            "7310159d-db95-4741-a29d-fdadbdcc4baf",
+            "4d2d2fb8-0b25-41d9-bbc2-3db714a00670",
+            "6eac102c-f2a2-4c1f-aa5e-2d40bfda1d8b",
+            "71d76190-acad-42c0-8641-421ca6ae3c6f"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Where is the current nutella jar?",
+      "truth": "On the other bedside table with the thermal and white bottle.",
+      "attempts": [
+        {
+          "answer": "The Nutella jar is at -0.173,-0.430,-0.541.",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "6e00c30b-d243-4372-8031-4acd9390fc37",
+            "72f33222-ace1-4911-871e-9043773ca333",
+            "4d2d2fb8-0b25-41d9-bbc2-3db714a00670",
+            "7310159d-db95-4741-a29d-fdadbdcc4baf",
+            "6eac102c-f2a2-4c1f-aa5e-2d40bfda1d8b",
+            "71d76190-acad-42c0-8641-421ca6ae3c6f"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "What is the colour of the blanket?",
+      "truth": "Greyish violet",
+      "attempts": [
+        {
+          "answer": "The blanket is grey and white.",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "26bc3e31-b4d9-4da5-9d51-88fa8ac05121",
+            "9c878580-4a9b-4a1a-b397-613bebb4641c",
+            "09382bd0-e8c8-402b-bac6-883bde790b26",
+            "56d6832c-690d-4562-8195-42f66a24b044",
+            "55d34cb0-e856-4cf8-aa85-324be2a12ef5",
+            "8e178feb-3f8b-4ec8-a9d3-870ab936aa4a"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Where is the blanket currently?",
+      "truth": "It's on the blue suitcase.",
+      "attempts": [
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "8e178feb-3f8b-4ec8-a9d3-870ab936aa4a",
+            "55d34cb0-e856-4cf8-aa85-324be2a12ef5",
+            "5a559056-8c0b-4a80-a8ff-f08edd421596",
+            "73b572db-5037-4768-ab81-8d4226ce641a",
+            "26bc3e31-b4d9-4da5-9d51-88fa8ac05121",
+            "bd3eb174-871d-497d-8fbc-96932ebf77f7"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "In which mode is the fan currently running, 0, 1 or 2?",
+      "truth": "2",
+      "attempts": [
+        {
+          "answer": "The fan is On.",
+          "refused": false,
+          "confidence": 0.9,
+          "evidence_ids": [
+            "59886a11-bc80-4f2d-9e08-55ca361c3dbc",
+            "960adb9d-814d-471f-b050-081a33bb9fdb",
+            "ea8f1d68-f161-481e-9001-128388e86622",
+            "0d8ada06-355d-4a5d-b190-93a76d65414e",
+            "43662022-c5a5-4d7d-96da-3d27fbe06e71",
+            "faf11f54-e001-45af-a460-f26fafe93235"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Is the blue suitcase open or closed?",
+      "truth": "Open",
+      "attempts": [
+        {
+          "answer": "The blue suitcase is open.",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "efd207ba-f6e9-4d71-bd5c-4052fa75e8ac",
+            "6063d70f-70ba-42f7-92fd-f22edf08cc68",
+            "2f2c3834-f2c8-4409-b900-fc5ce8584e38",
+            "26bc3e31-b4d9-4da5-9d51-88fa8ac05121",
+            "8e178feb-3f8b-4ec8-a9d3-870ab936aa4a",
+            "9c878580-4a9b-4a1a-b397-613bebb4641c"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        }
+      ]
+    },
+    {
+      "question": "What is the colour of the diary?",
+      "truth": "Blue",
+      "attempts": [
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "09382bd0-e8c8-402b-bac6-883bde790b26",
+            "dc43d739-fd21-49e0-a833-ef2eb60891c0",
+            "96815f6e-97c1-4ce0-87c6-8237c371480b",
+            "0f61829d-b8ea-42b7-ad35-6ba508b1ee28",
+            "26bc3e31-b4d9-4da5-9d51-88fa8ac05121",
+            "8ca282f5-e804-4f5d-92d2-cf2fea352e69"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "How can I drink water?",
+      "truth": "From the thermal, the white bottle, or a steel glass.",
+      "attempts": [
+        {
+          "answer": "I see a water bottle and an empty mug.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "586299f1-4b04-4634-9653-bc5629d3f540",
+            "8c830cfa-b76a-4025-95ff-d4fd0fcdd04d",
+            "faf11f54-e001-45af-a460-f26fafe93235",
+            "56d6832c-690d-4562-8195-42f66a24b044",
+            "6eac102c-f2a2-4c1f-aa5e-2d40bfda1d8b",
+            "d5f4bdc9-d4a0-4f63-bb3d-800dca1b5c7b"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "What is the pink cloth near the fan?",
+      "truth": "A pink t-shirt.",
+      "attempts": [
+        {
+          "answer": "A pink towel is near the fan.",
+          "refused": false,
+          "confidence": 0.9,
+          "evidence_ids": [
+            "0f61829d-b8ea-42b7-ad35-6ba508b1ee28",
+            "5a559056-8c0b-4a80-a8ff-f08edd421596",
+            "6ff18ae7-7ca4-42cf-8e08-80cd594969ab",
+            "56d6832c-690d-4562-8195-42f66a24b044",
+            "bd3eb174-871d-497d-8fbc-96932ebf77f7",
+            "26bc3e31-b4d9-4da5-9d51-88fa8ac05121"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Where were my glasses or eyewear?",
+      "truth": "Under the laptop stand on the bed.",
+      "attempts": [
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "e0a46bf5-847e-4d95-80ef-3e2b7747d108",
+            "d5f4bdc9-d4a0-4f63-bb3d-800dca1b5c7b",
+            "89d4a4d4-aa9a-4a1c-b498-b22a16ee7bfd",
+            "8382a76e-edb3-45f0-875b-66199a00c35b",
+            "bf1faf84-13a4-48ec-8fba-15533e72e8aa",
+            "a7f272e9-6487-47e2-a499-a0dcad355d76"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "What is the colour of the mattress?",
+      "truth": "Blue",
+      "attempts": [
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "09382bd0-e8c8-402b-bac6-883bde790b26",
+            "26bc3e31-b4d9-4da5-9d51-88fa8ac05121",
+            "55d34cb0-e856-4cf8-aa85-324be2a12ef5",
+            "9c878580-4a9b-4a1a-b397-613bebb4641c",
+            "56d6832c-690d-4562-8195-42f66a24b044",
+            "d41ce35a-ebf5-4926-ad82-99ee89e89a5f"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "What is the flavour of the Barilla pesto?",
+      "truth": "Peperoncino",
+      "attempts": [
+        {
+          "answer": "The pesto jar text says Barilla.",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "7310159d-db95-4741-a29d-fdadbdcc4baf",
+            "4d2d2fb8-0b25-41d9-bbc2-3db714a00670",
+            "6eac102c-f2a2-4c1f-aa5e-2d40bfda1d8b",
+            "5b2f7b13-8909-445e-8631-557cf3ac6c44",
+            "6cf06c40-1f89-44a7-987e-5bec8051ce18",
+            "6e00c30b-d243-4372-8031-4acd9390fc37"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "How many calories did I consume through all the nutella?",
+      "truth": "14300",
+      "attempts": [
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "6e00c30b-d243-4372-8031-4acd9390fc37",
+            "72f33222-ace1-4911-871e-9043773ca333",
+            "6cf06c40-1f89-44a7-987e-5bec8051ce18",
+            "6eac102c-f2a2-4c1f-aa5e-2d40bfda1d8b",
+            "4d2d2fb8-0b25-41d9-bbc2-3db714a00670",
+            "7310159d-db95-4741-a29d-fdadbdcc4baf"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "What is the battery percentage of my laptop?",
+      "truth": "100%",
+      "attempts": [
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "0d8ada06-355d-4a5d-b190-93a76d65414e",
+            "ea8f1d68-f161-481e-9001-128388e86622",
+            "9e4e8b25-46e5-47ba-84f0-8c15fece58f0",
+            "ca654cbd-2666-407a-b98b-b5a85598a6e8",
+            "96815f6e-97c1-4ce0-87c6-8237c371480b",
+            "43662022-c5a5-4d7d-96da-3d27fbe06e71"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "Is it day or night?",
+      "truth": "Day",
+      "attempts": [
+        {
+          "answer": "It is difficult to determine if it's day or night.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "d3cf1072-71c0-4cbc-becf-78d159b6eb7b",
+            "a7f272e9-6487-47e2-a499-a0dcad355d76",
+            "960adb9d-814d-471f-b050-081a33bb9fdb",
+            "0975c1d3-b6aa-4eff-b1d4-6fd8bf5502f6",
+            "73b572db-5037-4768-ab81-8d4226ce641a",
+            "d5f4bdc9-d4a0-4f63-bb3d-800dca1b5c7b"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        }
+      ]
+    },
+    {
+      "question": "What app was opened on the laptop?",
+      "truth": "Claude",
+      "attempts": [
+        {
+          "answer": "The MacBook was opened on the laptop.",
+          "refused": false,
+          "confidence": 1.0,
+          "evidence_ids": [
+            "43662022-c5a5-4d7d-96da-3d27fbe06e71",
+            "0d8ada06-355d-4a5d-b190-93a76d65414e",
+            "9e4e8b25-46e5-47ba-84f0-8c15fece58f0",
+            "bf1faf84-13a4-48ec-8fba-15533e72e8aa",
+            "96815f6e-97c1-4ce0-87c6-8237c371480b",
+            "8ca282f5-e804-4f5d-92d2-cf2fea352e69"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Is the room looking good?",
+      "truth": "No",
+      "attempts": [
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "09382bd0-e8c8-402b-bac6-883bde790b26",
+            "55d34cb0-e856-4cf8-aa85-324be2a12ef5",
+            "23e72954-5042-4c1b-85db-01adc0fc8f84",
+            "d41ce35a-ebf5-4926-ad82-99ee89e89a5f",
+            "5685209b-dc69-463c-929e-aa122e28912f",
+            "bd3eb174-871d-497d-8fbc-96932ebf77f7"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        }
+      ]
+    },
+    {
+      "question": "How many cello tapes are there on the bedside table?",
+      "truth": "2",
+      "attempts": [
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "55d34cb0-e856-4cf8-aa85-324be2a12ef5",
+            "8e178feb-3f8b-4ec8-a9d3-870ab936aa4a",
+            "d41ce35a-ebf5-4926-ad82-99ee89e89a5f",
+            "6ff18ae7-7ca4-42cf-8e08-80cd594969ab",
+            "09382bd0-e8c8-402b-bac6-883bde790b26",
+            "95580cf3-95a0-4ebc-bec8-303d572c56f7"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "Was there a microphone somewhere?",
+      "truth": "Yes, on the thermal-side bedside table.",
+      "attempts": [
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "95580cf3-95a0-4ebc-bec8-303d572c56f7",
+            "89d4a4d4-aa9a-4a1c-b498-b22a16ee7bfd",
+            "ea8f1d68-f161-481e-9001-128388e86622",
+            "fd70645c-6b22-4138-b8f9-fb173c396349",
+            "b2c9aa5b-1176-4927-80e8-cd5bfb655bb5",
+            "d005c80c-df91-480c-8972-1de6e6d4b6cc"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "How many pillows are there on the bed?",
+      "truth": "3",
+      "attempts": [
+        {
+          "answer": "There are at least two pillows on the bed.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "55d34cb0-e856-4cf8-aa85-324be2a12ef5",
+            "d41ce35a-ebf5-4926-ad82-99ee89e89a5f",
+            "8e178feb-3f8b-4ec8-a9d3-870ab936aa4a",
+            "09382bd0-e8c8-402b-bac6-883bde790b26",
+            "23e72954-5042-4c1b-85db-01adc0fc8f84",
+            "73b572db-5037-4768-ab81-8d4226ce641a"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4334 @@
+[
+  {
+    "id": "c278a9c8-e367-493d-a5ac-f87cae41d86a",
+    "node_type": "observation",
+    "text": "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Cabinet:** White, rectangular cabinet with a flat top surface.\n*   **Nutella Jar:** Brown jar with a yellow label.\n*   **Pesto Jar:** Small glass jar with a green and gold label.\n*   **Jar (unlabeled):** Small glass jar with a brown lid.\n*   **Bag of Tortilla Chips:** Black plastic bag, partially open.\n*   **Power Adapter:** White rectangular power adapter plugged into the wall.\n*   **Cable:** Black cable connected to the power adapter.\n*   **Jar (unlabeled):** Small glass jar with a yellow lid.\n*   **Wall:** White wall.\n*   **Notebook/Binder:** Black notebook or binder, partially visible on the left side of the cabinet.\n\n**Text:**\n\n*   **Nutella Jar Label:** \"nutella\" and various text in multiple languages (unreadable).\n*   **Pesto Jar Label:** \"PRESTO\" and other text in Italian (unreadable).\n*   **Bag of Tortilla Chips:** [Unreadable]",
+    "source": "phone_camera",
+    "helper_type": "vlm",
+    "t_ms": 0,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 0,
+      "end_ms": 0
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.36,
+        "pitch_deg": 77.92,
+        "roll": 0.44,
+        "roll_deg": 25.21,
+        "yaw": -0.44,
+        "yaw_deg": -25.21
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000000.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000000.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000000.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 0,
+      "helper_prompt": "scene_perception"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000000.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "59686c00-31b6-4f0f-9221-ad37b2e756af",
+    "node_type": "observation",
+    "text": "## Spatial Relations\n- Nutella jar is on top of cabinet.\n- Pesto jar is next to Nutella jar.\n- Jar is on top of cabinet.\n- Bag of chips is on top of cabinet.\n- Power adapter is under cabinet.\n- Cable is next to power adapter.\n- Cabinet is next to wall.\n- Wall is next to corner.",
+    "source": "phone_camera",
+    "helper_type": "relation_helper",
+    "t_ms": 0,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 0,
+      "end_ms": 0
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.36,
+        "pitch_deg": 77.92,
+        "roll": 0.44,
+        "roll_deg": 25.21,
+        "yaw": -0.44,
+        "yaw_deg": -25.21
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000000.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000000.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000000.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 0,
+      "helper_prompt": "spatial_relations"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000000.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "96141102-1f7c-444f-83d3-637df5976002",
+    "node_type": "observation",
+    "text": "Nutella jar is on top of cabinet.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 0,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 0,
+      "end_ms": 0
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.36,
+        "pitch_deg": 77.92,
+        "roll": 0.44,
+        "roll_deg": 25.21,
+        "yaw": -0.44,
+        "yaw_deg": -25.21
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000000.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000000.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000000.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 0,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Nutella jar is on top of cabinet."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000000.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "6bf66bcf-7f77-4125-9cb4-312d7c3c8392",
+    "node_type": "observation",
+    "text": "Pesto jar is next to Nutella jar.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 0,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 0,
+      "end_ms": 0
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.36,
+        "pitch_deg": 77.92,
+        "roll": 0.44,
+        "roll_deg": 25.21,
+        "yaw": -0.44,
+        "yaw_deg": -25.21
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000000.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000000.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000000.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 0,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Pesto jar is next to Nutella jar."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000000.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "fd2dbe22-583a-40af-8cb9-fcdb0c3574ea",
+    "node_type": "observation",
+    "text": "Jar is on top of cabinet.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 0,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 0,
+      "end_ms": 0
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.36,
+        "pitch_deg": 77.92,
+        "roll": 0.44,
+        "roll_deg": 25.21,
+        "yaw": -0.44,
+        "yaw_deg": -25.21
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000000.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000000.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000000.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 0,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Jar is on top of cabinet."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000000.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "0cc75c83-7944-40a6-911a-149260d03332",
+    "node_type": "observation",
+    "text": "Bag of chips is on top of cabinet.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 0,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 0,
+      "end_ms": 0
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.36,
+        "pitch_deg": 77.92,
+        "roll": 0.44,
+        "roll_deg": 25.21,
+        "yaw": -0.44,
+        "yaw_deg": -25.21
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000000.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000000.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000000.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 0,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Bag of chips is on top of cabinet."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000000.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "59789cdf-8427-4590-8c58-d55ff322f1ac",
+    "node_type": "observation",
+    "text": "Power adapter is under cabinet.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 0,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 0,
+      "end_ms": 0
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.36,
+        "pitch_deg": 77.92,
+        "roll": 0.44,
+        "roll_deg": 25.21,
+        "yaw": -0.44,
+        "yaw_deg": -25.21
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000000.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000000.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000000.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 0,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Power adapter is under cabinet."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000000.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "61819f78-994e-49fd-8c81-f1ea995f7143",
+    "node_type": "observation",
+    "text": "Cable is next to power adapter.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 0,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 0,
+      "end_ms": 0
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.36,
+        "pitch_deg": 77.92,
+        "roll": 0.44,
+        "roll_deg": 25.21,
+        "yaw": -0.44,
+        "yaw_deg": -25.21
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000000.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000000.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000000.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 0,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Cable is next to power adapter."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000000.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "971d46d3-1267-4c96-8b0a-c3fbb134ac49",
+    "node_type": "observation",
+    "text": "Cabinet is next to wall.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 0,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 0,
+      "end_ms": 0
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.36,
+        "pitch_deg": 77.92,
+        "roll": 0.44,
+        "roll_deg": 25.21,
+        "yaw": -0.44,
+        "yaw_deg": -25.21
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000000.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000000.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000000.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 0,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Cabinet is next to wall."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000000.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "94fd5f52-75f5-464f-856e-abe4a98e5ca2",
+    "node_type": "observation",
+    "text": "Wall is next to corner.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 0,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 0,
+      "end_ms": 0
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.36,
+        "pitch_deg": 77.92,
+        "roll": 0.44,
+        "roll_deg": 25.21,
+        "yaw": -0.44,
+        "yaw_deg": -25.21
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000000.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000000.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000000.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 0,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Wall is next to corner."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000000.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "59686c00-31b6-4f0f-9221-ad37b2e756af"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "0118c608-6991-4d56-bacb-9338745963a0",
+    "node_type": "observation",
+    "text": "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Wall:** White, smooth surface.\n*   **Table/Nightstand:** Light brown wood, rectangular shape.\n*   **Nutella Jar:** Glass jar with a dark brown label (Nutella branding).\n*   **Pesto Jar:** Glass jar with a green and brown label (Pesto branding).\n*   **Pasta Sauce Container:** Plastic container with a red and white label.\n*   **Bag of Chips/Snacks:** Dark colored bag, partially visible.\n*   **Notebook/Journal:** Black cover, rectangular shape.\n*   **Power Strip:** White plastic, multiple outlets.\n*   **White Power Adapter:** White plastic, plugged into the power strip.\n*   **Cable:** White cable connected to the power adapter.\n*   **Door Frame:** White, vertical edge of a door frame.\n*   **Outlet:** White, rectangular electrical outlet on the wall.\n\n**Text (Verbatim):**\n\n*   On Nutella Jar: \"nutella\"\n*   On Pesto Jar: \"PESTO\"\n*   On Pasta Sauce Container: [unreadable]\n*   On Bag of Chips/Snacks: [unreadable]",
+    "source": "phone_camera",
+    "helper_type": "vlm",
+    "t_ms": 8000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 8000,
+      "end_ms": 8000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.45,
+        "pitch_deg": 83.08,
+        "roll": 0.54,
+        "roll_deg": 30.94,
+        "yaw": -0.55,
+        "yaw_deg": -31.51
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000008.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000008.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000008.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 1,
+      "helper_prompt": "scene_perception"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000008.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e",
+    "node_type": "observation",
+    "text": "## Spatial Relations\n- Nutella jar is on the table.\n- Pesto jar is on the table.\n- Pasta sauce container is on the table.\n- Bag of chips is on the table.\n- Notebook is on the table.\n- Power adapter is on the table.\n- White cable is next to the power adapter.\n- Table is next to the wall.\n- Wall is behind the table.",
+    "source": "phone_camera",
+    "helper_type": "relation_helper",
+    "t_ms": 8000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 8000,
+      "end_ms": 8000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.45,
+        "pitch_deg": 83.08,
+        "roll": 0.54,
+        "roll_deg": 30.94,
+        "yaw": -0.55,
+        "yaw_deg": -31.51
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000008.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000008.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000008.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 1,
+      "helper_prompt": "spatial_relations"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000008.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "91284873-9790-4635-8cec-9bc192f86077",
+    "node_type": "observation",
+    "text": "Nutella jar is on the table.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 8000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 8000,
+      "end_ms": 8000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.45,
+        "pitch_deg": 83.08,
+        "roll": 0.54,
+        "roll_deg": 30.94,
+        "yaw": -0.55,
+        "yaw_deg": -31.51
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000008.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000008.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000008.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 1,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Nutella jar is on the table."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000008.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "f48f7197-18e7-4597-9711-f37dedf33602",
+    "node_type": "observation",
+    "text": "Pesto jar is on the table.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 8000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 8000,
+      "end_ms": 8000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.45,
+        "pitch_deg": 83.08,
+        "roll": 0.54,
+        "roll_deg": 30.94,
+        "yaw": -0.55,
+        "yaw_deg": -31.51
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000008.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000008.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000008.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 1,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Pesto jar is on the table."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000008.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "28e23ea3-7177-46b6-9e53-d09f13f3ae83",
+    "node_type": "observation",
+    "text": "Pasta sauce container is on the table.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 8000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 8000,
+      "end_ms": 8000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.45,
+        "pitch_deg": 83.08,
+        "roll": 0.54,
+        "roll_deg": 30.94,
+        "yaw": -0.55,
+        "yaw_deg": -31.51
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000008.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000008.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000008.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 1,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Pasta sauce container is on the table."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000008.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "89fee246-1a2e-4dcb-8ae6-1aad09ae31e4",
+    "node_type": "observation",
+    "text": "Bag of chips is on the table.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 8000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 8000,
+      "end_ms": 8000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.45,
+        "pitch_deg": 83.08,
+        "roll": 0.54,
+        "roll_deg": 30.94,
+        "yaw": -0.55,
+        "yaw_deg": -31.51
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000008.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000008.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000008.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 1,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Bag of chips is on the table."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000008.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "3653e02f-9cc3-4284-87a3-644e4c61afb0",
+    "node_type": "observation",
+    "text": "Notebook is on the table.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 8000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 8000,
+      "end_ms": 8000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.45,
+        "pitch_deg": 83.08,
+        "roll": 0.54,
+        "roll_deg": 30.94,
+        "yaw": -0.55,
+        "yaw_deg": -31.51
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000008.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000008.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000008.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 1,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Notebook is on the table."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000008.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "1a3abc87-7f5d-4fb5-895a-99436ce03aa4",
+    "node_type": "observation",
+    "text": "Power adapter is on the table.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 8000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 8000,
+      "end_ms": 8000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.45,
+        "pitch_deg": 83.08,
+        "roll": 0.54,
+        "roll_deg": 30.94,
+        "yaw": -0.55,
+        "yaw_deg": -31.51
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000008.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000008.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000008.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 1,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Power adapter is on the table."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000008.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "7c312057-c570-4a32-a88a-3315bfb9f3bd",
+    "node_type": "observation",
+    "text": "White cable is next to the power adapter.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 8000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 8000,
+      "end_ms": 8000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.45,
+        "pitch_deg": 83.08,
+        "roll": 0.54,
+        "roll_deg": 30.94,
+        "yaw": -0.55,
+        "yaw_deg": -31.51
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000008.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000008.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000008.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 1,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "White cable is next to the power adapter."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000008.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "d73acb2a-3b58-4d92-bc99-0227283355fa",
+    "node_type": "observation",
+    "text": "Table is next to the wall.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 8000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 8000,
+      "end_ms": 8000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.45,
+        "pitch_deg": 83.08,
+        "roll": 0.54,
+        "roll_deg": 30.94,
+        "yaw": -0.55,
+        "yaw_deg": -31.51
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000008.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000008.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000008.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 1,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Table is next to the wall."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000008.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "47e26caf-2005-4eb5-9418-8a8cea19f2c9",
+    "node_type": "observation",
+    "text": "Wall is behind the table.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 8000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 8000,
+      "end_ms": 8000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.45,
+        "pitch_deg": 83.08,
+        "roll": 0.54,
+        "roll_deg": 30.94,
+        "yaw": -0.55,
+        "yaw_deg": -31.51
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000008.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000008.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000008.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 1,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Wall is behind the table."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000008.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "43fcddc4-94c8-4445-8bc2-f5f28777cd3e"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "38ac9851-65df-4a5c-b969-1ba23c8ab545",
+    "node_type": "observation",
+    "text": "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **White Table/Nightstand:** Solid, appears to be made of wood or a composite material with a white finish.\n*   **Nutella Jar:** Brown glass jar with a hazelnut spread inside. Label is visible (see \"Text\" section).\n*   **Pesto Jar:** Small glass jar with green pesto inside. Label is visible (see \"Text\" section).\n*   **Jar (unlabeled):** A small brown glass jar, contents are not discernible.\n*   **Power Strip/Adapter:** White plastic power strip with multiple outlets and a USB charging port. One device is plugged into it.\n*   **Device (plugged in):** Partially visible white electronic device connected to the power strip.\n*   **Black Notebook:** A closed black notebook or journal.\n*   **Plastic Bag/Packaging:** Torn, translucent plastic bag with some food items inside (e.g., bread).\n*   **Smartphone:** Black smartphone lying face down on a surface.\n*   **Wall:** White wall.\n*   **Floor:** Beige floor tiles.\n\n**Text:**\n\n*   **Nutella Jar Label:** \"nutella\" in red and white lettering, with other text in [unreadable] script.\n*   **Pesto Jar Label:** \"Pesto\" in green lettering, with other text in [unreadable] script.",
+    "source": "phone_camera",
+    "helper_type": "vlm",
+    "t_ms": 16000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 16000,
+      "end_ms": 16000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.15,
+        "pitch_deg": 65.89,
+        "roll": 0.37,
+        "roll_deg": 21.2,
+        "yaw": -0.2,
+        "yaw_deg": -11.46
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000016.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000016.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000016.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 2,
+      "helper_prompt": "scene_perception"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000016.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "7f8bde4d-8aae-47e2-86cc-55403011532d",
+    "node_type": "observation",
+    "text": "## Spatial Relations\n- Nutella jar is on top of notebook.\n- Pesto jar is next to Nutella jar.\n- Jar is next to power adapter.\n- Notebook is on table.\n- Power adapter is on table.\n- Phone is under table.\n- Table is next to wall.\n- Wall is white.",
+    "source": "phone_camera",
+    "helper_type": "relation_helper",
+    "t_ms": 16000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 16000,
+      "end_ms": 16000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.15,
+        "pitch_deg": 65.89,
+        "roll": 0.37,
+        "roll_deg": 21.2,
+        "yaw": -0.2,
+        "yaw_deg": -11.46
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000016.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000016.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000016.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 2,
+      "helper_prompt": "spatial_relations"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000016.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "9d71460c-7e3c-4ad7-9681-552256a74927",
+    "node_type": "observation",
+    "text": "Nutella jar is on top of notebook.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 16000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 16000,
+      "end_ms": 16000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.15,
+        "pitch_deg": 65.89,
+        "roll": 0.37,
+        "roll_deg": 21.2,
+        "yaw": -0.2,
+        "yaw_deg": -11.46
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000016.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000016.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000016.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 2,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Nutella jar is on top of notebook."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000016.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "e8aa55c3-c19f-43f4-b893-788c597fe724",
+    "node_type": "observation",
+    "text": "Pesto jar is next to Nutella jar.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 16000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 16000,
+      "end_ms": 16000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.15,
+        "pitch_deg": 65.89,
+        "roll": 0.37,
+        "roll_deg": 21.2,
+        "yaw": -0.2,
+        "yaw_deg": -11.46
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000016.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000016.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000016.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 2,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Pesto jar is next to Nutella jar."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000016.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "78f80ec4-0054-4e65-9cc1-7d4b30a56c8e",
+    "node_type": "observation",
+    "text": "Jar is next to power adapter.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 16000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 16000,
+      "end_ms": 16000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.15,
+        "pitch_deg": 65.89,
+        "roll": 0.37,
+        "roll_deg": 21.2,
+        "yaw": -0.2,
+        "yaw_deg": -11.46
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000016.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000016.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000016.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 2,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Jar is next to power adapter."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000016.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "a7ec1d04-2791-4918-a6ce-d3aeb3a7741d",
+    "node_type": "observation",
+    "text": "Notebook is on table.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 16000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 16000,
+      "end_ms": 16000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.15,
+        "pitch_deg": 65.89,
+        "roll": 0.37,
+        "roll_deg": 21.2,
+        "yaw": -0.2,
+        "yaw_deg": -11.46
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000016.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000016.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000016.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 2,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Notebook is on table."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000016.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "3e011eda-53eb-4c5c-8983-272bfdd9980b",
+    "node_type": "observation",
+    "text": "Power adapter is on table.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 16000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 16000,
+      "end_ms": 16000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.15,
+        "pitch_deg": 65.89,
+        "roll": 0.37,
+        "roll_deg": 21.2,
+        "yaw": -0.2,
+        "yaw_deg": -11.46
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000016.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000016.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000016.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 2,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Power adapter is on table."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000016.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "e20a0eeb-2a96-4963-9e4f-6a1a809597b3",
+    "node_type": "observation",
+    "text": "Phone is under table.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 16000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 16000,
+      "end_ms": 16000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.15,
+        "pitch_deg": 65.89,
+        "roll": 0.37,
+        "roll_deg": 21.2,
+        "yaw": -0.2,
+        "yaw_deg": -11.46
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000016.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000016.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000016.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 2,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Phone is under table."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000016.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "b977abb2-b61d-4c66-9461-4bc4c6b1a46d",
+    "node_type": "observation",
+    "text": "Table is next to wall.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 16000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 16000,
+      "end_ms": 16000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.15,
+        "pitch_deg": 65.89,
+        "roll": 0.37,
+        "roll_deg": 21.2,
+        "yaw": -0.2,
+        "yaw_deg": -11.46
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000016.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000016.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000016.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 2,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Table is next to wall."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000016.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "c1e96de5-80ad-403e-a41c-f27796211eac",
+    "node_type": "observation",
+    "text": "Wall is white.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 16000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 16000,
+      "end_ms": 16000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.15,
+        "pitch_deg": 65.89,
+        "roll": 0.37,
+        "roll_deg": 21.2,
+        "yaw": -0.2,
+        "yaw_deg": -11.46
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000016.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000016.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000016.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 2,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Wall is white."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000016.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7f8bde4d-8aae-47e2-86cc-55403011532d"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "0ddff72a-d3e7-4597-9a72-76df70f302b6",
+    "node_type": "observation",
+    "text": "Here's what is literally visible in the frame:\n\n(1) **Objects:**\n\n*   **Laptop:** Silver/gray aluminum body, open.\n*   **Mouse:** Black plastic.\n*   **Keyboard:** Black keys, silver accents.\n*   **Monitor:** Black screen with text and graphics displayed.\n*   **Desk:** Light gray surface.\n*   **Chair:** Black fabric upholstery, chrome legs.\n*   **Wall:** Gray painted wall.\n*   **Cable:** Black cable running along the wall.\n\n(2) **Text:**\n\n*   \"Judge vision memory discrepancy\"\n*   \"Worked for 30min 10s\"\n*   \"[Open in]\"\n*   \"Current hard status from your phone recording the process. The debug tools report 'Out of Memory'\"\n*   \"I pulled the .vlm, .json files and extracted them with OpenAI. OpenAI doesn't always align against your 3D model answers here are the results: [trace_capture_20231005_002708_vision_json.json]\"\n*   \"The model is in this state:\"\n*   \"2 / 3 context\"\n*   \"2 / 3 params\"\n*   \"16 / 24 memory\"\n*   \"Weighted score: 0.57%\"\n*   \"The biggest failures are not consistent. The model under-counted table items, inverted the wire's location, said the chair was a sofa, and misidentified the desk as a shelf. It also missed objects and made false claims about the color of things. All unmotivated. Given its memory constraints, it is hard to expect more.\"\n*   \"Runner: tool_local_vision_capture\"\n*   \"[trace_capture_20231005_002708_vision_json.json]\"\n*   \"Bottom line: It's rapid progress but the current system is a fragile, resource-intensive engine, not a reliable, state-memory efficient one.\"\n*   \"[trace_capture_20231005_002708_vlm.report]\"\n*   \"Document: MD\"\n*   \"Precise perception sensor.\"\n*   \"Open in\"\n*   \"Chat\"\n*   \"Projects\"\n*   \"VLM\"\n*   \"Temp\"\n*   \"Create cutting PDF\"\n*   \"Prepare CAD design\"\n*   \"Chats\"\n*   \"No data\"\n*   \"[unreadable] OpenAI\"",
+    "source": "phone_camera",
+    "helper_type": "vlm",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "scene_perception"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "a42bda12-e7f7-464b-ad45-20456abeac89",
+    "node_type": "observation",
+    "text": "## Spatial Relations\n- Laptop on table.\n- Table next to chair.\n- Chair facing laptop.\n- Headphones resting on chair.\n- Window behind laptop.\n- Screen is open.",
+    "source": "phone_camera",
+    "helper_type": "relation_helper",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "spatial_relations"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "32e9d4e8-05ed-47bb-9f83-26fc276fbce6",
+    "node_type": "observation",
+    "text": "Laptop on table.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "a42bda12-e7f7-464b-ad45-20456abeac89",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Laptop on table."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "a42bda12-e7f7-464b-ad45-20456abeac89"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "df2d07fd-c26c-4cb9-a9ec-a2bf02712240",
+    "node_type": "observation",
+    "text": "Table next to chair.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "a42bda12-e7f7-464b-ad45-20456abeac89",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Table next to chair."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "a42bda12-e7f7-464b-ad45-20456abeac89"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "d5dacfcc-bbc5-4701-8795-dad7f84cfd1f",
+    "node_type": "observation",
+    "text": "Chair facing laptop.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "a42bda12-e7f7-464b-ad45-20456abeac89",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Chair facing laptop."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "a42bda12-e7f7-464b-ad45-20456abeac89"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "d4fac6bb-5e26-40bf-b84e-1cc97d790ac4",
+    "node_type": "observation",
+    "text": "Headphones resting on chair.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "a42bda12-e7f7-464b-ad45-20456abeac89",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Headphones resting on chair."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "a42bda12-e7f7-464b-ad45-20456abeac89"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "0a066b05-70bc-44b8-841f-1ebfc7db532c",
+    "node_type": "observation",
+    "text": "Window behind laptop.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "a42bda12-e7f7-464b-ad45-20456abeac89",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Window behind laptop."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "a42bda12-e7f7-464b-ad45-20456abeac89"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "6bf170b5-3e99-4a9a-b8ae-e54d793c0fde",
+    "node_type": "observation",
+    "text": "Screen is open.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "a42bda12-e7f7-464b-ad45-20456abeac89",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Screen is open."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "a42bda12-e7f7-464b-ad45-20456abeac89"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "fc9d7971-c0a4-4f12-ac00-226c4cb0a958",
+    "node_type": "observation",
+    "text": "## Screen State\n- App/Window Title: Judge Visionary Discrepancy\n- Menu Bar Text: File Edit View Go Search\n- Time/Date: Sun Jul 16 7:32\n- Battery Percentage: 48%\n- Tabs/Sidebar Labels: VLM, Temp, Create CAD cutting PDF, Prepare CAD design",
+    "source": "phone_camera",
+    "helper_type": "screen_helper",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "screen_state"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "4bc1a3ec-e205-477a-bd64-56ba99c705d1",
+    "node_type": "observation",
+    "text": "App/Window Title: Judge Visionary Discrepancy",
+    "source": "phone_camera",
+    "helper_type": "screen_state",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "screen_state",
+      "parent_frame_node": "fc9d7971-c0a4-4f12-ac00-226c4cb0a958",
+      "section_kind": "screen_text",
+      "section_title": "screen_state",
+      "subject_hint": null
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "fc9d7971-c0a4-4f12-ac00-226c4cb0a958"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "d310d517-05da-487d-8345-1720a4588b2d",
+    "node_type": "observation",
+    "text": "Menu Bar Text: File Edit View Go Search",
+    "source": "phone_camera",
+    "helper_type": "screen_state",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "screen_state",
+      "parent_frame_node": "fc9d7971-c0a4-4f12-ac00-226c4cb0a958",
+      "section_kind": "screen_text",
+      "section_title": "screen_state",
+      "subject_hint": null
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "fc9d7971-c0a4-4f12-ac00-226c4cb0a958"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "89ced757-c0be-4d34-8832-fd5b8218fa93",
+    "node_type": "observation",
+    "text": "Time/Date: Sun Jul 16 7:32",
+    "source": "phone_camera",
+    "helper_type": "screen_state",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "screen_state",
+      "parent_frame_node": "fc9d7971-c0a4-4f12-ac00-226c4cb0a958",
+      "section_kind": "screen_text",
+      "section_title": "screen_state",
+      "subject_hint": null
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "fc9d7971-c0a4-4f12-ac00-226c4cb0a958"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "6dc1125b-1051-4ffc-87b6-82a2527f6e11",
+    "node_type": "observation",
+    "text": "Battery Percentage: 48%",
+    "source": "phone_camera",
+    "helper_type": "screen_state",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "screen_state",
+      "parent_frame_node": "fc9d7971-c0a4-4f12-ac00-226c4cb0a958",
+      "section_kind": "screen_text",
+      "section_title": "screen_state",
+      "subject_hint": null
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "fc9d7971-c0a4-4f12-ac00-226c4cb0a958"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "941faded-18a7-4f59-a0e6-15fa618ef1c4",
+    "node_type": "observation",
+    "text": "Tabs/Sidebar Labels: VLM, Temp, Create CAD cutting PDF, Prepare CAD design",
+    "source": "phone_camera",
+    "helper_type": "screen_state",
+    "t_ms": 23000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 23000,
+      "end_ms": 23000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.49,
+        "pitch_deg": 85.37,
+        "roll": -1.17,
+        "roll_deg": -67.04,
+        "yaw": 1.0,
+        "yaw_deg": 57.3
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000023.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000023.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000023.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 3,
+      "helper_prompt": "screen_state",
+      "parent_frame_node": "fc9d7971-c0a4-4f12-ac00-226c4cb0a958",
+      "section_kind": "screen_text",
+      "section_title": "screen_state",
+      "subject_hint": null
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000023.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "fc9d7971-c0a4-4f12-ac00-226c4cb0a958"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "1275a5f7-826e-4363-9500-62c2265e05bf",
+    "node_type": "observation",
+    "text": "Here's a breakdown of what is literally visible in the image:\n\n**Objects & Their Attributes:**\n\n*   **Laptop:** Silver/gray aluminum body, open. The screen displays text and graphics (see \"Visible Text\" below). Keyboard is black with white keys. Trackpad is silver/gray.\n*   **Mouse:** Black plastic, wireless.\n*   **Notebooks/Folders:** Several stacked on the left side of the laptop. Appear to be dark gray or black.\n*   **Pen:** Silver metal pen lying on top of the notebooks.\n*   **Cup:** White ceramic cup with a brown liquid inside (likely coffee or tea).\n*   **Surface:** The objects are resting on a light-colored wooden surface, possibly a desk or table.\n*   **Hand/Arm:** A person's hand and forearm are visible in the lower right corner of the image. Skin tone appears to be fair.\n\n**Visible Text:**\n\n*   **Laptop Screen (Top Left):**\n    *   \"Autonomous navigation framework\"\n    *   \"Visual perception\"\n    *   \"Vision-language model training\"\n    *   \"LLM agent toolkit and tooling\"\n    *   \"Questions and answers alignment\"\n    *   \"Vision-language models\"\n    *   \"Repository hosted models\"\n    *   \"Autonomous navigation tools\"\n    *   \"Control commands interface\"\n    *   \"Visual perception framework\"\n    *   \"Background task conversation assistant\"\n*   **Laptop Screen (Middle):**\n    *   \"[unreadable] - don't stop. Don't drop. 1.5 seconds to next object\"\n    *   \"The vehicle has [unreadable]\"\n    *   \"The vehicle is doing [unreadable]\"\n    *   \"Get the robot to do some 'regression' routines.\"\n    *   \"On the dial that says 'Battery %'\"\n    *   \"The battery screen close (battery %) \"\n    *   \"If you see a table, chairs, pillows, blankets, rugs, coats, towels\"\n    *   \"Get the robot to do some [unreadable] routines. The robot is ready for the density if needs – send.\"\n    *   \"[unreadable] and then make sure it's doing well. Watching a remote-controlled hanging\"\n*   **Laptop Screen (Bottom):**\n    *   \"Type for commands:\"\n    *   \"Speed: 2 m/s\"\n    *   \"[unreadable]\"\n*   **Keyboard:**\n    *   Option, Command, Option, Command keys are visible.\n*   **Trackpad:**\n    *   [unreadable]\n\n**Battery % (on laptop screen):** 87%",
+    "source": "phone_camera",
+    "helper_type": "vlm",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "scene_perception"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "7876c218-2aad-4e92-bb5c-c7407e4093d4",
+    "node_type": "observation",
+    "text": "## Spatial Relations\n- Laptop on lap.\n- Keyboard open.\n- Screen on.\n- Two pens next to laptop.\n- One cup next to pens.\n- One water bottle next to cup.\n- Two identical command keys visible.",
+    "source": "phone_camera",
+    "helper_type": "relation_helper",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "spatial_relations"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "b73025d1-d4c6-4f9f-b4ab-8385804ce013",
+    "node_type": "observation",
+    "text": "Laptop on lap.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Laptop on lap."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "a42cbad3-1653-404d-ac06-e51f54a5652e",
+    "node_type": "observation",
+    "text": "Keyboard open.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Keyboard open."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "9c8f55a2-0473-41de-a87e-3067807e8b2a",
+    "node_type": "observation",
+    "text": "Screen on.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Screen on."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "3b95df2d-c584-49e9-ae5e-eb355c5c5dbf",
+    "node_type": "observation",
+    "text": "Two pens next to laptop.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Two pens next to laptop."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "c1968395-dac0-4664-af15-3bd6f74a63b0",
+    "node_type": "observation",
+    "text": "One cup next to pens.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "One cup next to pens."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "10ff7b48-3e93-4d73-b857-4c71f90e1764",
+    "node_type": "observation",
+    "text": "One water bottle next to cup.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "One water bottle next to cup."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "99018bbf-ef63-45d1-a788-986bfcede399",
+    "node_type": "observation",
+    "text": "Two identical command keys visible.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Two identical command keys visible."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "7876c218-2aad-4e92-bb5c-c7407e4093d4"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "a561c6f0-2591-44fa-867b-872421b88da9",
+    "node_type": "observation",
+    "text": "## Screen State\n- App/Window Title: \"Create GPT\"\n- Menu Bar Text: \"File Edit View Go Help\"\n- Time/Date: None visible.\n- Battery Percentage: 93%\n- Tabs/Sidebar Labels: \"Autonomous Question Framework\", \"General Knowledge Retrieval\", \"LLM agent tool and settings\", \"Questions and Answers\", \"Knowledge base management\", \"Repository toolkit tools\", \"Memory toolkit tools\", \"Context commands\", \"Custom commands\", \"Agent configuration\", \"System profile information\"",
+    "source": "phone_camera",
+    "helper_type": "screen_helper",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "screen_state"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "f26b151b-17a2-4751-a9eb-13e86943b8c6",
+    "node_type": "observation",
+    "text": "App/Window Title: \"Create GPT\"",
+    "source": "phone_camera",
+    "helper_type": "screen_state",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "screen_state",
+      "parent_frame_node": "a561c6f0-2591-44fa-867b-872421b88da9",
+      "section_kind": "screen_text",
+      "section_title": "screen_state",
+      "subject_hint": null
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "a561c6f0-2591-44fa-867b-872421b88da9"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "e247888f-b45f-412c-8949-d23144577be3",
+    "node_type": "observation",
+    "text": "Menu Bar Text: \"File Edit View Go Help\"",
+    "source": "phone_camera",
+    "helper_type": "screen_state",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "screen_state",
+      "parent_frame_node": "a561c6f0-2591-44fa-867b-872421b88da9",
+      "section_kind": "screen_text",
+      "section_title": "screen_state",
+      "subject_hint": null
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "a561c6f0-2591-44fa-867b-872421b88da9"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "de307080-5517-4e56-873d-0896b5d74ceb",
+    "node_type": "observation",
+    "text": "Time/Date: None visible.",
+    "source": "phone_camera",
+    "helper_type": "screen_state",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "screen_state",
+      "parent_frame_node": "a561c6f0-2591-44fa-867b-872421b88da9",
+      "section_kind": "screen_text",
+      "section_title": "screen_state",
+      "subject_hint": null
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "a561c6f0-2591-44fa-867b-872421b88da9"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "131a9da7-7a63-46fc-8bf0-baada33a9f9b",
+    "node_type": "observation",
+    "text": "Battery Percentage: 93%",
+    "source": "phone_camera",
+    "helper_type": "screen_state",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "screen_state",
+      "parent_frame_node": "a561c6f0-2591-44fa-867b-872421b88da9",
+      "section_kind": "screen_text",
+      "section_title": "screen_state",
+      "subject_hint": null
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "a561c6f0-2591-44fa-867b-872421b88da9"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "f9c27435-1cd1-42dc-9538-b9c44bfa2794",
+    "node_type": "observation",
+    "text": "Tabs/Sidebar Labels: \"Autonomous Question Framework\", \"General Knowledge Retrieval\", \"LLM agent tool and settings\", \"Questions and Answers\", \"Knowledge base management\", \"Repository toolkit tools\", \"Memory toolkit tools\", \"Context commands\", \"Custom commands\", \"Agent configuration\", \"System profile information\"",
+    "source": "phone_camera",
+    "helper_type": "screen_state",
+    "t_ms": 31000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 31000,
+      "end_ms": 31000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 0.88,
+        "pitch_deg": 50.42,
+        "roll": -0.08,
+        "roll_deg": -4.58,
+        "yaw": 0.16,
+        "yaw_deg": 9.17
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000031.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000031.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000031.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 4,
+      "helper_prompt": "screen_state",
+      "parent_frame_node": "a561c6f0-2591-44fa-867b-872421b88da9",
+      "section_kind": "screen_text",
+      "section_title": "screen_state",
+      "subject_hint": null
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000031.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "a561c6f0-2591-44fa-867b-872421b88da9"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "8961b017-2b04-4191-bf1e-62d5de40eb79",
+    "node_type": "observation",
+    "text": "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Nightstand:** White, wooden-looking.\n*   **Stainless Steel Water Bottle:** Silver, metallic.\n*   **Glass Bottle with Cork Stopper:** Clear glass, brown cork stopper.\n*   **Chocolate Bar Wrapper:** Brown wrapper with text and graphics (see below).\n*   **Black Notebook/Journal:** Black cover.\n*   **Small Jar:** Glass jar with a lid.\n*   **White Pillow:** White fabric, appears crumpled.\n*   **Grey Blanket:** Grey fabric, partially visible.\n*   **Cardboard Box:** Brown cardboard, partially visible, has text and graphics (see below).\n\n**Text:**\n\n*   On the chocolate bar wrapper: \"aleksandara\"\n*   On the chocolate bar wrapper: \"Hazelnut Cream\"\n*   On the chocolate bar wrapper: \"[unreadable] 1987\"\n*   On the cardboard box: \"ballu.ru\"\n*   On the cardboard box: \"[unreadable]\"\n*   On the stainless steel water bottle: \"M\"",
+    "source": "phone_camera",
+    "helper_type": "vlm",
+    "t_ms": 39000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 39000,
+      "end_ms": 39000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.19,
+        "pitch_deg": 68.18,
+        "roll": 0.03,
+        "roll_deg": 1.72,
+        "yaw": 2.37,
+        "yaw_deg": 135.79
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000039.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000039.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000039.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 5,
+      "helper_prompt": "scene_perception"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000039.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71",
+    "node_type": "observation",
+    "text": "## Spatial Relations\n- Water bottle on top of nightstand.\n- Glass bottle on top of nightstand.\n- Chocolate bar on top of nightstand.\n- Black bag next to chocolate bar.\n- Jar on top of nightstand.\n- Small container on top of nightstand.\n- Package under nightstand.\n- Pillow on bed.\n- Blanket on bed.",
+    "source": "phone_camera",
+    "helper_type": "relation_helper",
+    "t_ms": 39000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 39000,
+      "end_ms": 39000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.19,
+        "pitch_deg": 68.18,
+        "roll": 0.03,
+        "roll_deg": 1.72,
+        "yaw": 2.37,
+        "yaw_deg": 135.79
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000039.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000039.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000039.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 5,
+      "helper_prompt": "spatial_relations"
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000039.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "62127c20-762a-4bd5-96c5-d1e0bfd00725",
+    "node_type": "observation",
+    "text": "Water bottle on top of nightstand.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 39000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 39000,
+      "end_ms": 39000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.19,
+        "pitch_deg": 68.18,
+        "roll": 0.03,
+        "roll_deg": 1.72,
+        "yaw": 2.37,
+        "yaw_deg": 135.79
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000039.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000039.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000039.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 5,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Water bottle on top of nightstand."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000039.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "75aed64d-52e0-48bd-85cd-dbdf85548b49",
+    "node_type": "observation",
+    "text": "Glass bottle on top of nightstand.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 39000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 39000,
+      "end_ms": 39000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.19,
+        "pitch_deg": 68.18,
+        "roll": 0.03,
+        "roll_deg": 1.72,
+        "yaw": 2.37,
+        "yaw_deg": 135.79
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000039.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000039.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000039.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 5,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Glass bottle on top of nightstand."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000039.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "0445aaca-7c73-4790-a044-a382813989f9",
+    "node_type": "observation",
+    "text": "Chocolate bar on top of nightstand.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 39000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 39000,
+      "end_ms": 39000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.19,
+        "pitch_deg": 68.18,
+        "roll": 0.03,
+        "roll_deg": 1.72,
+        "yaw": 2.37,
+        "yaw_deg": 135.79
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000039.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000039.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000039.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 5,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Chocolate bar on top of nightstand."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000039.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "d2482880-1bad-4837-a3bb-34e52a90262c",
+    "node_type": "observation",
+    "text": "Black bag next to chocolate bar.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 39000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 39000,
+      "end_ms": 39000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.19,
+        "pitch_deg": 68.18,
+        "roll": 0.03,
+        "roll_deg": 1.72,
+        "yaw": 2.37,
+        "yaw_deg": 135.79
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000039.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000039.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000039.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 5,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Black bag next to chocolate bar."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000039.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "75f1c668-8c2d-4092-9bd7-39719f472f19",
+    "node_type": "observation",
+    "text": "Jar on top of nightstand.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 39000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 39000,
+      "end_ms": 39000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.19,
+        "pitch_deg": 68.18,
+        "roll": 0.03,
+        "roll_deg": 1.72,
+        "yaw": 2.37,
+        "yaw_deg": 135.79
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000039.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000039.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000039.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 5,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Jar on top of nightstand."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000039.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "3531867a-e940-424a-b1c8-ca564aca3bf6",
+    "node_type": "observation",
+    "text": "Small container on top of nightstand.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 39000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 39000,
+      "end_ms": 39000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.19,
+        "pitch_deg": 68.18,
+        "roll": 0.03,
+        "roll_deg": 1.72,
+        "yaw": 2.37,
+        "yaw_deg": 135.79
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000039.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000039.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000039.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 5,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Small container on top of nightstand."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000039.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "73bf3261-9128-435d-a013-4742dded69a9",
+    "node_type": "observation",
+    "text": "Package under nightstand.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 39000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 39000,
+      "end_ms": 39000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.19,
+        "pitch_deg": 68.18,
+        "roll": 0.03,
+        "roll_deg": 1.72,
+        "yaw": 2.37,
+        "yaw_deg": 135.79
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000039.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000039.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000039.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 5,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Package under nightstand."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000039.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "ac44c4d9-0580-47d4-a6dd-950b624fa196",
+    "node_type": "observation",
+    "text": "Pillow on bed.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 39000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 39000,
+      "end_ms": 39000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.19,
+        "pitch_deg": 68.18,
+        "roll": 0.03,
+        "roll_deg": 1.72,
+        "yaw": 2.37,
+        "yaw_deg": 135.79
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000039.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000039.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000039.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 5,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Pillow on bed."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000039.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71"
+    },
+    "derived": false,
+    "immutable_raw": true
+  },
+  {
+    "id": "2718b43d-8a55-47b3-b60b-b2bd22984376",
+    "node_type": "observation",
+    "text": "Blanket on bed.",
+    "source": "phone_camera",
+    "helper_type": "spatial_relation",
+    "t_ms": 39000,
+    "coordinate_frame": {
+      "session_id": "selected_frames",
+      "origin_id": "arkit_session_origin",
+      "frame_type": "session_local",
+      "metadata": {}
+    },
+    "time_range": {
+      "start_ms": 39000,
+      "end_ms": 39000
+    },
+    "spatial_anchor": {
+      "kind": "scene_frustum",
+      "coordinates": {},
+      "orientation": {
+        "pitch": 1.19,
+        "pitch_deg": 68.18,
+        "roll": 0.03,
+        "roll_deg": 1.72,
+        "yaw": 2.37,
+        "yaw_deg": 135.79
+      },
+      "bounds": {},
+      "metadata": {
+        "frame_ids": [
+          "000039.jpg"
+        ],
+        "ingest_backend": "local"
+      }
+    },
+    "source_support": {
+      "frame_ids": [
+        "000039.jpg"
+      ],
+      "frame_paths": [
+        "ops/fixtures/world_grounded/selected_frames/000039.jpg"
+      ]
+    },
+    "metadata": {
+      "frame_index": 5,
+      "helper_prompt": "spatial_relations",
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71",
+      "section_kind": "relation",
+      "section_title": "spatial_relations",
+      "subject_hint": "Blanket on bed."
+    },
+    "provenance": {
+      "backend": "local",
+      "frame": "000039.jpg",
+      "frames_dir": "ops/fixtures/world_grounded/selected_frames",
+      "light_ingest": true,
+      "parent_frame_node": "c420ce5b-e2aa-40b9-a8ac-061f7d98dc71"
+    },
+    "derived": false,
+    "immutable_raw": true
+  }
+]

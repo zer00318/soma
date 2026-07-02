@@ -1,6 +1,6 @@
-# SOMA
+# Trace
 
-SOMA is an input-only wearable memory: on-device perception converts the live
+Trace is an input-only wearable memory: on-device perception converts the live
 world to typed text observations, raw pixels and audio are discarded, and later
 recall answers unconstrained questions from text evidence with citations or an
 honest refusal.
@@ -11,7 +11,10 @@ types.
 
 ## Architecture
 
-The production system is a Python modular monolith under `src/soma/`:
+The current system is split across the native app in `trace-native-fastvlm/`,
+the live answer path in `scripts/ask_home.py`, and the relational runtime in
+`trace_hub/`. The smaller package under `src/trace_memory/` is the intended
+modular boundary, but it does not yet own most live behavior:
 
 - `domain/`: pure observations, entities, bindings, confidence, provenance, queries
 - `application/`: capture, binding, recall, and grounding use cases
@@ -24,11 +27,12 @@ the typed EvidenceGraph; projections are disposable and replayable.
 
 The current `scripts/ask_home.py` answer engine remains behind the new `Recall`
 boundary while it is replaced capability by capability. `scripts/build_*.py`,
-file-channel JSON memories, and `soma-native-fastvlm/` are migration inputs, not
+file-channel JSON memories, and `trace-native-fastvlm/` are migration inputs, not
 the target architecture.
 
-`archive/soma_hub_legacy/` contains the abandoned relational hub. It is retained
-for archaeology only and is not a runtime dependency.
+`trace_hub/` was previously labeled an archive. It has been promoted back to the
+active import path because evaluations and operational scripts still depend on
+it. Removing that dependency is future migration work, not present reality.
 
 ## Governance
 
@@ -50,4 +54,3 @@ The target invariant is strict: raw media never persists and never egresses;
 only typed text may leave the device. Existing `.MOV`, frames, and replay-based
 evaluation artifacts predate this architecture and are evidence that the live
 invariant is not yet proven. They must not be mistaken for production behavior.
-

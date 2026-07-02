@@ -1,0 +1,103 @@
+{
+  "store": "data/trace_store_prototype2.sqlite3",
+  "model": "gemma3:12b-it-qat",
+  "entries": [
+    {
+      "beat": "inventory",
+      "question": "What are you confident you saw in my room?",
+      "answer": "Confident (each seen multiple times): laptop (seen 22\u00d7), nutella jar (seen 11\u00d7), glasses (seen 9\u00d7), pesto jar (seen 7\u00d7), jar (seen 7\u00d7), fan (seen 6\u00d7), towel (seen 5\u00d7), apple power adapter (seen 4\u00d7).",
+      "confidence": 0.99,
+      "refused": false,
+      "evidence": [
+        "laptop: 22 independent observations",
+        "nutella jar: 11 independent observations",
+        "glasses: 9 independent observations",
+        "pesto jar: 7 independent observations"
+      ],
+      "model": "deterministic-consensus"
+    },
+    {
+      "beat": "recall",
+      "question": "Do I have any Nutella, and roughly how many jars did you see?",
+      "answer": "Yes, you have Nutella. I saw multiple jars.",
+      "confidence": 0.95,
+      "refused": false,
+      "evidence": [
+        "Nutella jar \u2014 brown, white; glass; full; upright; text \"nut+lla\"",
+        "Nutella jar \u2014 brown, white, red; glass; full; upright; text \"nutella\"",
+        "Nutella jar \u2014 brown, white, yellow; glass; full; tilted; text \"nutella\"",
+        "Nutella jar \u2014 brown, yellow, white; glass; full; tilted; text \"nutella\""
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "detail",
+      "question": "What flavour is the Barilla pesto?",
+      "answer": "Pesto Genovese Barilla, Pesto con Peperoncino",
+      "confidence": 0.95,
+      "refused": false,
+      "evidence": [
+        "There is one pesto jar described as full and upright with text 'Pestle' in the room. Distinct pesto jar count: 1 (Only o",
+        "Pesto jar \u2014 Green, blue, yellow; Glass; Full; Tilted; text \"Barilla\"",
+        "Pesto jar \u2014 Green, blue, yellow; Glass; Full; Tilted; text \"Barilla Pesto Peperoncino\"",
+        "Pesto jar \u2014 Green, blue, red; Glass; Full; Upright; text \"Barilla PESTO con Peperoncino\""
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "personal",
+      "question": "Did you see my glasses anywhere?",
+      "answer": "I saw multiple pairs of glasses: black, silver, grey, and clear.",
+      "confidence": 0.95,
+      "refused": false,
+      "evidence": [
+        "Multiple pairs of glasses were observed, all tilted and composed of metal and glass. Colors included black, silver, grey",
+        "Glasses \u2014 Black, Clear; Metal, Glass; Tilted",
+        "Glasses \u2014 Silver, Black, Clear; Metal, Glass; Tilted",
+        "Glasses \u2014 Grey, Clear; Metal, Glass; Tilted"
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "presence",
+      "question": "Is there a fan in the room?",
+      "answer": "Yes, there is one fan that is on and upright.",
+      "confidence": 0.7,
+      "refused": false,
+      "evidence": [
+        "There is one fan that is on and upright. It appears to be made of plastic and metal. Distinct fan count: 1 (All observat",
+        "Fan \u2014 Black, silver; Plastic, metal; On; Upright",
+        "Fan \u2014 Black, silver; Plastic, metal; On; Upright",
+        "A power strip is present. It is white and black, made of plastic, and was observed tilted. Current/most-recent location:"
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "moat",
+      "question": "What is the wifi password written on the wall?",
+      "answer": "I didn't capture that clearly enough to answer.",
+      "confidence": 0.2,
+      "refused": true,
+      "evidence": [
+        "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Table:** White, rectangular surfac",
+        "Here's a breakdown of the objects and text visible in the image:\n\n**Objects:**\n\n*   **Table:** White, flat surface.\n*   ",
+        "Here's a breakdown of what is literally visible in the image:\n\n**Objects & Materials:**\n\n*   **Laptop:** Black with silv",
+        "Here's a breakdown of what is literally visible in the image:\n\n**Objects & Description:**\n\n*   **Laptop:** Silver/gray m"
+      ],
+      "model": "gemma3:12b-it-qat"
+    },
+    {
+      "beat": "moat",
+      "question": "Did you see my passport anywhere?",
+      "answer": "I didn't capture that clearly enough to answer.",
+      "confidence": 0.2,
+      "refused": true,
+      "evidence": [
+        "Backpack \u2014 Black, orange, red; Fabric; Closed; Upright",
+        "Phone case \u2014 Black, red; Plastic; upright",
+        "Phone case \u2014 Black, red, orange; Plastic; Upright"
+      ],
+      "model": "gemma3:12b-it-qat"
+    }
+  ]
+}

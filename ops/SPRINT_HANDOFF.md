@@ -118,3 +118,98 @@ high-confidence safe items. GATE: tests still green, cockpit still serves, demo 
 Run the leash, then start **WS1 (the binding guard)** — it's surgical, protects the moat (the whole
 pitch), and is verifiable today on the day clip. Spin up an adversarial verification agent-team for it.
 Update `/ops` so the founder can watch. Then WS6 (cleanup) and WS2 (INJECT) in parallel.
+
+---
+
+## SPRINT UPDATE — 2026-06-27 (Store Spine / Fallback Proof)
+
+### Built
+- Added a new clean store package under `src/trace_memory/store/`:
+  - `sqlite_store.py`: append-only node/edge store with APIs `write_observation()`, `link()`, `search()`, `neighbors()`, `read_observation()`, `get_abstractions()`.
+  - `embeddings.py`: local sentence-transformer discovery against cached Hugging Face snapshots, plus deterministic lexical fallback.
+  - `ingest.py`: two ingest paths:
+    - `ingest_validated_shelf(...)` for the intended 25-frame raw shelf corpus.
+    - `ingest_kf_memory(...)` for already-derived capture corpora, so existing `kf_memory.json` artifacts can be loaded into the same spine immediately.
+  - `models.py` + package exports.
+- Added `evaluation/annotate_live.py`:
+  - append mode for `{question, answer, when}` annotations.
+  - score mode against any store DB.
+  - outputs answered-rate, correct-rate, and confident-wrong-rate.
+- Patched `scripts/instance_perceive.py` to:
+  - load cached `grounding-dino-tiny` snapshots directly instead of probing the network.
+  - default GroundingDINO to CPU, matching the founder note that the Apple GPU path is unstable here.
+
+### Verified
+- Unit: `.venv/bin/pytest tests/unit/test_store.py -q` -> `1 passed`.
+- Syntax/import check: `py_compile` passed for the new store files, eval harness, and `instance_perceive.py`.
+- Retrieval proof on a real derived corpus:
+  - Ingested `data/phone_captures/gt_desk/kf_memory.json` into `/private/tmp/gt_desk_store.sqlite3`.
+  - Result: `2` observation nodes, `9` entity nodes, `10` links.
+  - `search("Nutella jar")`, `search("Pringles")`, `search("Starbucks")`, `search("Adidas")` all returned the expected entity slice from the store.
+- First scored number through the new harness:
+  - Command: `.venv/bin/python evaluation/annotate_live.py --store /private/tmp/gt_desk_store.sqlite3 --annotations data/phone_captures/live/ground_truth.json --reasoner heuristic`
+  - Result: answered rate `27.3%` (`3/11`), correct rate `0.0%` (`0/11`), confident-wrong rate `9.1%` (`1/11`).
+  - Interpretation: the harness is working and the honesty floor stayed under the `10%` hard limit, but this fallback corpus is not aligned enough with the 11-question shelf GT to be a meaningful product number.
+- Existing prior live number still on disk for reference:
+  - `data/phone_captures/live/eval_results.json` = `45.5%` correct (`5/11`), `9.1%` hallucination (`1/11`).
+  - This is NOT the new store number; it is the old brain-path reference baseline.
+
+### Blocker
+- Raw 25-frame shelf ingestion could not be completed from this Codex sandbox.
+- Two concrete causes:
+  - localhost calls to Ollama from `exec_command` are denied (`PermissionError: [Errno 1] Operation not permitted` on `http://127.0.0.1:11434`).
+  - the raw-frame perception path aborts inside a native MLX/Metal dependency before usable output is produced (`NSRangeException` from `libmlx.dylib`) even after forcing GroundingDINO to CPU.
+- Net: the clean store spine is built and verified on derived capture, but the intended raw-shelf proof must be run on the host by the founder/Overall Chief outside this sandbox.
+
+### Next
+- Run `ingest_validated_shelf(...)` on the host `.venv` where Ollama and the native perception stack are allowed, then score `evaluation/annotate_live.py` against `data/phone_captures/live/ground_truth.json`.
+- Once that host run exists, keep the same store DB and move directly to:
+  - sleep/link authoring on top of the store.
+  - the agentic reasoner over `search / neighbors / get_abstractions / read_observation`.
+
+---
+
+## SPRINT UPDATE — 2026-06-27 (Truth Surface + Store Wiring)
+
+### Built
+- Extended the new `src/trace_memory/store/` spine instead of creating a second store:
+  - retrieval now reports whether it is using the sentence-transformer path or the lexical fallback.
+  - added public abstraction wrappers plus lightweight store counts for health surfaces.
+- Added a first local agent loop under `src/trace_memory/brain/agent.py`:
+  - returns `{answer, evidence_chain, confidence, refused, retrieval_mode}`.
+  - starts with one cheap retrieval pass and only expands when the quick path cannot answer.
+- Added a first conservative sleep pass under `src/trace_memory/store/sleep.py`:
+  - only writes derived abstractions and same-entity links for exact repeated clusters.
+  - never mutates observed rows.
+- Wired `scripts/trace_brain_server.py` into the store:
+  - every captured derived record now also writes a store observation into `<moment>/trace_store.sqlite3`.
+  - instance-graph output now writes entity/summary observations plus graph links instead of staying sidecar-only.
+- Extended the founder-facing truth surface:
+  - `/ops.json` and `/engine.json` now expose service health, latest store snapshot, live eval artifact state, and store-proof artifact state.
+  - `/ops` renders that truth surface, including brain/cockpit/eval-worker health and whether a real store exists yet.
+- Added `evaluation/run_store_shelf_proof.py`:
+  - one command ingests the shelf corpus into a store, runs proof queries, scores annotations, and writes `ops/cockpit/store_ingest.json`.
+- Updated `evaluation/annotate_live.py` to publish its latest summary to `ops/cockpit/annotate_live.json`.
+- Updated `scripts/trace_supervise.sh` so the supervisor targets the real founder cockpit on `:8799` instead of the legacy ops cockpit on `:8788`.
+
+### Verified
+- Focused test gate:
+  - `.venv/bin/pytest tests/unit/test_store.py tests/unit/test_agent.py tests/unit/test_sleep.py tests/test_trace_brain_server.py tests/test_cockpit_rich.py`
+  - Result: `9 passed`.
+- Cockpit-specific rerun after the health-surface changes:
+  - `.venv/bin/pytest tests/test_cockpit_rich.py`
+  - Result: `3 passed`.
+- Live founder surface payload served in-process:
+  - `/ops.json` reports `brain=healthy`, `cockpit=healthy`, and includes `truth_surface.artifacts.latest_store`.
+  - `/engine.json` exposes `runtime.truth_surface` and the live44 state for the same page.
+- Capture -> store wiring test:
+  - a `_capture(...)` call now produces a real `trace_store.sqlite3` with an observation row, not just `kf_memory.json`.
+
+### Current Reality
+- The cockpit code is fixed and the payload is correct, but keeping `cockpit_ask_server.py` alive as a detached background process from this tool environment is still flaky.
+- In an attached session, `:8799` serves correctly and the new truth payload is present.
+- The new supervisor target is in place so host-side restarts point at the correct cockpit path.
+
+### Next
+- Run `evaluation/run_store_shelf_proof.py` against the real 25-frame shelf corpus on the host-local stack so the cockpit can show the first real store-proof artifact.
+- Then run `evaluation/annotate_live.py` on that store-backed shelf DB and surface the answered/confident-wrong numbers on `/ops`.

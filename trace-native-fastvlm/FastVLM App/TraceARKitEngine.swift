@@ -5,6 +5,7 @@ import CoreGraphics
 import CoreImage
 import Foundation
 import simd
+import Video
 
 /// Runs an ARWorldTracking session in the background (no rendering).
 /// Provides world-relative camera pose and persistent named anchors for detected objects.
@@ -61,6 +62,24 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         loggedFirstFrameState = false
         loggedTenFrameAnchorCount = false
         session.run(config, options: savedMap != nil ? [] : [.resetTracking])
+        isTracking = true
+        trackingStatus = "ARKit starting"
+    }
+
+    /// Force a completely clean restart: no saved/initial world map, hard `.resetTracking`.
+    /// Use when `trackingStatus` is stuck (e.g. "Limited: relocalizing") and you want certainty
+    /// that no stale map or ambiguous in-flight session state is involved.
+    func forceFreshStart() {
+        session.pause()
+        let config = ARWorldTrackingConfiguration()
+        config.planeDetection = []
+        config.environmentTexturing = .none
+        config.isAutoFocusEnabled = true
+        session.delegate = self
+        observedFrameCount = 0
+        loggedFirstFrameState = false
+        loggedTenFrameAnchorCount = false
+        session.run(config, options: [.resetTracking, .removeExistingAnchors])
         isTracking = true
         trackingStatus = "ARKit starting"
     }
@@ -132,10 +151,36 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
                 "z": pair.1.z,
             ]
         }
+        // 6-DOF camera transform + intrinsics. THIS is what makes coordinate individuation
+        // reliable: with the camera's WORLD position (not just orientation) per frame, the Mac
+        // can place every detected object at a stable world coordinate, so the same physical
+        // object keeps the same coordinate across frames (no drift -> no over-counting). Without
+        // it, only orientation was exported and static objects drifted into phantom instances.
+        var camera: [String: Any] = [:]
+        if let frame = session.currentFrame {
+            let t = frame.camera.transform
+            let p = t.columns.3
+            camera["position"] = [p.x, p.y, p.z]
+            camera["transform"] = [
+                [t.columns.0.x, t.columns.0.y, t.columns.0.z, t.columns.0.w],
+                [t.columns.1.x, t.columns.1.y, t.columns.1.z, t.columns.1.w],
+                [t.columns.2.x, t.columns.2.y, t.columns.2.z, t.columns.2.w],
+                [t.columns.3.x, t.columns.3.y, t.columns.3.z, t.columns.3.w],
+            ]
+            let k = frame.camera.intrinsics
+            camera["intrinsics"] = [
+                [k.columns.0.x, k.columns.0.y, k.columns.0.z],
+                [k.columns.1.x, k.columns.1.y, k.columns.1.z],
+                [k.columns.2.x, k.columns.2.y, k.columns.2.z],
+            ]
+            let res = frame.camera.imageResolution
+            camera["image_resolution"] = [res.width, res.height]
+        }
         return [
             "arkit_tracking": isTracking,
             "arkit_tracking_status": trackingStatus,
             "arkit_anchors": anchors,
+            "arkit_camera": camera,
         ]
     }
 
@@ -223,10 +268,12 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
             print("[TraceARKitEngine] anchor count after 10 frames: \(anchorMap.count)")
         }
 
-        // Feed the captured image into the ContentView frame pipeline (replaces AVCaptureSession).
-        if let continuation = framesContinuation,
-           let sampleBuffer = Self.makeSampleBuffer(from: frame.capturedImage) {
-            continuation.yield(sampleBuffer)
+        // Feed the captured image into both the UI/perception pipeline and the
+        // explicit recorder. In spatial mode ARKit owns the camera, so without
+        // this the Record/Stop UI would arm correctly but never receive frames.
+        if let sampleBuffer = Self.makeSampleBuffer(from: frame.capturedImage) {
+            VideoRecorder.shared.append(sampleBuffer)
+            framesContinuation?.yield(sampleBuffer)
         }
     }
 

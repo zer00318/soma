@@ -1,0 +1,67 @@
+{
+  "session_id": "bedroom_kf40",
+  "source_frames_dir": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40",
+  "selected_frame_count": 6,
+  "frames": [
+    {
+      "frame_id": "000000.jpg",
+      "frame_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000000.jpg",
+      "pose_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000000.pose.json",
+      "depth_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000000.depth.json",
+      "t_ms": 0
+    },
+    {
+      "frame_id": "000008.jpg",
+      "frame_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000008.jpg",
+      "pose_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000008.pose.json",
+      "depth_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000008.depth.json",
+      "t_ms": 8000
+    },
+    {
+      "frame_id": "000016.jpg",
+      "frame_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000016.jpg",
+      "pose_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000016.pose.json",
+      "depth_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000016.depth.json",
+      "t_ms": 16000
+    },
+    {
+      "frame_id": "000023.jpg",
+      "frame_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000023.jpg",
+      "pose_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000023.pose.json",
+      "depth_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000023.depth.json",
+      "t_ms": 23000
+    },
+    {
+      "frame_id": "000031.jpg",
+      "frame_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000031.jpg",
+      "pose_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000031.pose.json",
+      "depth_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000031.depth.json",
+      "t_ms": 31000
+    },
+    {
+      "frame_id": "000039.jpg",
+      "frame_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000039.jpg",
+      "pose_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000039.pose.json",
+      "depth_path": "/Users/zer00/Documents/VLM/data/phone_captures/bedroom_kf40/000039.depth.json",
+      "t_ms": 39000
+    }
+  ],
+  "helper_jobs": [
+    {
+      "helper_type": "vlm",
+      "goal": "Describe the whole visible scene with concrete objects and visible text."
+    },
+    {
+      "helper_type": "ocr",
+      "goal": "Transcribe visible text only when it can actually be read."
+    },
+    {
+      "helper_type": "colour",
+      "goal": "Call out object and clothing colours only when grounded."
+    },
+    {
+      "helper_type": "texture",
+      "goal": "Call out object and clothing textures only when grounded."
+    }
+  ]
+}

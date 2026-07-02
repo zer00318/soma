@@ -1,0 +1,19 @@
+{
+  "questions": [
+    {
+      "question": "What did the person with the green shirt say?",
+      "expect_subject": "person A",
+      "expect_words": [
+        "hello",
+        "there"
+      ]
+    },
+    {
+      "question": "What colour was person B's shirt?",
+      "expect_subject": "person B",
+      "expect_words": [
+        "blue"
+      ]
+    }
+  ]
+}

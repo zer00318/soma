@@ -1,0 +1,1273 @@
+{
+  "summary": {
+    "answered_pct": 24,
+    "halluc_pct": 0.0,
+    "n": 21,
+    "correct": 5,
+    "answered": 18,
+    "confident_wrong": 0,
+    "gate_met": false
+  },
+  "results": [
+    {
+      "question": "How many nutella jars were there in total?",
+      "truth": "5",
+      "attempts": [
+        {
+          "answer": "There were four Nutella jars.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "bbbc80af-578d-4501-a3bf-ae918ab9d892",
+            "5c2730c3-0d1d-4dfc-92f9-d1955f479771",
+            "7d69b18c-225d-49b9-ad33-1363d483df8f",
+            "2475bb06-c3a2-4204-bddf-af3422565901",
+            "72eabb9c-c140-4d3b-b502-eff046c593dc",
+            "e81515dd-9392-4d60-b739-bca8dfee6028",
+            "4aab00ff-ed29-48f1-bffd-a4c0e9ee864b",
+            "a0d0dfa6-12a3-4c89-af70-e70e454249fe",
+            "028fe24f-0ba6-4e8e-883a-1b0f5997dc38"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "There were four Nutella jars.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "bbbc80af-578d-4501-a3bf-ae918ab9d892",
+            "5c2730c3-0d1d-4dfc-92f9-d1955f479771",
+            "7d69b18c-225d-49b9-ad33-1363d483df8f",
+            "2475bb06-c3a2-4204-bddf-af3422565901",
+            "72eabb9c-c140-4d3b-b502-eff046c593dc",
+            "e81515dd-9392-4d60-b739-bca8dfee6028",
+            "4aab00ff-ed29-48f1-bffd-a4c0e9ee864b",
+            "a0d0dfa6-12a3-4c89-af70-e70e454249fe",
+            "028fe24f-0ba6-4e8e-883a-1b0f5997dc38"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "There were four Nutella jars.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "bbbc80af-578d-4501-a3bf-ae918ab9d892",
+            "5c2730c3-0d1d-4dfc-92f9-d1955f479771",
+            "7d69b18c-225d-49b9-ad33-1363d483df8f",
+            "2475bb06-c3a2-4204-bddf-af3422565901",
+            "72eabb9c-c140-4d3b-b502-eff046c593dc",
+            "e81515dd-9392-4d60-b739-bca8dfee6028",
+            "4aab00ff-ed29-48f1-bffd-a4c0e9ee864b",
+            "a0d0dfa6-12a3-4c89-af70-e70e454249fe",
+            "028fe24f-0ba6-4e8e-883a-1b0f5997dc38"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Where are the empty nutella jars?",
+      "truth": "On the bedside table next to the extension cord and power adapters.",
+      "attempts": [
+        {
+          "answer": "Empty jars are described as mostly empty/scraped, partially used, or ¾ full.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "decc0cd1-83b8-43c5-b6d8-dad8628387c1",
+            "7d69b18c-225d-49b9-ad33-1363d483df8f",
+            "c8290947-cd16-48f1-93d7-5a5fb0c940d8",
+            "e1e98e43-3512-43df-a4dd-c370304833bd",
+            "5a51cca9-e700-4d70-b171-5c6a6b20dce9",
+            "296eaf77-f00a-4e94-843d-7a2c8990cd17",
+            "bbbc80af-578d-4501-a3bf-ae918ab9d892",
+            "71aabf3d-86d0-453f-ba0f-eb5af0037f9b",
+            "2475bb06-c3a2-4204-bddf-af3422565901"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "Empty jars are described as mostly empty/scraped, partially used, or ¾ full.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "decc0cd1-83b8-43c5-b6d8-dad8628387c1",
+            "7d69b18c-225d-49b9-ad33-1363d483df8f",
+            "c8290947-cd16-48f1-93d7-5a5fb0c940d8",
+            "e1e98e43-3512-43df-a4dd-c370304833bd",
+            "5a51cca9-e700-4d70-b171-5c6a6b20dce9",
+            "296eaf77-f00a-4e94-843d-7a2c8990cd17",
+            "bbbc80af-578d-4501-a3bf-ae918ab9d892",
+            "71aabf3d-86d0-453f-ba0f-eb5af0037f9b",
+            "2475bb06-c3a2-4204-bddf-af3422565901"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "Empty jars are described as mostly empty/scraped, partially used, or ¾ full.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "decc0cd1-83b8-43c5-b6d8-dad8628387c1",
+            "7d69b18c-225d-49b9-ad33-1363d483df8f",
+            "c8290947-cd16-48f1-93d7-5a5fb0c940d8",
+            "e1e98e43-3512-43df-a4dd-c370304833bd",
+            "5a51cca9-e700-4d70-b171-5c6a6b20dce9",
+            "296eaf77-f00a-4e94-843d-7a2c8990cd17",
+            "bbbc80af-578d-4501-a3bf-ae918ab9d892",
+            "71aabf3d-86d0-453f-ba0f-eb5af0037f9b",
+            "2475bb06-c3a2-4204-bddf-af3422565901"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Where is the current nutella jar?",
+      "truth": "On the other bedside table with the thermal and white bottle.",
+      "attempts": [
+        {
+          "answer": "The Nutella jar is on the nightstand/bedside table, stacked with another Nutella jar.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "98f18e82-0590-4e3b-ba8c-69eef214d295",
+            "c8290947-cd16-48f1-93d7-5a5fb0c940d8",
+            "b1f0edef-8f19-4a5d-bf34-cb878bce5339",
+            "b94ed072-abbf-401b-a224-61c905244917",
+            "2fcf5ce2-a6cf-4df3-b089-4756d15f46b7",
+            "71aabf3d-86d0-453f-ba0f-eb5af0037f9b",
+            "028fe24f-0ba6-4e8e-883a-1b0f5997dc38",
+            "bddd056d-31f5-438e-ba92-feebd204d331",
+            "5da7fe5d-4866-404c-8b6a-7d753d2eeb48"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "The Nutella jar is on the nightstand/bedside table, stacked with another Nutella jar.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "98f18e82-0590-4e3b-ba8c-69eef214d295",
+            "c8290947-cd16-48f1-93d7-5a5fb0c940d8",
+            "b1f0edef-8f19-4a5d-bf34-cb878bce5339",
+            "b94ed072-abbf-401b-a224-61c905244917",
+            "2fcf5ce2-a6cf-4df3-b089-4756d15f46b7",
+            "71aabf3d-86d0-453f-ba0f-eb5af0037f9b",
+            "028fe24f-0ba6-4e8e-883a-1b0f5997dc38",
+            "bddd056d-31f5-438e-ba92-feebd204d331",
+            "5da7fe5d-4866-404c-8b6a-7d753d2eeb48"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "The Nutella jar is on the nightstand/bedside table, stacked with another Nutella jar.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "98f18e82-0590-4e3b-ba8c-69eef214d295",
+            "c8290947-cd16-48f1-93d7-5a5fb0c940d8",
+            "b1f0edef-8f19-4a5d-bf34-cb878bce5339",
+            "b94ed072-abbf-401b-a224-61c905244917",
+            "2fcf5ce2-a6cf-4df3-b089-4756d15f46b7",
+            "71aabf3d-86d0-453f-ba0f-eb5af0037f9b",
+            "028fe24f-0ba6-4e8e-883a-1b0f5997dc38",
+            "bddd056d-31f5-438e-ba92-feebd204d331",
+            "5da7fe5d-4866-404c-8b6a-7d753d2eeb48"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "What is the colour of the blanket?",
+      "truth": "Greyish violet",
+      "attempts": [
+        {
+          "answer": "grey, light grey, or grey/taupe",
+          "refused": false,
+          "confidence": 0.65,
+          "evidence_ids": [
+            "mem-5baf701bebfa4acbb4ad",
+            "b894dec5-8815-470e-bf31-846df3824c07",
+            "mem-1f3a97a0a666491560a4",
+            "493cddfa-e193-40ca-8d8b-f59e39585fd7",
+            "mem-b1107a4704e9414fb517",
+            "c154ef0e-d9ce-4983-8975-fa2392d69f09",
+            "mem-8beeb1d839adee8355df",
+            "104599c7-1d68-4c79-869c-e81a6ec9b077",
+            "mem-d4781664f67405a82836"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "grey, light grey, or grey/taupe",
+          "refused": false,
+          "confidence": 0.65,
+          "evidence_ids": [
+            "mem-5baf701bebfa4acbb4ad",
+            "b894dec5-8815-470e-bf31-846df3824c07",
+            "mem-1f3a97a0a666491560a4",
+            "493cddfa-e193-40ca-8d8b-f59e39585fd7",
+            "mem-b1107a4704e9414fb517",
+            "c154ef0e-d9ce-4983-8975-fa2392d69f09",
+            "mem-8beeb1d839adee8355df",
+            "104599c7-1d68-4c79-869c-e81a6ec9b077",
+            "mem-d4781664f67405a82836"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "grey, light grey, or grey/taupe",
+          "refused": false,
+          "confidence": 0.65,
+          "evidence_ids": [
+            "mem-5baf701bebfa4acbb4ad",
+            "b894dec5-8815-470e-bf31-846df3824c07",
+            "mem-1f3a97a0a666491560a4",
+            "493cddfa-e193-40ca-8d8b-f59e39585fd7",
+            "mem-b1107a4704e9414fb517",
+            "c154ef0e-d9ce-4983-8975-fa2392d69f09",
+            "mem-8beeb1d839adee8355df",
+            "104599c7-1d68-4c79-869c-e81a6ec9b077",
+            "mem-d4781664f67405a82836"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Where is the blanket currently?",
+      "truth": "It's on the blue suitcase.",
+      "attempts": [
+        {
+          "answer": "The blanket is on the edge of a suitcase and bed, or partially visible.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "mem-8beeb1d839adee8355df",
+            "104599c7-1d68-4c79-869c-e81a6ec9b077",
+            "mem-b1107a4704e9414fb517",
+            "c154ef0e-d9ce-4983-8975-fa2392d69f09",
+            "mem-5baf701bebfa4acbb4ad",
+            "b894dec5-8815-470e-bf31-846df3824c07",
+            "89de6cbe-47c4-485a-921e-2da0d85fca0a",
+            "40124b55-5406-455d-bb03-c47ab8c66746",
+            "mem-49709827d5d3f747714e"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "The blanket is on the edge of a suitcase and bed, or partially visible.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "mem-8beeb1d839adee8355df",
+            "104599c7-1d68-4c79-869c-e81a6ec9b077",
+            "mem-b1107a4704e9414fb517",
+            "c154ef0e-d9ce-4983-8975-fa2392d69f09",
+            "mem-5baf701bebfa4acbb4ad",
+            "b894dec5-8815-470e-bf31-846df3824c07",
+            "89de6cbe-47c4-485a-921e-2da0d85fca0a",
+            "40124b55-5406-455d-bb03-c47ab8c66746",
+            "mem-49709827d5d3f747714e"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "The blanket is on the edge of a suitcase and bed, or partially visible.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "mem-8beeb1d839adee8355df",
+            "104599c7-1d68-4c79-869c-e81a6ec9b077",
+            "mem-b1107a4704e9414fb517",
+            "c154ef0e-d9ce-4983-8975-fa2392d69f09",
+            "mem-5baf701bebfa4acbb4ad",
+            "b894dec5-8815-470e-bf31-846df3824c07",
+            "89de6cbe-47c4-485a-921e-2da0d85fca0a",
+            "40124b55-5406-455d-bb03-c47ab8c66746",
+            "mem-49709827d5d3f747714e"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "In which mode is the fan currently running, 0, 1 or 2?",
+      "truth": "2",
+      "attempts": [
+        {
+          "answer": "0, 1, or 2",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "f48ff2a0-c909-4c6b-b03c-a2157be547ff",
+            "5299d64c-5b71-44bc-8259-6a452866a0cc",
+            "f107bfbc-ec36-4fc2-8640-724719913302",
+            "91b4c74d-18ff-4a91-a744-2d34021e7d17",
+            "9206663b-0110-4280-b1b0-4daf534dfcc0",
+            "bdb7032c-f78c-4904-a4b7-5920b86da1f5",
+            "2e79ed9a-0f9f-4690-b369-7abda6a12e93",
+            "49b82642-9bb9-4198-b40c-aec5e1612c20",
+            "4117e2f0-9e4f-482f-9e11-c19521189475"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "0, 1, or 2",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "f48ff2a0-c909-4c6b-b03c-a2157be547ff",
+            "5299d64c-5b71-44bc-8259-6a452866a0cc",
+            "f107bfbc-ec36-4fc2-8640-724719913302",
+            "91b4c74d-18ff-4a91-a744-2d34021e7d17",
+            "9206663b-0110-4280-b1b0-4daf534dfcc0",
+            "bdb7032c-f78c-4904-a4b7-5920b86da1f5",
+            "2e79ed9a-0f9f-4690-b369-7abda6a12e93",
+            "49b82642-9bb9-4198-b40c-aec5e1612c20",
+            "4117e2f0-9e4f-482f-9e11-c19521189475"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "0, 1, or 2",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "f48ff2a0-c909-4c6b-b03c-a2157be547ff",
+            "5299d64c-5b71-44bc-8259-6a452866a0cc",
+            "f107bfbc-ec36-4fc2-8640-724719913302",
+            "91b4c74d-18ff-4a91-a744-2d34021e7d17",
+            "9206663b-0110-4280-b1b0-4daf534dfcc0",
+            "bdb7032c-f78c-4904-a4b7-5920b86da1f5",
+            "2e79ed9a-0f9f-4690-b369-7abda6a12e93",
+            "49b82642-9bb9-4198-b40c-aec5e1612c20",
+            "4117e2f0-9e4f-482f-9e11-c19521189475"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Is the blue suitcase open or closed?",
+      "truth": "Open",
+      "attempts": [
+        {
+          "answer": "The suitcase is open.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "1ea3f7c5-402e-49ed-8683-b49ab92b2092",
+            "946b3b52-a197-417e-a00a-13d63c46a0be",
+            "582bc078-ab9d-45a5-bf00-0174d6904d39",
+            "b25b9e0e-bf5d-4719-b3da-99efd6164c20",
+            "c90c8e1f-c06f-406f-bd1f-986e979a3069",
+            "98f18e82-0590-4e3b-ba8c-69eef214d295",
+            "27c968c4-b1f0-4362-8ee7-439720673a18",
+            "98a3f056-65c8-4484-8c40-e8b9ae55cc87",
+            "38b6fea7-7310-4155-9f90-46b7461bc1ff"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        },
+        {
+          "answer": "The suitcase is open.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "1ea3f7c5-402e-49ed-8683-b49ab92b2092",
+            "946b3b52-a197-417e-a00a-13d63c46a0be",
+            "582bc078-ab9d-45a5-bf00-0174d6904d39",
+            "b25b9e0e-bf5d-4719-b3da-99efd6164c20",
+            "c90c8e1f-c06f-406f-bd1f-986e979a3069",
+            "98f18e82-0590-4e3b-ba8c-69eef214d295",
+            "27c968c4-b1f0-4362-8ee7-439720673a18",
+            "98a3f056-65c8-4484-8c40-e8b9ae55cc87",
+            "38b6fea7-7310-4155-9f90-46b7461bc1ff"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        },
+        {
+          "answer": "The suitcase is open.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "1ea3f7c5-402e-49ed-8683-b49ab92b2092",
+            "946b3b52-a197-417e-a00a-13d63c46a0be",
+            "582bc078-ab9d-45a5-bf00-0174d6904d39",
+            "b25b9e0e-bf5d-4719-b3da-99efd6164c20",
+            "c90c8e1f-c06f-406f-bd1f-986e979a3069",
+            "98f18e82-0590-4e3b-ba8c-69eef214d295",
+            "27c968c4-b1f0-4362-8ee7-439720673a18",
+            "98a3f056-65c8-4484-8c40-e8b9ae55cc87",
+            "38b6fea7-7310-4155-9f90-46b7461bc1ff"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        }
+      ]
+    },
+    {
+      "question": "What is the colour of the diary?",
+      "truth": "Blue",
+      "attempts": [
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "mem-c80c93cf9c9280004ee9",
+            "a0454673-8019-4f57-848b-cc01712249ab",
+            "mem-bbb34de0694577cb9961",
+            "38e3e6ab-f9da-474c-a209-bdfb20f2d2a6",
+            "66407951-49a7-470c-b329-e14e4387c0ed",
+            "mem-574b50d0389c4f6419d1",
+            "5c16f90e-e5e0-43f6-ad5f-9142afc6ad64",
+            "7dc3b268-676f-4eb0-b279-4a4e121228db",
+            "12c8fc8f-c34f-47c4-b623-2c2e7bdc2651"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        },
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "mem-c80c93cf9c9280004ee9",
+            "a0454673-8019-4f57-848b-cc01712249ab",
+            "mem-bbb34de0694577cb9961",
+            "38e3e6ab-f9da-474c-a209-bdfb20f2d2a6",
+            "66407951-49a7-470c-b329-e14e4387c0ed",
+            "mem-574b50d0389c4f6419d1",
+            "5c16f90e-e5e0-43f6-ad5f-9142afc6ad64",
+            "7dc3b268-676f-4eb0-b279-4a4e121228db",
+            "12c8fc8f-c34f-47c4-b623-2c2e7bdc2651"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        },
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "mem-c80c93cf9c9280004ee9",
+            "a0454673-8019-4f57-848b-cc01712249ab",
+            "mem-bbb34de0694577cb9961",
+            "38e3e6ab-f9da-474c-a209-bdfb20f2d2a6",
+            "66407951-49a7-470c-b329-e14e4387c0ed",
+            "mem-574b50d0389c4f6419d1",
+            "5c16f90e-e5e0-43f6-ad5f-9142afc6ad64",
+            "7dc3b268-676f-4eb0-b279-4a4e121228db",
+            "12c8fc8f-c34f-47c4-b623-2c2e7bdc2651"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "How can I drink water?",
+      "truth": "From the thermal, the white bottle, or a steel glass.",
+      "attempts": [
+        {
+          "answer": "1. Glass jars\n2. White cup/mug\n3. Stainless steel water bottle\n4. Stainless steel cup/mug (small)\n5. White water bottle\n6. Glass spice/nut grinder jar\n7. Brown glass jar\n8. White water bottle (painted metal)\n9. Small stainless steel cup/mug\n10. Silver/aluminium water bottle.",
+          "refused": false,
+          "confidence": 0.65,
+          "evidence_ids": [
+            "mem-812797f3cbe7d0f6bc24",
+            "02525845-17ba-44f6-bc5b-985bb5820cf0",
+            "dc7e110b-79ee-4341-9b06-03b99073a872",
+            "mem-7cdf664d76f7aed33a59",
+            "mem-a99d27d3951990873f76",
+            "2e14c3f7-901d-40f7-90d7-39d12c69965b",
+            "ae5e8175-fce8-4506-9ce7-78d314a67335",
+            "a0d0dfa6-12a3-4c89-af70-e70e454249fe",
+            "779888ad-e93b-4620-8afd-6e2ee15d1033"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "1. Glass jars\n2. White cup/mug\n3. Stainless steel water bottle\n4. Stainless steel cup/mug (small)\n5. White water bottle\n6. Glass spice/nut grinder jar\n7. Brown glass jar\n8. White water bottle (painted metal)\n9. Small stainless steel cup/mug\n10. Silver/aluminium water bottle.",
+          "refused": false,
+          "confidence": 0.65,
+          "evidence_ids": [
+            "mem-812797f3cbe7d0f6bc24",
+            "02525845-17ba-44f6-bc5b-985bb5820cf0",
+            "dc7e110b-79ee-4341-9b06-03b99073a872",
+            "mem-7cdf664d76f7aed33a59",
+            "mem-a99d27d3951990873f76",
+            "2e14c3f7-901d-40f7-90d7-39d12c69965b",
+            "ae5e8175-fce8-4506-9ce7-78d314a67335",
+            "a0d0dfa6-12a3-4c89-af70-e70e454249fe",
+            "779888ad-e93b-4620-8afd-6e2ee15d1033"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "1. Glass jars\n2. White cup/mug\n3. Stainless steel water bottle\n4. Stainless steel cup/mug (small)\n5. White water bottle\n6. Glass spice/nut grinder jar\n7. Brown glass jar\n8. White water bottle (painted metal)\n9. Small stainless steel cup/mug\n10. Silver/aluminium water bottle.",
+          "refused": false,
+          "confidence": 0.65,
+          "evidence_ids": [
+            "mem-812797f3cbe7d0f6bc24",
+            "02525845-17ba-44f6-bc5b-985bb5820cf0",
+            "dc7e110b-79ee-4341-9b06-03b99073a872",
+            "mem-7cdf664d76f7aed33a59",
+            "mem-a99d27d3951990873f76",
+            "2e14c3f7-901d-40f7-90d7-39d12c69965b",
+            "ae5e8175-fce8-4506-9ce7-78d314a67335",
+            "a0d0dfa6-12a3-4c89-af70-e70e454249fe",
+            "779888ad-e93b-4620-8afd-6e2ee15d1033"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "What is the pink cloth near the fan?",
+      "truth": "A pink t-shirt.",
+      "attempts": [
+        {
+          "answer": "Pink/hot-pink cloth, pink fabric item, or bright pink/magenta fabric.",
+          "refused": false,
+          "confidence": 0.65,
+          "evidence_ids": [
+            "07fd4e3c-3273-4f98-bfc7-fd685de5c5be",
+            "6fe15b45-605c-4cdf-8ba5-700949c27409",
+            "c4a790df-da7b-4e48-98e6-6ec0efd51695",
+            "dac7d57e-6110-4844-98ec-7ba9ffbdd643",
+            "64c602cd-edb1-4398-9836-f3a69bf24e31",
+            "1c9fa482-403d-4ca1-9a98-e7c93da3b19d",
+            "72543205-2e1d-4493-bfca-63b1955f4463",
+            "51fb79ce-094e-4eb9-9273-dd5e95e96a63",
+            "c6696075-d812-49dc-b7bb-50bbbaa4529b"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "Pink/hot-pink cloth, pink fabric item, or bright pink/magenta fabric.",
+          "refused": false,
+          "confidence": 0.65,
+          "evidence_ids": [
+            "07fd4e3c-3273-4f98-bfc7-fd685de5c5be",
+            "6fe15b45-605c-4cdf-8ba5-700949c27409",
+            "c4a790df-da7b-4e48-98e6-6ec0efd51695",
+            "dac7d57e-6110-4844-98ec-7ba9ffbdd643",
+            "64c602cd-edb1-4398-9836-f3a69bf24e31",
+            "1c9fa482-403d-4ca1-9a98-e7c93da3b19d",
+            "72543205-2e1d-4493-bfca-63b1955f4463",
+            "51fb79ce-094e-4eb9-9273-dd5e95e96a63",
+            "c6696075-d812-49dc-b7bb-50bbbaa4529b"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "Pink/hot-pink cloth, pink fabric item, or bright pink/magenta fabric.",
+          "refused": false,
+          "confidence": 0.65,
+          "evidence_ids": [
+            "07fd4e3c-3273-4f98-bfc7-fd685de5c5be",
+            "6fe15b45-605c-4cdf-8ba5-700949c27409",
+            "c4a790df-da7b-4e48-98e6-6ec0efd51695",
+            "dac7d57e-6110-4844-98ec-7ba9ffbdd643",
+            "64c602cd-edb1-4398-9836-f3a69bf24e31",
+            "1c9fa482-403d-4ca1-9a98-e7c93da3b19d",
+            "72543205-2e1d-4493-bfca-63b1955f4463",
+            "51fb79ce-094e-4eb9-9273-dd5e95e96a63",
+            "c6696075-d812-49dc-b7bb-50bbbaa4529b"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Where were my glasses or eyewear?",
+      "truth": "Under the laptop stand on the bed.",
+      "attempts": [
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "mem-cc01f379dc6394b6b782",
+            "0179391d-cf3c-4ec8-bcd6-8e4a1fcc8135",
+            "mem-8a88913c458ae4e72c85",
+            "05b322d7-fcbc-4fe6-b293-38cea6ae2bfc",
+            "11e0c285-eef9-415f-a712-2b348930cc6e",
+            "7d2f01ed-30d9-4eca-8205-e6a7a0221fc8",
+            "mem-49709827d5d3f747714e",
+            "69aea4b7-d937-47aa-9da5-2b3939127b49",
+            "c8b40130-1d35-4b28-abce-ae9ab2d1b0da"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        },
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "mem-cc01f379dc6394b6b782",
+            "0179391d-cf3c-4ec8-bcd6-8e4a1fcc8135",
+            "mem-8a88913c458ae4e72c85",
+            "05b322d7-fcbc-4fe6-b293-38cea6ae2bfc",
+            "11e0c285-eef9-415f-a712-2b348930cc6e",
+            "7d2f01ed-30d9-4eca-8205-e6a7a0221fc8",
+            "mem-49709827d5d3f747714e",
+            "69aea4b7-d937-47aa-9da5-2b3939127b49",
+            "c8b40130-1d35-4b28-abce-ae9ab2d1b0da"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        },
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "mem-cc01f379dc6394b6b782",
+            "0179391d-cf3c-4ec8-bcd6-8e4a1fcc8135",
+            "mem-8a88913c458ae4e72c85",
+            "05b322d7-fcbc-4fe6-b293-38cea6ae2bfc",
+            "11e0c285-eef9-415f-a712-2b348930cc6e",
+            "7d2f01ed-30d9-4eca-8205-e6a7a0221fc8",
+            "mem-49709827d5d3f747714e",
+            "69aea4b7-d937-47aa-9da5-2b3939127b49",
+            "c8b40130-1d35-4b28-abce-ae9ab2d1b0da"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "What is the colour of the mattress?",
+      "truth": "Blue",
+      "attempts": [
+        {
+          "answer": "The mattress is white or light grey, and blue-grey.",
+          "refused": false,
+          "confidence": 0.65,
+          "evidence_ids": [
+            "mem-529206d36696d886385d",
+            "89de6cbe-47c4-485a-921e-2da0d85fca0a",
+            "d2af3cb5-62b1-4d7e-a024-ef45f06867c0",
+            "mem-114892aafbc90bc8d6d2",
+            "9300197e-7ccf-49e7-bfa2-8838c6ced4f9",
+            "mem-f3f90041c38b5debc484",
+            "9921c187-bd25-4d8c-84c7-4236c6cc996c",
+            "493cddfa-e193-40ca-8d8b-f59e39585fd7",
+            "dae08d88-6beb-498a-bb3c-d8eb5090a210"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        },
+        {
+          "answer": "The mattress is white or light grey, and blue-grey.",
+          "refused": false,
+          "confidence": 0.65,
+          "evidence_ids": [
+            "mem-529206d36696d886385d",
+            "89de6cbe-47c4-485a-921e-2da0d85fca0a",
+            "d2af3cb5-62b1-4d7e-a024-ef45f06867c0",
+            "mem-114892aafbc90bc8d6d2",
+            "9300197e-7ccf-49e7-bfa2-8838c6ced4f9",
+            "mem-f3f90041c38b5debc484",
+            "9921c187-bd25-4d8c-84c7-4236c6cc996c",
+            "493cddfa-e193-40ca-8d8b-f59e39585fd7",
+            "dae08d88-6beb-498a-bb3c-d8eb5090a210"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        },
+        {
+          "answer": "The mattress is white or light grey, and blue-grey.",
+          "refused": false,
+          "confidence": 0.65,
+          "evidence_ids": [
+            "mem-529206d36696d886385d",
+            "89de6cbe-47c4-485a-921e-2da0d85fca0a",
+            "d2af3cb5-62b1-4d7e-a024-ef45f06867c0",
+            "mem-114892aafbc90bc8d6d2",
+            "9300197e-7ccf-49e7-bfa2-8838c6ced4f9",
+            "mem-f3f90041c38b5debc484",
+            "9921c187-bd25-4d8c-84c7-4236c6cc996c",
+            "493cddfa-e193-40ca-8d8b-f59e39585fd7",
+            "dae08d88-6beb-498a-bb3c-d8eb5090a210"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        }
+      ]
+    },
+    {
+      "question": "What is the flavour of the Barilla pesto?",
+      "truth": "Peperoncino",
+      "attempts": [
+        {
+          "answer": "The flavour is pesto and peperoncino.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "d784713b-8cce-4aa1-8cb5-5d602bf2b31d",
+            "716e42bc-77ba-4a8a-b6e5-f97a4a612e1e",
+            "993c5dd2-7c15-44ba-8fdb-2e83a2bd70b5",
+            "fe975d58-f11d-4e6e-a26c-89d622788aa4",
+            "57aee576-ef24-4cf0-925b-25653e58053c",
+            "146704eb-3472-4864-a12c-49c1fcd7b8d1",
+            "9fb78ea5-26ed-4740-8e04-ab155947dc81",
+            "633e3751-56ac-4db8-bc06-868223fe119d",
+            "0aad45f1-1f67-4c64-b016-0ba7f876e3c1"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        },
+        {
+          "answer": "The flavour is pesto and peperoncino.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "d784713b-8cce-4aa1-8cb5-5d602bf2b31d",
+            "716e42bc-77ba-4a8a-b6e5-f97a4a612e1e",
+            "993c5dd2-7c15-44ba-8fdb-2e83a2bd70b5",
+            "fe975d58-f11d-4e6e-a26c-89d622788aa4",
+            "57aee576-ef24-4cf0-925b-25653e58053c",
+            "146704eb-3472-4864-a12c-49c1fcd7b8d1",
+            "9fb78ea5-26ed-4740-8e04-ab155947dc81",
+            "633e3751-56ac-4db8-bc06-868223fe119d",
+            "0aad45f1-1f67-4c64-b016-0ba7f876e3c1"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        },
+        {
+          "answer": "The flavour is pesto and peperoncino.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "d784713b-8cce-4aa1-8cb5-5d602bf2b31d",
+            "716e42bc-77ba-4a8a-b6e5-f97a4a612e1e",
+            "993c5dd2-7c15-44ba-8fdb-2e83a2bd70b5",
+            "fe975d58-f11d-4e6e-a26c-89d622788aa4",
+            "57aee576-ef24-4cf0-925b-25653e58053c",
+            "146704eb-3472-4864-a12c-49c1fcd7b8d1",
+            "9fb78ea5-26ed-4740-8e04-ab155947dc81",
+            "633e3751-56ac-4db8-bc06-868223fe119d",
+            "0aad45f1-1f67-4c64-b016-0ba7f876e3c1"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        }
+      ]
+    },
+    {
+      "question": "How many calories did I consume through all the nutella?",
+      "truth": "14300",
+      "attempts": [
+        {
+          "answer": "One jar is ~750g size.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "b96410ba-82f8-4966-a68f-d52c406ae869",
+            "72eabb9c-c140-4d3b-b502-eff046c593dc",
+            "ac1e3ed5-f5f8-4c41-8166-d9e454958450",
+            "d033a6a9-0409-4076-a816-c1feb600a87e",
+            "a0d0dfa6-12a3-4c89-af70-e70e454249fe",
+            "8a0b8d9b-6851-4e10-acfa-c0e4aacb9273",
+            "998673d2-8ae9-4558-b40e-233f2725c041",
+            "0ebb2adc-f182-47a9-8d32-840c0e6888a8",
+            "138d188e-720e-4700-a100-cf262859ee63"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "One jar is ~750g size.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "b96410ba-82f8-4966-a68f-d52c406ae869",
+            "72eabb9c-c140-4d3b-b502-eff046c593dc",
+            "ac1e3ed5-f5f8-4c41-8166-d9e454958450",
+            "d033a6a9-0409-4076-a816-c1feb600a87e",
+            "a0d0dfa6-12a3-4c89-af70-e70e454249fe",
+            "8a0b8d9b-6851-4e10-acfa-c0e4aacb9273",
+            "998673d2-8ae9-4558-b40e-233f2725c041",
+            "0ebb2adc-f182-47a9-8d32-840c0e6888a8",
+            "138d188e-720e-4700-a100-cf262859ee63"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "One jar is ~750g size.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "b96410ba-82f8-4966-a68f-d52c406ae869",
+            "72eabb9c-c140-4d3b-b502-eff046c593dc",
+            "ac1e3ed5-f5f8-4c41-8166-d9e454958450",
+            "d033a6a9-0409-4076-a816-c1feb600a87e",
+            "a0d0dfa6-12a3-4c89-af70-e70e454249fe",
+            "8a0b8d9b-6851-4e10-acfa-c0e4aacb9273",
+            "998673d2-8ae9-4558-b40e-233f2725c041",
+            "0ebb2adc-f182-47a9-8d32-840c0e6888a8",
+            "138d188e-720e-4700-a100-cf262859ee63"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "What is the battery percentage of my laptop?",
+      "truth": "100%",
+      "attempts": [
+        {
+          "answer": "the laptop screen close (app + battery %)",
+          "refused": false,
+          "confidence": 0.629847,
+          "evidence_ids": [
+            "449b5dd8-6df3-4ac5-89bd-a12071acfbba",
+            "640de4c3-a5b6-4da4-bb61-f8bad489833e",
+            "04c61a57-2902-4c92-83c5-b0b5c7ce122e",
+            "b4dcd196-25a1-4c15-ba14-2b27245748d6",
+            "18dafdff-7ab4-4716-baba-3cf0786fd159",
+            "8ba070fe-7e0e-483a-a0c4-cb4f45636856",
+            "fa7b31a7-bf0e-4e52-9b79-97a7463a720a",
+            "49b82642-9bb9-4198-b40c-aec5e1612c20",
+            "4117e2f0-9e4f-482f-9e11-c19521189475"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "the laptop screen close (app + battery %)",
+          "refused": false,
+          "confidence": 0.629847,
+          "evidence_ids": [
+            "449b5dd8-6df3-4ac5-89bd-a12071acfbba",
+            "640de4c3-a5b6-4da4-bb61-f8bad489833e",
+            "04c61a57-2902-4c92-83c5-b0b5c7ce122e",
+            "b4dcd196-25a1-4c15-ba14-2b27245748d6",
+            "18dafdff-7ab4-4716-baba-3cf0786fd159",
+            "8ba070fe-7e0e-483a-a0c4-cb4f45636856",
+            "fa7b31a7-bf0e-4e52-9b79-97a7463a720a",
+            "49b82642-9bb9-4198-b40c-aec5e1612c20",
+            "4117e2f0-9e4f-482f-9e11-c19521189475"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "the laptop screen close (app + battery %)",
+          "refused": false,
+          "confidence": 0.629847,
+          "evidence_ids": [
+            "449b5dd8-6df3-4ac5-89bd-a12071acfbba",
+            "640de4c3-a5b6-4da4-bb61-f8bad489833e",
+            "04c61a57-2902-4c92-83c5-b0b5c7ce122e",
+            "b4dcd196-25a1-4c15-ba14-2b27245748d6",
+            "18dafdff-7ab4-4716-baba-3cf0786fd159",
+            "8ba070fe-7e0e-483a-a0c4-cb4f45636856",
+            "fa7b31a7-bf0e-4e52-9b79-97a7463a720a",
+            "49b82642-9bb9-4198-b40c-aec5e1612c20",
+            "4117e2f0-9e4f-482f-9e11-c19521189475"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Is it day or night?",
+      "truth": "Day",
+      "attempts": [
+        {
+          "answer": "The model called it night instead of day.",
+          "refused": false,
+          "confidence": 0.678,
+          "evidence_ids": [
+            "9206663b-0110-4280-b1b0-4daf534dfcc0",
+            "ee1c84a4-4174-4274-b78e-04fc03fbe3c5",
+            "3d17e54d-880b-48dc-be0a-78fc45247ab4",
+            "3ce83684-8543-4c12-8104-b4e9a011c62d",
+            "cf1a468b-4b01-4ed1-85a1-ab7eb237753d",
+            "0bfce36c-c126-4e6a-9861-ae8bcc8c86e9",
+            "46e16537-6cfb-4f40-8344-cd0856e343a9",
+            "45c63346-3908-4859-970d-5e6679471482",
+            "b04c4c53-d799-4df8-8e75-6358a755461c"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        },
+        {
+          "answer": "The model called it night instead of day.",
+          "refused": false,
+          "confidence": 0.678,
+          "evidence_ids": [
+            "9206663b-0110-4280-b1b0-4daf534dfcc0",
+            "ee1c84a4-4174-4274-b78e-04fc03fbe3c5",
+            "3d17e54d-880b-48dc-be0a-78fc45247ab4",
+            "3ce83684-8543-4c12-8104-b4e9a011c62d",
+            "cf1a468b-4b01-4ed1-85a1-ab7eb237753d",
+            "0bfce36c-c126-4e6a-9861-ae8bcc8c86e9",
+            "46e16537-6cfb-4f40-8344-cd0856e343a9",
+            "45c63346-3908-4859-970d-5e6679471482",
+            "b04c4c53-d799-4df8-8e75-6358a755461c"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        },
+        {
+          "answer": "The model called it night instead of day.",
+          "refused": false,
+          "confidence": 0.678,
+          "evidence_ids": [
+            "9206663b-0110-4280-b1b0-4daf534dfcc0",
+            "ee1c84a4-4174-4274-b78e-04fc03fbe3c5",
+            "3d17e54d-880b-48dc-be0a-78fc45247ab4",
+            "3ce83684-8543-4c12-8104-b4e9a011c62d",
+            "cf1a468b-4b01-4ed1-85a1-ab7eb237753d",
+            "0bfce36c-c126-4e6a-9861-ae8bcc8c86e9",
+            "46e16537-6cfb-4f40-8344-cd0856e343a9",
+            "45c63346-3908-4859-970d-5e6679471482",
+            "b04c4c53-d799-4df8-8e75-6358a755461c"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        }
+      ]
+    },
+    {
+      "question": "What app was opened on the laptop?",
+      "truth": "Claude",
+      "attempts": [
+        {
+          "answer": "Claude, Chats, Codex, New chat",
+          "refused": false,
+          "confidence": 0.8,
+          "evidence_ids": [
+            "30ed7eec-dde6-4219-86d3-15046a779377",
+            "136f2f59-e8e3-44e2-a520-0a22fd1038f6",
+            "34156ddb-e367-4ee9-9242-06db4e47f4ff",
+            "a9d76cbf-ed9a-4e30-9007-0b26a2f64da6",
+            "498ad9af-fb83-42ab-a497-7f5ee0b584e5",
+            "59883c82-0016-4686-8eca-df4828dad941",
+            "43920660-f6c1-4687-980b-c97917293a37",
+            "51fb79ce-094e-4eb9-9273-dd5e95e96a63",
+            "d32fd973-8092-43ac-b0e1-180ba74c3a2d"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        },
+        {
+          "answer": "Claude, Chats, Codex, New chat",
+          "refused": false,
+          "confidence": 0.8,
+          "evidence_ids": [
+            "30ed7eec-dde6-4219-86d3-15046a779377",
+            "136f2f59-e8e3-44e2-a520-0a22fd1038f6",
+            "34156ddb-e367-4ee9-9242-06db4e47f4ff",
+            "a9d76cbf-ed9a-4e30-9007-0b26a2f64da6",
+            "498ad9af-fb83-42ab-a497-7f5ee0b584e5",
+            "59883c82-0016-4686-8eca-df4828dad941",
+            "43920660-f6c1-4687-980b-c97917293a37",
+            "51fb79ce-094e-4eb9-9273-dd5e95e96a63",
+            "d32fd973-8092-43ac-b0e1-180ba74c3a2d"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        },
+        {
+          "answer": "Claude, Chats, Codex, New chat",
+          "refused": false,
+          "confidence": 0.8,
+          "evidence_ids": [
+            "30ed7eec-dde6-4219-86d3-15046a779377",
+            "136f2f59-e8e3-44e2-a520-0a22fd1038f6",
+            "34156ddb-e367-4ee9-9242-06db4e47f4ff",
+            "a9d76cbf-ed9a-4e30-9007-0b26a2f64da6",
+            "498ad9af-fb83-42ab-a497-7f5ee0b584e5",
+            "59883c82-0016-4686-8eca-df4828dad941",
+            "43920660-f6c1-4687-980b-c97917293a37",
+            "51fb79ce-094e-4eb9-9273-dd5e95e96a63",
+            "d32fd973-8092-43ac-b0e1-180ba74c3a2d"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "correct"
+        }
+      ]
+    },
+    {
+      "question": "Is the room looking good?",
+      "truth": "No",
+      "attempts": [
+        {
+          "answer": "The room looks messy.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "2ebcaf5b-132c-46f3-8846-30ac798d8013",
+            "0d24f76c-64df-4153-b0c4-acaf97798497",
+            "03669245-c2fb-4f74-a34b-6bbc6d128b77",
+            "0693d59f-00bf-4b98-8c17-5e9833c6f115",
+            "0a60c712-47ad-4c45-8841-20a31c391b59",
+            "030351ad-4517-4d62-bcf2-4440dfd465e6",
+            "195a9b7a-7bc7-4879-86ef-2da7c2634249",
+            "b3c1d124-f746-475b-8d95-acd15d4c2929",
+            "c6696075-d812-49dc-b7bb-50bbbaa4529b"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "The room looks messy.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "2ebcaf5b-132c-46f3-8846-30ac798d8013",
+            "0d24f76c-64df-4153-b0c4-acaf97798497",
+            "03669245-c2fb-4f74-a34b-6bbc6d128b77",
+            "0693d59f-00bf-4b98-8c17-5e9833c6f115",
+            "0a60c712-47ad-4c45-8841-20a31c391b59",
+            "030351ad-4517-4d62-bcf2-4440dfd465e6",
+            "195a9b7a-7bc7-4879-86ef-2da7c2634249",
+            "b3c1d124-f746-475b-8d95-acd15d4c2929",
+            "c6696075-d812-49dc-b7bb-50bbbaa4529b"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "The room looks messy.",
+          "refused": false,
+          "confidence": 0.7,
+          "evidence_ids": [
+            "2ebcaf5b-132c-46f3-8846-30ac798d8013",
+            "0d24f76c-64df-4153-b0c4-acaf97798497",
+            "03669245-c2fb-4f74-a34b-6bbc6d128b77",
+            "0693d59f-00bf-4b98-8c17-5e9833c6f115",
+            "0a60c712-47ad-4c45-8841-20a31c391b59",
+            "030351ad-4517-4d62-bcf2-4440dfd465e6",
+            "195a9b7a-7bc7-4879-86ef-2da7c2634249",
+            "b3c1d124-f746-475b-8d95-acd15d4c2929",
+            "c6696075-d812-49dc-b7bb-50bbbaa4529b"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "How many cello tapes are there on the bedside table?",
+      "truth": "2",
+      "attempts": [
+        {
+          "answer": "There are cello tapes on the bedside table.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "e81515dd-9392-4d60-b739-bca8dfee6028",
+            "ee1c84a4-4174-4274-b78e-04fc03fbe3c5",
+            "3ce83684-8543-4c12-8104-b4e9a011c62d",
+            "0bfce36c-c126-4e6a-9861-ae8bcc8c86e9",
+            "2521e8df-9e67-467b-ade9-951cef4583b3",
+            "e9d66601-1fb9-4e88-9112-fb9bbc39cd49",
+            "7c54b801-02bb-4a20-b3da-85ce6e0cc0d5",
+            "429fe9e3-c490-4dc4-92ab-96619a5f391d",
+            "a9d36ee0-6f57-40f3-88fa-6136bf964319"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "There are cello tapes on the bedside table.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "e81515dd-9392-4d60-b739-bca8dfee6028",
+            "ee1c84a4-4174-4274-b78e-04fc03fbe3c5",
+            "3ce83684-8543-4c12-8104-b4e9a011c62d",
+            "0bfce36c-c126-4e6a-9861-ae8bcc8c86e9",
+            "2521e8df-9e67-467b-ade9-951cef4583b3",
+            "e9d66601-1fb9-4e88-9112-fb9bbc39cd49",
+            "7c54b801-02bb-4a20-b3da-85ce6e0cc0d5",
+            "429fe9e3-c490-4dc4-92ab-96619a5f391d",
+            "a9d36ee0-6f57-40f3-88fa-6136bf964319"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "There are cello tapes on the bedside table.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "e81515dd-9392-4d60-b739-bca8dfee6028",
+            "ee1c84a4-4174-4274-b78e-04fc03fbe3c5",
+            "3ce83684-8543-4c12-8104-b4e9a011c62d",
+            "0bfce36c-c126-4e6a-9861-ae8bcc8c86e9",
+            "2521e8df-9e67-467b-ade9-951cef4583b3",
+            "e9d66601-1fb9-4e88-9112-fb9bbc39cd49",
+            "7c54b801-02bb-4a20-b3da-85ce6e0cc0d5",
+            "429fe9e3-c490-4dc4-92ab-96619a5f391d",
+            "a9d36ee0-6f57-40f3-88fa-6136bf964319"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    },
+    {
+      "question": "Was there a microphone somewhere?",
+      "truth": "Yes, on the thermal-side bedside table.",
+      "attempts": [
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "mem-49709827d5d3f747714e",
+            "69aea4b7-d937-47aa-9da5-2b3939127b49",
+            "c8b40130-1d35-4b28-abce-ae9ab2d1b0da",
+            "d033a6a9-0409-4076-a816-c1feb600a87e",
+            "98f18e82-0590-4e3b-ba8c-69eef214d295",
+            "4aab00ff-ed29-48f1-bffd-a4c0e9ee864b",
+            "d687d101-a2b0-46fb-b187-c48336568891",
+            "e98714f9-765f-4bf4-bc93-b897944a9a6d",
+            "43f86484-e6e1-428a-b734-432accd0fdc5"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        },
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "mem-49709827d5d3f747714e",
+            "69aea4b7-d937-47aa-9da5-2b3939127b49",
+            "c8b40130-1d35-4b28-abce-ae9ab2d1b0da",
+            "d033a6a9-0409-4076-a816-c1feb600a87e",
+            "98f18e82-0590-4e3b-ba8c-69eef214d295",
+            "4aab00ff-ed29-48f1-bffd-a4c0e9ee864b",
+            "d687d101-a2b0-46fb-b187-c48336568891",
+            "e98714f9-765f-4bf4-bc93-b897944a9a6d",
+            "43f86484-e6e1-428a-b734-432accd0fdc5"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        },
+        {
+          "answer": "I didn't capture that clearly enough to answer.",
+          "refused": true,
+          "confidence": 0.2,
+          "evidence_ids": [
+            "mem-49709827d5d3f747714e",
+            "69aea4b7-d937-47aa-9da5-2b3939127b49",
+            "c8b40130-1d35-4b28-abce-ae9ab2d1b0da",
+            "d033a6a9-0409-4076-a816-c1feb600a87e",
+            "98f18e82-0590-4e3b-ba8c-69eef214d295",
+            "4aab00ff-ed29-48f1-bffd-a4c0e9ee864b",
+            "d687d101-a2b0-46fb-b187-c48336568891",
+            "e98714f9-765f-4bf4-bc93-b897944a9a6d",
+            "43f86484-e6e1-428a-b734-432accd0fdc5"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "refused"
+        }
+      ]
+    },
+    {
+      "question": "How many pillows are there on the bed?",
+      "truth": "3",
+      "attempts": [
+        {
+          "answer": "There are two pillows on the bed.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "2ad5d9a0-920c-497e-9da3-7bd99b2f8e22",
+            "a87247a1-746d-41f8-9fdd-20c0a2473699",
+            "779888ad-e93b-4620-8afd-6e2ee15d1033",
+            "40124b55-5406-455d-bb03-c47ab8c66746",
+            "dae08d88-6beb-498a-bb3c-d8eb5090a210",
+            "09e015b5-bd21-4ead-93c7-e8f477b3a8cc",
+            "104599c7-1d68-4c79-869c-e81a6ec9b077",
+            "a0d0dfa6-12a3-4c89-af70-e70e454249fe",
+            "b869f992-0969-45b9-8dfb-1939ac9334a6"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "There are two pillows on the bed.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "2ad5d9a0-920c-497e-9da3-7bd99b2f8e22",
+            "a87247a1-746d-41f8-9fdd-20c0a2473699",
+            "779888ad-e93b-4620-8afd-6e2ee15d1033",
+            "40124b55-5406-455d-bb03-c47ab8c66746",
+            "dae08d88-6beb-498a-bb3c-d8eb5090a210",
+            "09e015b5-bd21-4ead-93c7-e8f477b3a8cc",
+            "104599c7-1d68-4c79-869c-e81a6ec9b077",
+            "a0d0dfa6-12a3-4c89-af70-e70e454249fe",
+            "b869f992-0969-45b9-8dfb-1939ac9334a6"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        },
+        {
+          "answer": "There are two pillows on the bed.",
+          "refused": false,
+          "confidence": 0.6,
+          "evidence_ids": [
+            "2ad5d9a0-920c-497e-9da3-7bd99b2f8e22",
+            "a87247a1-746d-41f8-9fdd-20c0a2473699",
+            "779888ad-e93b-4620-8afd-6e2ee15d1033",
+            "40124b55-5406-455d-bb03-c47ab8c66746",
+            "dae08d88-6beb-498a-bb3c-d8eb5090a210",
+            "09e015b5-bd21-4ead-93c7-e8f477b3a8cc",
+            "104599c7-1d68-4c79-869c-e81a6ec9b077",
+            "a0d0dfa6-12a3-4c89-af70-e70e454249fe",
+            "b869f992-0969-45b9-8dfb-1939ac9334a6"
+          ],
+          "retrieval_mode": "sentence-transformer",
+          "verdict": "wrong"
+        }
+      ]
+    }
+  ]
+}

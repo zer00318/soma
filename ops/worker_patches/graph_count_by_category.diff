@@ -1,0 +1,16 @@
+--- scripts/instance_graph.py
++++ scripts/instance_graph.py (worker)
+@@ -126,7 +126,12 @@
+     correctly across 'Lays' and 'Doritos' (both category 'snack'). Return {category: count},
+     e.g. {'snack': 2, 'electronics': 1}. Skip nodes whose category is empty/'object'.
+     STUB — worker task: graph_count_by_category."""
+-    return {}
++    counts = Counter()
++    for node in graph["nodes"]:
++        category = node.get("category")
++        if category and category != "object":
++            counts[category] += 1
++    return dict(counts)
+ 
+ 
+ def render_graph(graph: dict) -> str:

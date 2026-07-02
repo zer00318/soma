@@ -1,0 +1,12 @@
+{
+  "updated_unix": 1782732099,
+  "mode": "running",
+  "task": "WG06_real_bedroom_eval_iter_1",
+  "command": [
+    "/Users/zer00/Documents/VLM/scripts/run_frontier_room_cycle.sh",
+    "data/phone_captures/bedroom_dense_353f",
+    "data/phone_captures/bedroom_kf40",
+    "data/trace_store_frontier.sqlite3",
+    "evaluation/ras/store_eval_frontier.json"
+  ]
+}

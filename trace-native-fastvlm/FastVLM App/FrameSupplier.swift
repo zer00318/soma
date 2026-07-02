@@ -61,10 +61,14 @@ final class FrameSupplier {
     }
 
     // Tunables (radians of attitude change per step; seconds).
-    private let settledMotion = 0.045      // <~2.5°/step => steady enough to be sharp
-    private let minInterval: TimeInterval = 0.30   // cap keyframe rate (~3/s max)
-    private let idleInterval: TimeInterval = 2.0   // emit at least this often when static
-    private let moveToReemit = 0.10        // emit again once the view has changed this much
+    // REVAMP (dense capture): the sharpness gate already drops blur, so we no longer
+    // need a tight motion gate to avoid blur — we want MANY sharp frames. Loosened to
+    // stream ~6-8 keyframes/s during slow dwell instead of ~0.1/s. The Mac saves them
+    // all to disk and the binder perceives them in batch (Q&A is async).
+    private let settledMotion = 0.10       // accept mild motion; sharpness gate culls real blur
+    private let minInterval: TimeInterval = 0.12   // cap keyframe rate (~8/s max)
+    private let idleInterval: TimeInterval = 0.7   // emit often even when static (capture density)
+    private let moveToReemit = 0.03        // re-emit after only a small view change
 
     private var lastYaw: Double?
     private var lastPitch: Double?
