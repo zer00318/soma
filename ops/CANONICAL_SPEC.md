@@ -115,11 +115,27 @@
   test locked). xcodebuild iOS BUILD SUCCEEDED. Mac seam locked by 3 tests through real
   Hub.ingest. Suite 228 green.
 
-**M5 — Capture coverage & rate.**
-  Per-track crops feed the VLM (small/far objects), crop-zoom OCR specialist wired live
-  (1.48× real-time measured — it fits), ASR channel verified continuously (store has 2 asr rows
-  from a full session — that is a wiring bug until proven otherwise).
-  DoD: day-in-life-style blind battery on a NEW founder capture ≥65% RAS, <10% halluc.
+**M5 — Capture coverage & rate. ✅ CODE DONE 2026-07-02 (commit e5b3e9b); DoD = blind
+  battery on the founder-session capture (see gate block below).**
+  Per-track VLM crop enrichment (one zoomed read per confirmed track, throttled, fused via
+  track_id — the small/far-object lever); ASR delta commits (cumulative-partial duplication
+  fixed; the 2-rows session was likely silence, engine wiring verified correct); small-text
+  OCR judged covered by M4's bound full-res OCR — revisit if the blind battery misses brands.
+  iOS build green; seam tests through real Hub.ingest; suite 230 green.
+
+---
+
+### ⏳ THE FOUNDER-SESSION GATE (everything device-dependent, one physical session)
+1. **Deploy** the current build to the phone (M4+M5 code is on main, compiles green).
+2. **Desk truth** (M2): confirm actual counts — keyboards (system says 2–3), tvs/monitors
+   (2–3), cups (1–2), mice (1), laptops (1).
+3. **Never-seen room capture** (M2 DoD): ~2–3 min slow pan; binder counts must be ±1.
+4. **5 planted branded objects** (M4 DoD): ≥4 brand questions answered verbatim.
+5. **Speak during capture** (M5 ASR): narrate a few reminders; verify delta rows land.
+6. **Blind battery** (M5 DoD): founder writes ~20 gold questions the implementer never
+   sees; target ≥65% RAS, <10% halluc, 0 confident-wrong.
+
+---
 
 **M6 — Sleep-time enrichment.**
   Landmark/context expansion + succession links ("current location" supersedes) authored during

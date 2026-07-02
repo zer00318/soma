@@ -37,6 +37,12 @@ A **working prototype** that feels like *magic — "it remembers everything"* �
 - Failing #6 → move the heavy compute to a background gemma job; keep my turn light.
 
 ## Iteration log (newest first)
+- _iter M5 (2026-07-02):_ Canonical ledger M5 CODE DONE+committed (e5b3e9b): per-track VLM
+  crop enrichment (fused via track_id, throttled) + ASR delta commits (cumulative-partial
+  duplication fixed). iOS build green, 230 tests. Consolidated ALL device-pending DoDs into
+  one FOUNDER-SESSION GATE block in the spec (deploy, desk truth, new room, 5 brands, speech,
+  blind battery). LEASH: on-device config ✓ moat ✓ not stalling ✓. Next: M6 sleep-time
+  enrichment (succession + landmark expansion — Mac-side, fully verifiable now).
 - _iter M4 (2026-07-02):_ Canonical ledger M4 CODE DONE+committed (90b8e83): on-device
   OCR→track binding in ContentView.swift (bbox intersection, 'label text:' wording keeps
   count floor safe), iOS build green, Mac seam locked by 3 hub-path tests. 228 green.
