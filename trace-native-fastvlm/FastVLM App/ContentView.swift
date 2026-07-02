@@ -114,6 +114,11 @@ struct ContentView: View {
     @State private var lastContextDigestSignature = ""
     @State private var lastSemanticRefreshAt = Date.distantPast
     @State private var lastPersonEnrichmentAt = Date.distantPast
+    // M5 per-track crop enrichment: each confirmed track gets ONE zoomed VLM pass (colour/
+    // material/brand off the crop), throttled so the GPU-serial model is never contended.
+    @State private var enrichedTrackKeys: Set<String> = []
+    @State private var lastTrackEnrichmentAt = Date.distantPast
+    @State private var trackEnrichmentRunning = false
     @State private var lastRawOcrCount = 0
     @State private var lastAcceptedOcrCount = 0
     @State private var lastObjectCount = 0
@@ -1683,6 +1688,78 @@ struct ContentView: View {
         }
     }
 
+    // M5 — per-track CROP enrichment. The full-frame VLM misses small/far objects (the
+    // crop-zoom finding: zoomed OCR recovered Michigan State/Turks). Give each confirmed
+    // track ONE zoomed VLM read of its own box; the record carries track_id, so the binder
+    // fuses the rich attributes (colour/material/brand) onto that physical instance.
+    @MainActor
+    func maybeEnrichTrackCrop(frame: CVImageBuffer, label: String, box: CGRect, trackID: String) {
+        let key = "\(label)|\(trackID)"
+        guard ENABLE_TRACK_ANCHOR_EMISSION,
+              !trackEnrichmentRunning,
+              !enrichedTrackKeys.contains(key),
+              Date().timeIntervalSince(lastTrackEnrichmentAt) >= 4,
+              label != "person"  // people have their own enrichment ladder
+        else { return }
+        trackEnrichmentRunning = true
+        lastTrackEnrichmentAt = Date()
+        enrichedTrackKeys.insert(key)
+        if enrichedTrackKeys.count > 400 { enrichedTrackKeys.removeAll() }  // session hygiene
+
+        let ci = CIImage(cvPixelBuffer: frame)
+        let w = ci.extent.width, h = ci.extent.height
+        // Vision boxes are normalized, bottom-left origin — the same space as CIImage.
+        let pad: CGFloat = 0.15
+        let rect = CGRect(
+            x: max(0, (box.minX - pad * box.width) * w),
+            y: max(0, (box.minY - pad * box.height) * h),
+            width: min(w, (box.width * (1 + 2 * pad)) * w),
+            height: min(h, (box.height * (1 + 2 * pad)) * h)
+        ).intersection(ci.extent)
+        guard rect.width > 32, rect.height > 32 else {
+            trackEnrichmentRunning = false
+            return
+        }
+        let crop = ci.cropped(to: rect)
+        let prompt = """
+            This is a zoomed crop of a \(label) from a first-person camera. Describe ONLY \
+            this \(label): its colour, material, brand or printed text if readable, and any \
+            distinctive feature. Output exactly ONE line:
+            OBJECT | \(label) | [attributes separated by commas] | crop-zoom | likely
+            """
+        Task {
+            var userInput = UserInput(chat: [.user(prompt, images: [.ciImage(crop)])])
+            userInput.processing.resize = .init(width: 448, height: 448)
+            let task = await model.generate(userInput)
+            _ = await task.result
+            let memory = cleanTraceRecord(model.output)
+            await MainActor.run {
+                trackEnrichmentRunning = false
+                guard !memory.isEmpty, memory.hasPrefix("OBJECT |") else {
+                    appendNativeStatusLog(status: "track_crop_enrichment_empty", extra: [
+                        "track_id": trackID, "label": label,
+                    ])
+                    return
+                }
+                let payload: [String: Any] = [
+                    "timestamp": ISO8601DateFormatter().string(from: Date()),
+                    "memory_text": memory,
+                    "source": "fastvlm_track_crop",
+                    "source_type": "vision",
+                    "scene_phase": currentScenePhase,
+                    "location_hint": locationContext.locationMemoryHint,
+                    "metadata": ["track_id": trackID, "detector_label": label,
+                                 "crop_zoom": true],
+                ]
+                postPerceptionPacketToHub(payload)
+                appendNativeStatusLog(status: "track_crop_enrichment_committed", extra: [
+                    "track_id": trackID, "label": label,
+                    "clean_text": memory.prefix(200).description,
+                ])
+            }
+        }
+    }
+
     @MainActor
     func clearTextMemory(deleteLogFile: Bool) {
         memoryRecords.removeAll()
@@ -2020,7 +2097,12 @@ struct ContentView: View {
                     "source": "detector_track",
                     "metadata": md,
                 ]
-                Task { @MainActor in self.postPerceptionPacketToHub(payload) }
+                Task { @MainActor in
+                    self.postPerceptionPacketToHub(payload)
+                    // M5: one zoomed VLM read per confirmed track (throttled inside).
+                    self.maybeEnrichTrackCrop(frame: frame, label: det.label,
+                                              box: det.box, trackID: a.trackID)
+                }
             }
         }
 
