@@ -37,6 +37,11 @@ A **working prototype** that feels like *magic — "it remembers everything"* �
 - Failing #6 → move the heavy compute to a background gemma job; keep my turn light.
 
 ## Iteration log (newest first)
+- _iter battery (2026-07-02):_ Canonical battery instrument SHIPPED (a96e27c): 42 versioned
+  gold Qs + runner -> four §4 numbers, exit-1 on confident-wrong. GATE MET: 96.7/100.0/0/100.0
+  (thresholds 85/95/0/90). Its first run caught 3 defects (existence subword collision,
+  before/after inversion, 'I know you saw' cue gap) -> deterministic owners + tests. 241 green.
+  CODE SIDE OF LEDGER COMPLETE — loop idles at long cadence for the FOUNDER-SESSION GATE.
 - _iter M7 (2026-07-02):_ Canonical ledger M7 CODE DONE+committed (25170b7): threaded hub,
   lock-free /health, evidence+badge payload, demo page, exception-proof asks. Hammer 40 asks:
   0 crashes, honesty held; found+fixed sqlite thread-affinity (masked by my own error

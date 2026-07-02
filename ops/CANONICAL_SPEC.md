@@ -178,9 +178,14 @@ counting (multiples/fragmentation/poisoning), paraphrase pairs, gaslight/false-p
 attribute precision (incl. OCR-bound brands), temporal, speech. Report four numbers only:
 - CORRECT-ON-PRESENT % · REFUSE-ON-ABSENT % · CONFIDENT-WRONG (hard 0) · PARAPHRASE-PARITY %
 
-**Measured reality 2026-07-01 (fresh garage suite + live probes):** 13/18 correct; refusal
-bedrock held on novel vocab; CONFIDENT-WRONG = 3 (mugs "1"@0.8, clamps "1"@0.8, unicorns
-"1"@0.8 on the LIVE path) → **gate currently FAILED. M0 exists because of this line.**
+**Baseline 2026-07-01 (audit):** 13/18; CONFIDENT-WRONG = 3 → gate FAILED (M0's origin).
+**MEASURED 2026-07-02 (battery v1, gemma12b, n=42, one command:
+`.venv/bin/python evaluation/run_canonical_battery.py`):** CORRECT-ON-PRESENT **96.7** ·
+REFUSE-ON-ABSENT **100.0** · CONFIDENT-WRONG **0 (GATE MET)** · PARAPHRASE-PARITY **100.0**.
+All four beat the §5 thresholds on the fixture worlds. The instrument's first run caught 3
+defects ad-hoc batteries missed (existence subword collision, before/after inversion,
+'I know you saw' cue gap) — each now a deterministic owner + regression test. Remaining
+§5 requirement: the same numbers on a LIVE never-seen room, founder typing.
 
 ## 5. DEFINITION OF DONE — 100%
 The product is done when, on a LIVE capture of a room the system has never seen, answered
