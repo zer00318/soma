@@ -56,11 +56,24 @@ def _t_ms(timestamp: str) -> int:
 
 class Hub:
     def __init__(self, store_path: str) -> None:
-        self.store = TraceMemoryStore(store_path)
+        self.store_path = store_path
+        self.store = TraceMemoryStore(store_path)      # WRITER — ingest only
         self.counts: dict[str, int] = {}
-        # ThreadingHTTPServer gives every request its own thread; the sqlite connection is
-        # NOT safe to share unlocked. One lock serializes store access; /health never takes it.
-        self.lock = threading.Lock()
+        # ThreadingHTTPServer gives every request its own thread. sqlite connections are not
+        # thread-safe to share, so each of the two connections has its own lock:
+        #  - write_lock guards the writer (ingest); held only for the fast store write.
+        #  - answer_lock guards a SEPARATE reader connection used to answer questions, and also
+        #    serializes the GPU-serial gemma call. Because the reader is a different connection
+        #    (WAL mode), a 30s answer no longer blocks the phone's frame uploads — the M7 coarse
+        #    single-lock made every capture POST wait behind the in-flight /ask (measured 16.5s).
+        self.write_lock = threading.Lock()
+        self.answer_lock = threading.Lock()
+        self._answer_store = None  # lazily opened reader connection
+
+    def _reader(self) -> TraceMemoryStore:
+        if self._answer_store is None:
+            self._answer_store = TraceMemoryStore(self.store_path)
+        return self._answer_store
 
     def ingest(self, packet: dict) -> dict:
         text = str(packet.get("memory_text") or packet.get("raw_text") or "").strip()
@@ -102,7 +115,7 @@ class Hub:
         coarse but correct; asks queue one at a time, /health stays lock-free."""
         from trace_memory.brain import TraceMemoryAgent
         try:
-            agent = TraceMemoryAgent(self.store, reasoner="local-ollama",
+            agent = TraceMemoryAgent(self._reader(), reasoner="local-ollama",
                                      restrict_sources=("phone_camera",))
             a = agent.answer(question)
             evidence = [
@@ -177,7 +190,7 @@ class Handler(BaseHTTPRequestHandler):
             packet = json.loads(raw)
         except Exception:
             return self._send(400, {"ok": False, "reason": "bad json"})
-        with self.hub.lock:
+        with self.hub.write_lock:
             result = self.hub.ingest(packet)
         if result.get("ok"):
             snippet = str(packet.get("memory_text") or "")[:70].replace("\n", " ")
@@ -193,7 +206,7 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/":
             return self._send(200, _DEMO_PAGE, ctype="text/html; charset=utf-8")
         if parsed.path == "/status":
-            with self.hub.lock:
+            with self.hub.write_lock:
                 per_helper = dict(self.hub.store_helper_counts())
                 nodes = self.hub.store.node_count()
             return self._send(200, {"ok": True, "nodes": nodes, "by_helper": per_helper})
@@ -201,7 +214,9 @@ class Handler(BaseHTTPRequestHandler):
             q = (parse_qs(parsed.query).get("q") or [""])[0]
             if not q:
                 return self._send(400, {"ok": False, "reason": "missing q"})
-            with self.hub.lock:
+            # answer_lock guards the reader connection + serializes gemma; it does NOT hold
+            # write_lock, so ingest keeps flowing while this answer runs.
+            with self.hub.answer_lock:
                 result = self.hub.ask(q)
             return self._send(200, result)
         return self._send(404, {"ok": False})

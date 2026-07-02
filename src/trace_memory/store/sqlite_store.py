@@ -146,6 +146,14 @@ class TraceMemoryStore:
         # Any new multi-threaded caller must bring its own serialization.
         self._conn = sqlite3.connect(self.path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
+        # WAL lets a separate READER connection (the hub's answer path) run concurrently with
+        # this writer, so a 30s answer never blocks the phone's frame uploads (the demo hang).
+        # Best-effort: :memory: and some filesystems reject WAL — fall back silently.
+        try:
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA busy_timeout=5000")
+        except sqlite3.OperationalError:
+            pass
         self._conn.execute(_NODE_SCHEMA)
         self._conn.execute(_LINK_SCHEMA)
         self._migrate_schema()
