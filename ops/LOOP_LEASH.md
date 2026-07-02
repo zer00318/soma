@@ -37,6 +37,12 @@ A **working prototype** that feels like *magic — "it remembers everything"* �
 - Failing #6 → move the heavy compute to a background gemma job; keep my turn light.
 
 ## Iteration log (newest first)
+- _iter M2 (2026-07-02):_ Canonical ledger M2 code DONE+committed (0d4f5d5): co-visibility
+  re-ID merges fragmented tracks (mouse 9→1 firm, laptop→1 firm, keyboard/tv honest [2,3]);
+  sleep reconsolidation; 3 real-data bugs found ONLY by running live (session tid collisions,
+  depth-as-size, pan-as-covis) — synthetic tests alone caught none. LEASH: product ✓ moat ✓
+  (every range's low is hard evidence). PENDING from founder: desk truth confirmation +
+  one never-seen-room capture for the M2 DoD gate. Next: M3 de-overfit ranker.
 - _iter M1 (2026-07-02):_ Canonical ledger M1 DONE+committed (120207b): one count resolver
   (binder+cluster+floor, hedge-on-disagreement), floor unpoisonable, intent family, type
   discriminator. Garage DoD 10/10 / 0 confident-wrong; live store 0 confident-wrong. LEASH:

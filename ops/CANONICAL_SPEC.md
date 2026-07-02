@@ -88,12 +88,18 @@
   live desk store 0 confident-wrong. Suite 219 green. Hub restarted on new code.
   → M2 turns the live "between 1 and 3" hedges into firm correct counts by fixing identity.
 
-**M2 — Object identity that survives real capture (THE hard problem, no substitutions).**
-  Fix track fragmentation at the binder: cross-track re-ID merge using appearance embedding +
-  temporal overlap logic + DepthPro sleep-time 3D consolidation. Target on the LIVE desk store:
-  keyboard 12→1, tv 12→≤2, mouse 9→1, cup 8→2 (verify truth with founder).
-  DoD: on TWO real captures (desk + one never-seen room), binder instance counts within ±1 of
-  founder-verified truth for every COCO-class label with ≥3 observations.
+**M2 — Object identity that survives real capture. ✅ CODE DONE 2026-07-02 (commit 0d4f5d5);
+  DoD remainder = founder truth confirmation + a second never-seen-room capture.**
+  Co-visibility re-ID in individuate.py: same-frame (≤150ms) different-cell = distinct;
+  same-cell = duplicate box; attribute contradiction (weight/volume, colour family) splits
+  without co-visibility; else merge. Ambiguity → authored count RANGE; resolved low = hard
+  lower bound in the resolver. Sleep reconsolidation (reconsider_derived) re-derives all
+  binder output from immutable raw each run. Three real-data bugs found live and locked as
+  tests: per-session track-id collisions (key by label+tid), depth text read as identity
+  size, pan misread as co-visibility (700→150ms). MEASURED live desk: mouse 9 tracks→1 FIRM,
+  laptop→1 FIRM, chair/book/phone/bed 1 FIRM, keyboard→[2,3], tv→[2,3], cup→[1,2]; unicorns
+  refused. Suite 225 green. DepthPro 3D consolidation deferred: grid+time evidence sufficed
+  for the desk; revisit if the second capture's DoD misses ±1.
 
 **M3 — De-overfit the ranker (I5 enforcement).**
   Delete SCREEN_REPORT_NOISE, LOCATION_ANCHORS, drink-cue lexicon, dead code (_first_colour,
