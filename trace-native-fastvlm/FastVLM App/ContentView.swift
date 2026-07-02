@@ -30,6 +30,10 @@ let ENABLE_DETECTOR_OBJECT_MEMORY = false  // YOLO-COCO labels (jars→"sports b
 // coordinate-free binder anchor). Separate `detector` helper channel — additive, does not touch the
 // existing frame-level VLM/OCR posts. COCO-class labels only (bottle/cup/chair/laptop/person…).
 let ENABLE_TRACK_ANCHOR_EMISSION = true
+// KILL SWITCH (2026-07-02): per-track crop VLM enrichment (M5) runs a full model.generate on the
+// SHARED VLM actor for every tracked object — it contends with the capture loop and can freeze
+// the app on device. OFF for the demo; the app streams capture + answers via the hub without it.
+let ENABLE_TRACK_CROP_ENRICHMENT = false
 let ENABLE_LOCAL_DETECTOR_MEMORY = true
 let STABLE_VLM_REFRESH_SECONDS: TimeInterval = 4
 let ENABLE_PERSON_VLM_ENRICHMENT = true
@@ -1694,6 +1698,7 @@ struct ContentView: View {
     // fuses the rich attributes (colour/material/brand) onto that physical instance.
     @MainActor
     func maybeEnrichTrackCrop(frame: CVImageBuffer, label: String, box: CGRect, trackID: String) {
+        guard ENABLE_TRACK_CROP_ENRICHMENT else { return }  // kill switch — see flag definition
         let key = "\(label)|\(trackID)"
         guard ENABLE_TRACK_ANCHOR_EMISSION,
               !trackEnrichmentRunning,
