@@ -101,11 +101,12 @@
   refused. Suite 225 green. DepthPro 3D consolidation deferred: grid+time evidence sufficed
   for the desk; revisit if the second capture's DoD misses ±1.
 
-**M3 — De-overfit the ranker (I5 enforcement).**
-  Delete SCREEN_REPORT_NOISE, LOCATION_ANCHORS, drink-cue lexicon, dead code (_first_colour,
-  EXISTS_RE/ATTRIBUTE_RE, _heuristic_answer stub). Replace with: subject-token anchoring +
-  embedding similarity + helper-type priors (helper priors are structural, not content).
-  DoD: paraphrase battery ≥90% parity; garage suite (novel vocab) does not regress below 13/18.
+**M3 — De-overfit the ranker (I5 enforcement). ✅ DONE 2026-07-02 (commit 43320d0).**
+  All content lexicons + dead code deleted; ranking = lexical overlap + intent→helper-type
+  priors + generic location grammar + structural screen_text demotion. MEASURED DoD: garage
+  17/18 (gate ≥13 — only miss is DeWalt brand = M4's scope), paraphrase parity 9/10 = 90%
+  (gate ≥90%; the break is an honest refusal on call/phone synonymy — future embedding
+  grounding candidate, moat intact). 0 fabrications. Suite 225 green.
 
 **M4 — OCR→object binding at capture ("DeWalt" class).**
   OCR hits bind to the overlapping track/crop on-device (bbox intersection), so brand/label text

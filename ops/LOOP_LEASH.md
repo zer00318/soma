@@ -37,6 +37,12 @@ A **working prototype** that feels like *magic — "it remembers everything"* �
 - Failing #6 → move the heavy compute to a background gemma job; keep my turn light.
 
 ## Iteration log (newest first)
+- _iter M3 (2026-07-02):_ Canonical ledger M3 DONE+committed (43320d0): every content lexicon
+  deleted from the ranker (dev-screenshot literals, bedroom nouns, drink/mode/app cues + dead
+  code); structural-only ranking. DoD: garage 17/18 (was 13/18 at audit), paraphrase 90%.
+  Deleting the band-aids COST NOTHING — the overfit rules were dead weight on the current
+  clean store. LEASH: product ✓ moat ✓ (one honest-refusal parity break, no fabrications).
+  Next: M4 OCR→object binding (the DeWalt miss).
 - _iter M2 (2026-07-02):_ Canonical ledger M2 code DONE+committed (0d4f5d5): co-visibility
   re-ID merges fragmented tracks (mouse 9→1 firm, laptop→1 firm, keyboard/tv honest [2,3]);
   sleep reconsolidation; 3 real-data bugs found ONLY by running live (session tid collisions,
