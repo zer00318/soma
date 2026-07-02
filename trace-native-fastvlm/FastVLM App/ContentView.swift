@@ -20,12 +20,16 @@ extension CMSampleBuffer: @unchecked @retroactive Sendable {}
 // classes, VNClassifyImageRequest) only know coarse categories, so branded goods get
 // forced into nonsense ("sports ball", "surfboard") that poisons memory — they are now
 // OFF as memory writers. OCR + people detection stay (they carry real signal).
-let VISION_FRAME_DELAY = Duration.milliseconds(650)
+let VISION_FRAME_DELAY = Duration.milliseconds(180)  // REVAMP: was 650; cycle the capture loop ~5x faster for dense frame streaming
 let ENABLE_STABLE_VLM_REFRESH = true
 let ENABLE_TEXT_OCR_MEMORY = true
 let ENABLE_OCR_STILL_PASS = false
 let ENABLE_IMAGE_CLASSIFICATION_MEMORY = false
 let ENABLE_DETECTOR_OBJECT_MEMORY = false  // YOLO-COCO labels (jars→"sports ball") poison memory; VLM is the object channel
+// Step 1 track-anchor: emit ONE observation per tracked object carrying a stable track_id (the
+// coordinate-free binder anchor). Separate `detector` helper channel — additive, does not touch the
+// existing frame-level VLM/OCR posts. COCO-class labels only (bottle/cup/chair/laptop/person…).
+let ENABLE_TRACK_ANCHOR_EMISSION = true
 let ENABLE_LOCAL_DETECTOR_MEMORY = true
 let STABLE_VLM_REFRESH_SECONDS: TimeInterval = 4
 let ENABLE_PERSON_VLM_ENRICHMENT = true
@@ -80,6 +84,7 @@ struct ContentView: View {
     // camera session, so this picks which one runs.
     @AppStorage("spatialMode") private var spatialMode = false
     @State private var camera = CameraController()
+    @ObservedObject private var arkitEngine = TraceARKitEngine.shared
     @State private var model = FastVLMModel()
     @StateObject private var audioContext = TraceAudioContextEngine()
     @StateObject private var locationContext = TraceLocationContextEngine()
@@ -135,6 +140,8 @@ struct ContentView: View {
     @State private var lastAcceptedOcrPreview = ""
     @State private var lastVisionInferenceAt: Date?
     @State private var lastVisionNoRecordAt: Date?
+    @State private var isVideoRecording = VideoRecorder.shared.isRecording
+    @State private var recordingStatusText = ""
 
     @State private var isShowingInfo: Bool = false
     @State private var isShowingHubSetup: Bool = false
@@ -172,90 +179,57 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
+            configuredLiveScreen
+        }
+    }
 
-                if let framesToDisplay {
-                    VideoFrameView(
-                        frames: framesToDisplay,
-                        cameraType: .continuous,
-                        action: { _ in })
-                        .aspectRatio(4/3, contentMode: .fit)
-                        .frame(maxWidth: .infinity)
-                } else {
-                    ProgressView()
-                        .tint(.white)
-                }
+    @ViewBuilder private var liveScreenBase: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    liveHeader
-                    Spacer(minLength: 0)
-                    liveMemoryOverlay
-                    askBar
-                }
-                .padding(.horizontal, 12)
+            if let framesToDisplay {
+                VideoFrameView(
+                    frames: framesToDisplay,
+                    cameraType: .continuous,
+                    action: { _ in }
+                )
+                .aspectRatio(4/3, contentMode: .fit)
+                .frame(maxWidth: .infinity)
+            } else {
+                ProgressView()
+                    .tint(.white)
+            }
 
-                // Visible heavy-VLM download/load status (Qwen2.5-VL ~2GB on first launch).
-                if !model.modelInfo.isEmpty && model.modelInfo != "Loaded" {
-                    VStack {
-                        HStack(spacing: 8) {
-                            ProgressView().tint(.white)
-                            Text(model.modelInfo)
-                                .font(.caption.bold()).foregroundStyle(.white)
-                        }
-                        .padding(.horizontal, 14).padding(.vertical, 8)
-                        .background(.black.opacity(0.75), in: Capsule())
-                        Spacer()
-                    }
-                    .padding(.top, 70)
-                }
+            VStack(spacing: 0) {
+                liveHeader
+                Spacer(minLength: 0)
+                liveMemoryOverlay
+                askBar
             }
-            // Eager load: start the ~2GB Qwen2.5-VL download on launch, not lazily on
-            // the first steady frame (which may never come while you're panning).
-            .task {
-                await model.load()
+            .padding(.horizontal, 12)
+
+            if !model.modelInfo.isEmpty && model.modelInfo != "Loaded" {
+                loadingStatusOverlay
             }
-            .task {
-                appendNativeStatusLog(status: "local_runtime_status", extra: TraceLocalRuntime.statusPayload())
-                // Camera source is one OR the other — iOS gives the camera to a single
-                // session. spatialMode=ON → ARKit owns the camera (world tracking +
-                // anchors, frames rotated upright by TraceARKitEngine). spatialMode=OFF →
-                // proven AVCaptureSession path. Default OFF so the app never bricks; flip
-                // ON in Hub Setup to test the spatial path.
-                if spatialMode {
-                    appendNativeStatusLog(status: "arkit_camera_start_requested")
-                    TraceARKitEngine.shared.start()
-                } else {
-                    appendNativeStatusLog(status: "camera_start_requested")
-                    camera.start()
-                }
-                locationContext.start()
-                audioContext.start()
-                if ENABLE_LOCAL_DETECTOR_MEMORY {
-                    detectorBridge.start()
-                } else {
-                    detectorBridge.status = "Detector disabled; FastVLM spatial naming active"
-                }
-            }
-            // Probe the Mac brain on launch and refresh periodically for the
-            // plain-words "Brain connected / not connected" status.
-            .task {
-                refreshBrainStatus()
-                while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 8_000_000_000)
-                    refreshBrainStatus()
-                }
-            }
+        }
+    }
+
+    private var configuredLiveScreen: some View {
+        presentedLiveScreen
+    }
+
+    private var runtimeConfiguredLiveScreen: some View {
+        liveScreenBase
+            .task { await model.load() }
+            .task { await startLiveRuntime() }
+            .task { await monitorBrainStatus() }
+            .task { await startFrameDistribution() }
+    }
+
+    private var observedLiveScreen: some View {
+        runtimeConfiguredLiveScreen
             .onChange(of: detectorBridge.lastMemoryText) { _, memoryText in
-                let cleaned = memoryText.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !cleaned.isEmpty, !isMemoryPaused else { return }
-                let memory = cleaned
-                    .components(separatedBy: .newlines)
-                    .map { line in
-                        line.replacingOccurrences(of: "| detector stream |", with: "| detector stream; \(locationContext.locationMemoryHint) |")
-                    }
-                    .joined(separator: "\n")
-                commitMemoryRecord(memory, raw: cleaned, source: "native_detector")
+                handleDetectorMemoryChange(memoryText)
             }
             .onChange(of: detectorBridge.status) { _, status in
                 appendNativeStatusLog(status: "detector_status", extra: [
@@ -263,10 +237,7 @@ struct ContentView: View {
                 ])
             }
             .onChange(of: audioContext.lastCommittedTranscript) { _, transcript in
-                let cleaned = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !cleaned.isEmpty, !isMemoryPaused else { return }
-                let memory = "EVENT | nearby speech | transcript: \"\(cleaned)\" | \(locationContext.locationMemoryHint) | likely"
-                commitMemoryRecord(memory, raw: cleaned, source: "native_speech")
+                handleAudioTranscriptChange(transcript)
             }
             .onChange(of: audioContext.status) { _, status in
                 appendNativeStatusLog(status: "audio_status", extra: [
@@ -284,30 +255,29 @@ struct ContentView: View {
                     "location_hint": hint,
                 ])
             }
+            .onChange(of: traceHubURL) { _, url in
+                VideoRecorder.shared.configure(hubURL: url)
+            }
             #if !os(macOS)
             .onAppear {
-                // Prevent the screen from dimming or sleeping due to inactivity
                 UIApplication.shared.isIdleTimerDisabled = true
+                // One-shot, read-only depth-capability probe (no camera-session change).
+                Task { @MainActor in
+                    self.postPerceptionPacketToHub([
+                        "memory_text": DepthProbe.report(),
+                        "source": "depth_probe",
+                        "metadata": ["kind": "depth_probe"],
+                    ])
+                }
             }
             .onDisappear {
-                // Resumes normal idle timer behavior
                 UIApplication.shared.isIdleTimerDisabled = false
             }
             #endif
+    }
 
-            // task to distribute video frames -- this will cancel
-            // and restart when the view is on/off screen.  note: it is
-            // important that this is here (attached to the VideoFrameView)
-            // rather than the outer view because this has the correct lifecycle
-            .task {
-                if Task.isCancelled {
-                    return
-                }
-
-                appendNativeStatusLog(status: "distribute_video_frames_task_started")
-                await distributeVideoFrames()
-            }
-
+    private var presentedLiveScreen: some View {
+        observedLiveScreen
             .navigationTitle("Trace")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -332,11 +302,25 @@ struct ContentView: View {
             .sheet(isPresented: $showAsk) {
                 askSheet
             }
-            // First-launch welcome. Shown once, over the camera, then never again.
             .fullScreenCover(isPresented: .constant(!hasOnboarded)) {
                 OnboardingView { hasOnboarded = true }
             }
+    }
+
+    @ViewBuilder private var loadingStatusOverlay: some View {
+        VStack {
+            HStack(spacing: 8) {
+                ProgressView().tint(.white)
+                Text(model.modelInfo)
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.black.opacity(0.75), in: Capsule())
+            Spacer()
         }
+        .padding(.top, 70)
     }
 
 
@@ -359,15 +343,61 @@ struct ContentView: View {
     }
 
     @ViewBuilder var liveHeader: some View {
-        HStack(spacing: 8) {
-            Circle().fill(statusBackgroundColor).frame(width: 9, height: 9)
-            Text("Watching")
-                .font(.caption.bold())
-            Spacer()
-            Image(systemName: "sparkles")
-                .font(.caption2)
-            Text(memoryRecords.count == 1 ? "1 memory" : "\(memoryRecords.count) memories")
-                .font(.caption.bold())
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 8) {
+                Circle().fill(statusBackgroundColor).frame(width: 9, height: 9)
+                Text("Watching")
+                    .font(.caption.bold())
+                Spacer()
+                Button(action: toggleVideoRecording) {
+                    HStack(spacing: 6) {
+                        Image(systemName: isVideoRecording ? "stop.fill" : "record.circle.fill")
+                            .font(.caption.bold())
+                        Text(isVideoRecording ? "Stop" : "Record")
+                            .font(.caption.bold())
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 10)
+                    .background(isVideoRecording ? Color.red : Color.white.opacity(0.18), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                Image(systemName: "sparkles")
+                    .font(.caption2)
+                Text(memoryRecords.count == 1 ? "1 memory" : "\(memoryRecords.count) memories")
+                    .font(.caption.bold())
+            }
+
+            if !recordingStatusText.isEmpty {
+                Text(recordingStatusText)
+                    .font(.caption2)
+                    .foregroundStyle(isVideoRecording ? Color.red.opacity(0.95) : Color.white.opacity(0.72))
+                    .lineLimit(2)
+            }
+
+            // VISIBLE ARKit status — was previously invisible, so two real recordings got stuck
+            // in "Limited: relocalizing" with no on-screen sign of it. Watch for this to say
+            // "Normal" (green) before recording; tap Reset if it stays Limited/idle.
+            if spatialMode {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(arkitEngine.trackingStatus == "Tracking" ? Color.green : Color.orange)
+                        .frame(width: 7, height: 7)
+                    Text("ARKit: \(arkitEngine.trackingStatus)")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.85))
+                    Button {
+                        arkitEngine.forceFreshStart()
+                    } label: {
+                        Text("Reset")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(.white.opacity(0.18), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
         .foregroundStyle(.white)
         .padding(.vertical, 7).padding(.horizontal, 12)
@@ -763,6 +793,81 @@ struct ContentView: View {
         }
     }
 
+    func startLiveRuntime() async {
+        appendNativeStatusLog(status: "local_runtime_status", extra: TraceLocalRuntime.statusPayload())
+        VideoRecorder.shared.configure(hubURL: traceHubURL)
+        if spatialMode {
+            appendNativeStatusLog(status: "arkit_camera_start_requested")
+            TraceARKitEngine.shared.start()
+        } else {
+            appendNativeStatusLog(status: "camera_start_requested")
+            camera.start()
+        }
+        locationContext.start()
+        audioContext.start()
+        if ENABLE_LOCAL_DETECTOR_MEMORY {
+            detectorBridge.start()
+        } else {
+            detectorBridge.status = "Detector disabled; FastVLM spatial naming active"
+        }
+    }
+
+    func monitorBrainStatus() async {
+        refreshBrainStatus()
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 8_000_000_000)
+            refreshBrainStatus()
+        }
+    }
+
+    func startFrameDistribution() async {
+        if Task.isCancelled {
+            return
+        }
+        appendNativeStatusLog(status: "distribute_video_frames_task_started")
+        await distributeVideoFrames()
+    }
+
+    func handleDetectorMemoryChange(_ memoryText: String) {
+        let cleaned = memoryText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty, !isMemoryPaused else { return }
+        let memory = cleaned
+            .components(separatedBy: .newlines)
+            .map { line in
+                line.replacingOccurrences(of: "| detector stream |", with: "| detector stream; \(locationContext.locationMemoryHint) |")
+            }
+            .joined(separator: "\n")
+        commitMemoryRecord(memory, raw: cleaned, source: "native_detector")
+    }
+
+    func handleAudioTranscriptChange(_ transcript: String) {
+        let cleaned = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty, !isMemoryPaused else { return }
+        let memory = "EVENT | nearby speech | transcript: \"\(cleaned)\" | \(locationContext.locationMemoryHint) | likely"
+        commitMemoryRecord(memory, raw: cleaned, source: "native_speech")
+    }
+
+    func toggleVideoRecording() {
+        if isVideoRecording {
+            recordingStatusText = "Finishing capture..."
+            VideoRecorder.shared.stopRecording(upload: true) { url, frames in
+                DispatchQueue.main.async {
+                    isVideoRecording = false
+                    if let url {
+                        recordingStatusText = "Saved \(url.lastPathComponent) (\(frames) frames) in Files > On My iPhone > FastVLM App > TraceCaptures"
+                    } else {
+                        recordingStatusText = "No video was saved from this take."
+                    }
+                }
+            }
+            return
+        }
+
+        VideoRecorder.shared.startRecording(hubURL: traceHubURL)
+        isVideoRecording = true
+        recordingStatusText = "Recording full camera video now. Tap Stop to save the .mov."
+    }
+
     func performAsk() {
         let q = askText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return }
@@ -1134,7 +1239,9 @@ struct ContentView: View {
                 currentScenePhase = scenePhase
                 currentMotionScore = motion.score
             }
-            await sendDebugFrame(frame, frameIndex: frameIndex)
+            // sendDebugFrame MOVED OUT of this VLM loop into streamFramesToMac (dense, decoupled):
+            // uploading here bound frame streaming to slow VLM inference (~1 frame/min). Now a
+            // dedicated consumer streams frames+depth+pose at the FrameSupplier cadence (~5-8/s).
             if frameIndex == 1 || frameIndex % 30 == 0 {
                 appendNativeStatusLog(status: "analysis_frame_received", extra: [
                     "frame_index": frameIndex,
@@ -1340,6 +1447,13 @@ struct ContentView: View {
             bufferingPolicy: .bufferingNewest(1)
         )
 
+        // DENSE CAPTURE: a dedicated frame->Mac stream, independent of the slow VLM loop.
+        // Buffer a few so a transient depth/POST hiccup doesn't drop the keyframe.
+        let (framesToStream, framesToStreamContinuation) = AsyncStream.makeStream(
+            of: CVImageBuffer.self,
+            bufferingPolicy: .bufferingNewest(4)
+        )
+
         // set up structured tasks (important -- this means the child tasks
         // are cancelled when the parent is cancelled)
         async let distributeFrames: () = {
@@ -1361,6 +1475,8 @@ struct ContentView: View {
                         }
                     }
                     framesToDisplayContinuation.yield(frame)
+                    // Dense frame->Mac stream every frame (sendDebugFrame gates emit/sharpness).
+                    framesToStreamContinuation.yield(frame)
                     // Only send frames for analysis in continuous mode
                     if await selectedCameraType == .continuous {
                         framesToAnalyzeContinuation.yield(frame)
@@ -1379,15 +1495,33 @@ struct ContentView: View {
 
             framesToDisplayContinuation.finish()
             framesToAnalyzeContinuation.finish()
+            framesToStreamContinuation.finish()
         }()
+
+        // The dense frame->Mac streamer runs in ALL modes (it's the binder's input).
+        async let stream: () = streamFramesToMac(framesToStream)
 
         // Only analyze frames if in continuous mode
         if selectedCameraType == .continuous {
             async let analyze: () = analyzeVideoFrames(framesToAnalyze)
             await distributeFrames
             await analyze
+            await stream
         } else {
             await distributeFrames
+            await stream
+        }
+    }
+
+    /// DENSE CAPTURE consumer: stream frames+depth+pose to the Mac on the FrameSupplier
+    /// cadence, fully decoupled from VLM inference. Each emit is fire-and-forget so the
+    /// per-frame depth grab + network POST never serialize the stream (the old bottleneck).
+    func streamFramesToMac(_ frames: AsyncStream<CVImageBuffer>) async {
+        var frameIndex = 0
+        for await frame in frames {
+            frameIndex += 1
+            let idx = frameIndex
+            Task { await self.sendDebugFrame(frame, frameIndex: idx) }
         }
     }
 
@@ -1825,6 +1959,70 @@ struct ContentView: View {
         }
         let gpsHint = locationHint
         let frameRelation = relationSummary(textBoxes: textBoxes, personBoxes: personBoxes, peopleCount: peopleCount, gpsHint: gpsHint)
+
+        // Step 1 track-anchor emission: each tracked object becomes its OWN observation carrying a
+        // stable track_id, so the binder fuses aspects per physical object and counts distinct
+        // instances without world coordinates. Additive `detector_track` channel — leaves the
+        // frame-level VLM/OCR records below untouched. COCO-class labels only.
+        if ENABLE_TRACK_ANCHOR_EMISSION, !objectHits.isEmpty {
+            let assocs = TrackRegistry.shared.update(detections: objectHits, frameIndex: frameIndex) { det in
+                MobileClipEncoder.shared.embed(frame, box: det.box)
+            }
+            // Only emit CONFIRMED tracks (seen >= 2) so a single-frame false detection never becomes
+            // a phantom instance — one of the two over-count sources (the other, pan-away-and-back,
+            // is handled by appearance re-ID inside the registry).
+            for a in assocs where a.seenCount >= 2 {
+                let det = a.det
+                let cx = det.box.midX
+                let horiz = cx < 0.33 ? "left" : (cx > 0.66 ? "right" : "center")
+                let cy = det.box.midY  // Vision boundingBox origin is bottom-left
+                let vert = cy > 0.66 ? "upper" : (cy < 0.33 ? "lower" : "middle")
+                // Per-object depth (metres) sampled at the box centre — the spatial signal that lets
+                // the brain reason "in front of / behind / on top of". nil when depth is unavailable.
+                var md: [String: Any] = ["track_id": a.trackID, "detector_label": det.label]
+                var depthTxt = ""
+                // COORDINATE-FIRST: unproject the box to a measured 3D position + physical size, so
+                // the binder can individuate by location and the brain answers "how big / where /
+                // on top of" from measurement, not a guess. Degrades safely to no-depth.
+                if let m = DepthReceiver.shared.metricBox(det.box) {
+                    md["world_xyz"] = [Double(m.x), Double(m.y), Double(m.z)]
+                    md["size_m"] = [Double(m.widthM), Double(m.heightM)]
+                    md["depth_m"] = Double(m.z)
+                    md["img_cx"] = Double(cx)
+                    md["img_cy"] = Double(cy)
+                    depthTxt = String(format: " ~%.2fm from camera, ~%.0f×%.0fcm;",
+                                      Double(m.z), Double(m.widthM * 100), Double(m.heightM * 100))
+                } else if let depth = DepthReceiver.shared.depthMeters(atNormalizedX: cx, y: cy) {
+                    md["depth_m"] = Double(depth)
+                    md["img_cx"] = Double(cx)
+                    md["img_cy"] = Double(cy)
+                    depthTxt = String(format: " ~%.2fm from camera;", Double(depth))
+                }
+                // M4: OCR->object binding. Text read INSIDE (or at the edge of) this track's
+                // box is the object's own label/brand — bind it to the instance here, at the
+                // only place both boxes exist. Downstream, "what brand is the drill" retrieves
+                // the drill's track row carrying its verbatim text, instead of a floating OCR
+                // row nothing links back. Worded as `label text:` so the count-floor's
+                // verbatim guard never reads a bound digit as a scene count.
+                var boundTxt = ""
+                if !textHits.isEmpty {
+                    let reach = det.box.insetBy(dx: -0.02, dy: -0.02)
+                    let inside = textHits.filter { reach.intersects($0.box) }
+                    if !inside.isEmpty {
+                        let joined = String(inside.map { $0.text }.joined(separator: " / ").prefix(90))
+                        boundTxt = " label text: \"\(joined)\";"
+                        md["bound_text"] = joined
+                    }
+                }
+                let text = "OBJECT | \(det.label) | detected by on-device tracker |\(boundTxt)\(depthTxt) \(vert)-\(horiz) of frame; \(frameRelation) | likely"
+                let payload: [String: Any] = [
+                    "memory_text": text,
+                    "source": "detector_track",
+                    "metadata": md,
+                ]
+                Task { @MainActor in self.postPerceptionPacketToHub(payload) }
+            }
+        }
 
         if frameIndex == 1 || frameIndex % 30 == 0 {
             Task { @MainActor in
