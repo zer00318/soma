@@ -215,8 +215,14 @@ def _singular(word: str) -> str:
     return word
 
 
+# 2-char words are admitted (a "tv" is a real object the detector emits; len>2 made every tv
+# invisible to the binder) — minus function-word junk that would create phantom merges.
+_SHORT_JUNK = {"of", "on", "in", "at", "to", "an", "is", "it", "my", "me", "we", "up", "no",
+               "by", "or", "as", "if", "so", "do", "am", "be", "he", "us", "go"}
+
+
 def _content_words(label: str) -> set[str]:
-    return {_singular(w) for w in _words(label) if len(w) > 2}
+    return {_singular(w) for w in _words(label) if len(w) > 1 and w not in _SHORT_JUNK}
 
 
 @dataclass
@@ -232,6 +238,8 @@ class ObjectCluster:
     anchor_key: str | None = None  # stable instance anchor: track_id (preferred) or world coord
     instance_index: int = 0       # 1-based index among instances sharing this label
     instance_count: int = 1       # how many distinct instances of this label were individuated
+    count_low: int | None = None  # conservative instance count (strict co-visibility reading);
+                                  # None -> equals instance_count (no ambiguity)
 
     @property
     def latest(self) -> Any:
@@ -325,41 +333,170 @@ def _identity_label(members: list[Any]) -> str:
     return ""
 
 
+# ---- M2: cross-track re-ID (co-visibility + attribute identity) ---------------------------
+#
+# A track is NOT an instance. Real capture fragments one object into many tracks (measured:
+# 1 keyboard -> 12 tracks), so counting tracks over-counts. Two tracks of the same label are
+# DISTINCT physical objects only when the evidence says so:
+#   - CO-VISIBILITY: near-simultaneous observations in different frame grid cells means two
+#     objects were in view at once (same-cell simultaneity is a duplicate detector box);
+#   - ATTRIBUTE IDENTITY: contradictory size tokens (500g vs 825g) or conflicting colour
+#     families are different objects even when never co-visible.
+# Everything else merges (pan-away-and-back re-acquisition). Adjacent-cell co-visibility is
+# ambiguous (one object can straddle a cell boundary), so instances are resolved twice —
+# liberal (any different cell splits) and strict (only non-adjacent cells split) — and the
+# spread is authored as an honest count RANGE instead of a confident guess.
+
+_GRID_RE = re.compile(r"\b(upper|middle|lower)-(left|center|right) of frame\b", re.IGNORECASE)
+_GRID_ROW = {"upper": 0, "middle": 1, "lower": 2}
+_GRID_COL = {"left": 0, "center": 1, "right": 2}
+# Same-FRAME tolerance. A wider window (700ms tested) reads camera pans as
+# co-visibility: two sightings 200ms apart in different cells split one mouse
+# into two "resolved" objects on the live desk store. Only near-identical
+# timestamps prove two objects were in view at once.
+_COVIS_WINDOW_MS = 150
+
+
+def _node_grid_cell(node: Any) -> tuple[int, int] | None:
+    m = _GRID_RE.search(getattr(node, "text", "") or "")
+    if not m:
+        return None
+    return (_GRID_ROW[m.group(1).lower()], _GRID_COL[m.group(2).lower()])
+
+
+# Generic perceptual colour vocabulary + drift families shared with the count resolver.
+from trace_memory.store.permanence import _COLOURS as _COLOUR_VOCAB  # noqa: E402
+from trace_memory.store.permanence import _colours_conflict  # noqa: E402
+
+
+# Identity sizes are WEIGHT/VOLUME only ('500g', '1kg', '330ml'). Geometric measures (m, cm,
+# mm, in, ft) are viewpoint-dependent — the device writes '~0.9m from camera', and treating
+# '9m' vs '3m' as identity split ONE mouse into two "resolved" objects on the live desk store.
+_IDENTITY_SIZE_RE = re.compile(r"^\d+(?:\.\d+)?(?:g|kg|mg|ml|cl|l|oz|lb)$")
+
+
+def _track_signature(members: list[Any]) -> tuple[set[str], set[str]]:
+    """Identity attributes of one track, fused across its helper members: weight/volume size
+    tokens ('500g', '1kg') and colour words. Used to keep genuinely different objects apart
+    even when they were never co-visible."""
+    sizes: set[str] = set()
+    colours: set[str] = set()
+    for n in members:
+        for w in _words(getattr(n, "text", "") or ""):
+            if _IDENTITY_SIZE_RE.match(w):
+                sizes.add(w)
+            elif w in _COLOUR_VOCAB:
+                colours.add(w)
+    return sizes, colours
+
+
+def _tracks_conflict(
+    obs_a: list[tuple[int, tuple[int, int] | None]],
+    obs_b: list[tuple[int, tuple[int, int] | None]],
+    sig_a: tuple[set[str], set[str]],
+    sig_b: tuple[set[str], set[str]],
+    *,
+    min_cell_dist: int,
+) -> bool:
+    sizes_a, cols_a = sig_a
+    sizes_b, cols_b = sig_b
+    if sizes_a and sizes_b and not (sizes_a & sizes_b):
+        return True
+    if _colours_conflict(cols_a, cols_b):
+        return True
+    for ta, ca in obs_a:
+        if ca is None:
+            continue
+        for tb, cb in obs_b:
+            if cb is None or abs(ta - tb) > _COVIS_WINDOW_MS:
+                continue
+            if max(abs(ca[0] - cb[0]), abs(ca[1] - cb[1])) >= min_cell_dist:
+                return True
+    return False
+
+
+def _resolve_instances(
+    track_members: list[list[Any]], *, min_cell_dist: int
+) -> list[list[int]]:
+    """Greedy conflict-respecting grouping of same-label tracks into physical instances.
+    A track joins the first instance none of whose member tracks conflict with it."""
+    obs = [
+        sorted((int(n.t_ms), _node_grid_cell(n)) for n in members)
+        for members in track_members
+    ]
+    sigs = [_track_signature(members) for members in track_members]
+    order = sorted(range(len(track_members)), key=lambda i: obs[i][0][0] if obs[i] else 0)
+    groups: list[list[int]] = []
+    for i in order:
+        placed = False
+        for g in groups:
+            if all(
+                not _tracks_conflict(obs[i], obs[j], sigs[i], sigs[j],
+                                     min_cell_dist=min_cell_dist)
+                for j in g
+            ):
+                g.append(i)
+                placed = True
+                break
+        if not placed:
+            groups.append([i])
+    return groups
+
+
 def _track_first_clusters(tracked: list[Any], *, min_label_len: int) -> list[ObjectCluster]:
-    """PRIMARY individuation for coordinate-free (live phone) data: fuse EVERY helper aspect of one
-    tracked object into a single instance anchored on its track_id, then count instances that share
-    a normalized identity label. This is what makes '5 nutella tracks -> 5 jars, each carrying its
-    fused colour/OCR/VLM attributes' work without world coordinates."""
-    by_track: dict[str, list[Any]] = defaultdict(list)
-    order: list[str] = []
+    """PRIMARY individuation for coordinate-free (live phone) data: fuse EVERY helper aspect of
+    one tracked object per track, then RE-ID MERGE same-label tracks into physical instances via
+    co-visibility + attribute identity (a track is a sighting, not an object). Counts carry an
+    honest low/high: strict (non-adjacent-cell splits only) vs liberal (any different cell)."""
+    # Track ids restart per app SESSION ('trk-5' today is a mouse, tomorrow a keyboard), so a
+    # bare tid key fuses cross-label observations into one phantom track (measured: mouse
+    # split 2 ways because its group had swallowed keyboard sightings). Key by (label, tid).
+    by_track: dict[tuple[str, str], list[Any]] = defaultdict(list)
+    order: list[tuple[str, str]] = []
     for n in tracked:
         tid = _node_track_id(n)
-        if tid not in by_track:
-            order.append(tid)
-        by_track[tid].append(n)
-    instances: list[tuple[str, str, list[Any]]] = []
-    for tid in order:
-        members = by_track[tid]
+        meta = getattr(n, "metadata", {}) or {}
+        det_label = str(meta.get("detector_label") or _object_label_field(
+            getattr(n, "text", "") or "")).strip().lower()
+        key = (det_label, tid)
+        if key not in by_track:
+            order.append(key)
+        by_track[key].append(n)
+    per_track: list[tuple[str, str, list[Any]]] = []
+    for key in order:
+        members = by_track[key]
         label = _identity_label(members)
         if len(label) >= min_label_len and _content_words(label):
-            instances.append((tid, label, members))
-    counts: dict[str, int] = defaultdict(int)
-    for _tid, label, _m in instances:
-        counts[label] += 1
-    seen: dict[str, int] = defaultdict(int)
+            per_track.append((key[1], label, members))
+
+    by_label: dict[str, list[tuple[str, list[Any]]]] = defaultdict(list)
+    label_order: list[str] = []
+    for tid, label, members in per_track:
+        if label not in by_label:
+            label_order.append(label)
+        by_label[label].append((tid, members))
+
     clusters: list[ObjectCluster] = []
-    for tid, label, members in instances:
-        seen[label] += 1
-        clusters.append(ObjectCluster(
-            label=label, kind="entity",
-            member_ids=[n.id for n in members], members=members,
-            centroid=None, anchor_key=tid,
-            instance_index=seen[label], instance_count=counts[label],
-        ))
+    for label in label_order:
+        tracks = by_label[label]
+        member_lists = [m for _, m in tracks]
+        liberal = _resolve_instances(member_lists, min_cell_dist=1)
+        strict = _resolve_instances(member_lists, min_cell_dist=2)
+        low, high = min(len(strict), len(liberal)), len(liberal)
+        for idx, group in enumerate(liberal, start=1):
+            members = [n for t_idx in group for n in member_lists[t_idx]]
+            anchor = "+".join(tracks[t_idx][0] for t_idx in group)
+            clusters.append(ObjectCluster(
+                label=label, kind="entity",
+                member_ids=[n.id for n in members], members=members,
+                centroid=None, anchor_key=anchor,
+                instance_index=idx, instance_count=high,
+                count_low=low,
+            ))
     return clusters
 
 
-def individuate(nodes: Iterable[Any], *, min_label_len: int = 3) -> list[ObjectCluster]:
+def individuate(nodes: Iterable[Any], *, min_label_len: int = 2) -> list[ObjectCluster]:
     """Cluster observations into per-object entity clusters by canonical label, then add
     affordance groups. Camera-pose anchors are intentionally ignored here."""
     physical = [

@@ -119,7 +119,11 @@ def _colours_conflict(a: set[str], b: set[str]) -> bool:
 
 
 _SUBJECT_FILLER = {"the", "a", "an", "in", "on", "of", "there", "were", "was", "are", "is",
-                   "total", "currently", "current", "my", "some", "any", "how", "many", "all"}
+                   "total", "currently", "current", "my", "some", "any", "how", "many", "all",
+                   # 2-char function words (2-char OBJECT labels like "tv" are admitted now,
+                   # so filler must be listed explicitly rather than length-filtered)
+                   "at", "to", "it", "me", "we", "up", "no", "by", "or", "as", "if", "so",
+                   "do", "am", "be", "he", "us", "go"}
 
 
 # Irregular plurals the suffix rule can't reach — without these, "how many mice" matches no
@@ -128,7 +132,7 @@ _IRREGULAR_PLURALS = {
     "mice": "mouse", "geese": "goose", "people": "person", "men": "man", "women": "woman",
     "children": "child", "feet": "foot", "teeth": "tooth", "knives": "knife",
     "shelves": "shelf", "leaves": "leaf", "loaves": "loaf", "wolves": "wolf", "dice": "die",
-    "buses": "bus",
+    "buses": "bus", "tvs": "tv", "pcs": "pc",
 }
 
 
@@ -141,17 +145,17 @@ def _sing(t: str) -> str:
 
 
 def _label_matches_subject(label: str, subject_tokens: set[str]) -> bool:
-    """Match if any SIGNIFICANT subject noun (len>2, not filler) appears in the label —
-    tolerant of messy question phrasing ("nutella jars were there in total") and plurals."""
+    """Match if any SIGNIFICANT subject noun (not filler; 2-char object words like "tv" count)
+    appears in the label — tolerant of messy question phrasing and plurals."""
     lab = {_sing(t) for t in _norm(label).split()}
-    subj = {_sing(t) for t in subject_tokens if len(t) > 2 and t not in _SUBJECT_FILLER}
+    subj = {_sing(t) for t in subject_tokens if len(t) > 1 and t not in _SUBJECT_FILLER}
     return bool(subj & lab)
 
 
 def gather_reads(store: Any, subject: str, sources: tuple[str, ...] | None) -> list[Read]:
     """Collect every observation whose parsed object label matches the subject."""
     subject_tokens = set(_norm(subject).split())
-    head_nouns = {_sing(t) for t in subject_tokens if len(t) > 2 and t not in _SUBJECT_FILLER}
+    head_nouns = {_sing(t) for t in subject_tokens if len(t) > 1 and t not in _SUBJECT_FILLER}
     reads: list[Read] = []
     for node in store.nodes(node_types=("observation", "entity"), sources=sources):
         for line in str(node.text or "").splitlines():
@@ -284,21 +288,35 @@ def _match_is_verbatim(line_before_match: str) -> bool:
 
 
 def authored_count(store: Any, subject: str,
-                   sources: tuple[str, ...] | None) -> tuple[int, str]:
-    """The sleep binder's own instance count for this subject ('Counted N distinct <label>
-    instances...'), authored from track/coordinate individuation. Latest wins. (0, '') when
-    the binder never authored one."""
+                   sources: tuple[str, ...] | None) -> tuple[int, int, bool]:
+    """The sleep binder's own instance count for this subject, as (low, high, resolved).
+    M2 binders author co-visibility-resolved counts — exact ('Counted 2 distinct ...') or an
+    honest range ('Counted between 2 and 3 distinct ...') — versioned by binder_run_t so a
+    re-run supersedes stale counts. Legacy per-track counts (no covis_resolved flag) are NOT
+    resolved: they over-count via fragmentation and may only widen a hedge, never assert.
+    Returns (0, 0, False) when the binder never authored one."""
     subject_tokens = set(_norm(subject).split())
-    best_t, best_n, best_id = -1, 0, ""
+    best_rank = (-1, -1)
+    best = (0, 0, False)
     for node in store.nodes(node_types=("group_memory",), sources=sources):
-        m = re.search(r"counted (\d+) distinct (.+?) instances", str(node.text or "").lower())
-        if not m:
+        text = str(node.text or "").lower()
+        meta = getattr(node, "metadata", {}) or {}
+        m_range = re.search(r"counted between (\d+) and (\d+) distinct (.+?) instances", text)
+        m_exact = re.search(r"counted (\d+) distinct (.+?) instances", text)
+        if m_range:
+            lo, hi, label = int(m_range.group(1)), int(m_range.group(2)), m_range.group(3)
+        elif m_exact:
+            lo = hi = int(m_exact.group(1))
+            label = m_exact.group(2)
+        else:
             continue
-        if not _label_matches_subject(m.group(2), subject_tokens):
+        if not _label_matches_subject(label, subject_tokens):
             continue
-        if int(node.t_ms) > best_t:
-            best_t, best_n, best_id = int(node.t_ms), int(m.group(1)), str(node.id)
-    return best_n, best_id
+        rank = (int(meta.get("binder_run_t") or 0), int(node.t_ms))
+        if rank > best_rank:
+            best_rank = rank
+            best = (lo, hi, bool(meta.get("covis_resolved")))
+    return best
 
 
 def explicit_count_floor(store: Any, subject: str,
@@ -311,7 +329,7 @@ def explicit_count_floor(store: Any, subject: str,
     # Consider EVERY significant subject noun (not just the longest): "nutella jars" must key
     # the floor on "jar" (the countable container: inventory says "5 jar"), not on "nutella".
     heads = [_sing(t) for t in _norm(subject).split()
-             if len(t) > 2 and t not in _SUBJECT_FILLER]
+             if len(t) > 1 and t not in _SUBJECT_FILLER]
     if not heads:
         return 0, ""
     best, evidence = 0, ""
@@ -381,9 +399,9 @@ def count_instances(store: Any, subject: str, *, sources: tuple[str, ...] | None
     of one signal: with identity quality still maturing, a confident wrong count breaks the
     moat, a hedged range does not). Single-sighting evidence is never firm."""
     floor, floor_ev = explicit_count_floor(store, subject, sources)
-    authored, _authored_id = authored_count(store, subject, sources)
+    auth_lo, auth_hi, auth_resolved = authored_count(store, subject, sources)
     reads = gather_reads(store, subject, sources)
-    if not reads and floor == 0 and authored == 0:
+    if not reads and floor == 0 and auth_hi == 0:
         return CountResult(subject, 0, "no-reads", [], 0)
 
     method = "deterministic"
@@ -404,29 +422,35 @@ def count_instances(store: Any, subject: str, *, sources: tuple[str, ...] | None
                           "n_frames": len(cl), "citation_ids": [r.node_id for r in cl]}
                          for cl in clusters]
 
-    # Signal semantics: clustering collapses identical multiples (a LOWER bound), the floor is
-    # direct single-frame simultaneity evidence (raises it), the binder's authored count is an
-    # independent estimate. floor>clusters is a rescue, not a conflict; only the AUTHORED count
-    # disagreeing with grounded evidence opens an honest range.
+    # Signal semantics: clustering collapses identical multiples (an estimate, not a bound),
+    # the floor is direct single-frame simultaneity evidence, and the binder's authored count
+    # is co-visibility/attribute-resolved (M2). A RESOLVED authored bound is authoritative:
+    # its low is a hard lower bound (N objects were provably in view at once / had
+    # contradictory attributes). A legacy unresolved count only widens a hedge.
     base = max(len(instances), floor)
-    count = max(base, authored)
     floor_rescued = floor > len(instances)
     # A single sighting (one read total, nothing else corroborating) may be a one-off VLM
     # misread (measured: a hanging cable read once as "snake") — countable, never firm.
-    single_sighting = len(reads) == 1 and authored == 0 and floor == 0
-    if authored > 0 and base > 0 and authored != base:
-        low, high = min(base, authored), max(base, authored)
-        method += "+authored-disagrees"
+    single_sighting = len(reads) == 1 and auth_hi == 0 and floor == 0
+    if auth_hi <= 0:
+        low = high = base
+    elif auth_resolved:
+        low, high = auth_lo, max(auth_hi, base)
+        if auth_lo != base or auth_hi != base:
+            method += "+covis-resolved"
     else:
-        low = high = count
+        low, high = (min(base, auth_lo), max(base, auth_hi)) if base > 0 else (auth_lo, auth_hi)
+        if auth_lo != base or auth_hi != base:
+            method += "+authored-disagrees"
+    count = high if low != high else low
     if floor_rescued:
         method += "+frame-count-floor"
     firm = (
         low == high
         and not floor_rescued
         and not single_sighting
-        and not (base == 0 and authored > 0)  # authored-only: no grounded reads to back it
+        and base > 0  # authored-only counts have no grounded reads backing them
     )
     return CountResult(subject, count, method, instances, len(reads),
-                       floor=floor, floor_evidence=floor_ev, authored=authored,
+                       floor=floor, floor_evidence=floor_ev, authored=auth_hi,
                        low=low, high=high, firm=firm)

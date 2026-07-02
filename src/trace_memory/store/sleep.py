@@ -59,6 +59,11 @@ class SleepConsolidator:
         self._max_llm_clusters = max_llm_clusters
 
     def consolidate(self) -> SleepRunSummary:
+        # RECONSOLIDATION: the binder's own previous derived output is removed and re-derived
+        # from immutable raw every run. Without this, a re-run accretes stale count/state
+        # memories next to fresh ones (measured: a superseded per-track "3 keyboards" claim
+        # kept outranking the co-visibility-resolved range). Raw capture is never touched.
+        self._store.reconsider_derived("sleep")
         # A node is bindable when it is a RAW observation (not the binder's own derived output)
         # AND it carries an instance anchor. Two anchor kinds are accepted: a world coordinate
         # frame (the ARKit/LiDAR path) OR an on-device track_id (the coordinate-free path used by
@@ -183,9 +188,13 @@ class SleepConsolidator:
             if cluster.kind == "entity" and anchor is not None:
                 info = label_instances.setdefault(
                     cluster.label,
-                    {"count": cluster.instance_count, "anchors": [], "coords": [], "support": []},
+                    {"count": cluster.instance_count, "low": cluster.count_low,
+                     "anchors": [], "coords": [], "support": []},
                 )
                 info["count"] = max(info["count"], cluster.instance_count)
+                if cluster.count_low is not None:
+                    info["low"] = cluster.count_low if info["low"] is None else max(
+                        info["low"], cluster.count_low)
                 info["anchors"].append(anchor)
                 if cluster.centroid is not None:
                     info["coords"].append([round(v, 2) for v in cluster.centroid])
@@ -225,17 +234,24 @@ class SleepConsolidator:
                     existing_links.add(link_key)
                     created_links += 1
 
-        # COUNT MEMORIES: for every label with >=2 coordinate-distinct instances, author a memory
+        # COUNT MEMORIES: for every label whose evidence supports >=2 instances, author a memory
         # that states the count outright. This is the deterministic answer to "how many X" — the
-        # brain reads a fact, it does not estimate from scattered observations.
+        # brain reads a fact, it does not estimate from scattered observations. M2: instances are
+        # co-visibility/attribute-resolved (a track is a sighting, not an object); when the strict
+        # and liberal readings differ, the memory states an honest RANGE, never a confident guess.
+        # binder_run_t versions the memory so a re-run's count supersedes a stale one at read time.
+        binder_run_t = max((n.t_ms for n in raw_nodes), default=0)
         for label, info in label_instances.items():
-            distinct = len(set(info["anchors"]))
-            if distinct < 2:
+            high = max(len(set(info["anchors"])), int(info["count"] or 0))
+            low = int(info["low"]) if info.get("low") is not None else high
+            low = min(low, high)
+            if high < 2:
                 continue
             support_ids = sorted(set(info["support"]))
             anchor_node = max((node_by_id[sid] for sid in support_ids), key=lambda n: (n.t_ms, n.id))
             node_id = _stable_id("count", anchor_node.coordinate_frame.session_id
-                                 if anchor_node.coordinate_frame else "unknown", label)
+                                 if anchor_node.coordinate_frame else "unknown", label,
+                                 f"{low}-{high}")
             if self._store.read_observation(node_id) is not None:
                 continue
             # Word the count by anchor kind: world coordinates when we have them (ARKit/LiDAR path),
@@ -243,11 +259,14 @@ class SleepConsolidator:
             # claim coordinates we don't have.
             if info["coords"]:
                 coords_txt = "; ".join(str(tuple(c)) for c in info["coords"][:8])
-                text = (f"Counted {distinct} distinct {label} instances at separate locations "
+                text = (f"Counted {high} distinct {label} instances at separate locations "
                         f"(coordinates: {coords_txt}).")
+            elif low != high:
+                text = (f"Counted between {low} and {high} distinct {label} instances "
+                        f"(co-visibility ambiguity across tracked sightings).")
             else:
-                text = (f"Counted {distinct} distinct {label} instances, each a separately "
-                        f"tracked object across frames.")
+                text = (f"Counted {high} distinct {label} instances, resolved from tracked "
+                        f"sightings by co-visibility and attribute identity.")
             count_node = self._store.write_observation(
                 text=text,
                 t_ms=anchor_node.t_ms,
@@ -265,7 +284,11 @@ class SleepConsolidator:
                     "subject_hint": label,
                     "memory_kind": "group_memory",
                     "support_ids": support_ids,
-                    "count": distinct,
+                    "count": high,
+                    "count_low": low,
+                    "count_high": high,
+                    "covis_resolved": True,
+                    "binder_run_t": binder_run_t,
                     "authored_by": "deterministic_count",
                 },
                 node_type="group_memory",

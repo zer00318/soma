@@ -310,6 +310,24 @@ class TraceMemoryStore:
         self._conn.commit()
         return record
 
+    def reconsider_derived(self, builder: str) -> int:
+        """Sleep reconsolidation: remove DERIVED nodes previously authored by `builder` (and
+        links touching them) so the next run re-derives them from immutable raw. Raw capture
+        (derived=0 / immutable_raw=1) is never touched — the never-delete law protects what
+        was observed, not the binder's own reconsiderable output. Returns nodes removed."""
+        rows = self._conn.execute(
+            "SELECT id FROM memory_nodes WHERE derived = 1 AND immutable_raw = 0 "
+            "AND provenance_json LIKE ?",
+            (f'%"builder": "{builder}"%',),
+        ).fetchall()
+        ids = [r["id"] for r in rows]
+        for node_id in ids:
+            self._conn.execute(
+                "DELETE FROM memory_links WHERE from_id = ? OR to_id = ?", (node_id, node_id))
+            self._conn.execute("DELETE FROM memory_nodes WHERE id = ?", (node_id,))
+        self._conn.commit()
+        return len(ids)
+
     def read_observation(self, node_id: str) -> MemoryNode | None:
         row = self._conn.execute(
             "SELECT * FROM memory_nodes WHERE id = ?",

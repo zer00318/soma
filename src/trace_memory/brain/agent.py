@@ -265,7 +265,7 @@ IRREGULAR_PLURALS = {
     "mice": "mouse", "geese": "goose", "people": "person", "men": "man", "women": "woman",
     "children": "child", "feet": "foot", "teeth": "tooth", "knives": "knife",
     "shelves": "shelf", "leaves": "leaf", "loaves": "loaf", "wolves": "wolf", "dice": "die",
-    "buses": "bus",
+    "buses": "bus", "tvs": "tv", "pcs": "pc",
 }
 
 
@@ -699,7 +699,7 @@ def _search_context(
     # blanket was captured only inside long scene dumps that score negative, so towel/cloth/pillow
     # crops surfaced instead and the reasoner answered about the wrong object.) Prefer concise
     # nodes so a dedicated observation beats a giant dump when both name the subject.
-    subject_tokens = {t for t in _tokens(question) if len(t) > 2}
+    subject_tokens = {t for t in _tokens(question) if len(t) > 1}
     if subject_tokens:
         have = {hit.node.id for hit in search.hits}
         keyword_hits: list[tuple[int, Any]] = []
@@ -1119,7 +1119,7 @@ class TraceMemoryAgent:
             return [item[1] for item in ranked[:2]]
 
         if question:
-            subject_tokens = {t for t in _tokens(question) if len(t) > 2}
+            subject_tokens = {t for t in _tokens(question) if len(t) > 1}
 
             def question_rank(hit: Any) -> tuple[float, float, float]:
                 direct, lexical = _support_relevance(question, hit.node)
