@@ -94,3 +94,35 @@ def test_no_content_tokens_refuse_specifically(agent, junk):
     reasoner narrated random evidence at 0.7. No subject -> structural refusal."""
     answer = agent.answer(junk)
     assert answer.refused and answer.confidence <= 0.2
+
+
+def test_existence_requires_full_subject_phrase(agent):
+    """Canonical battery AB02 regression: 'soldering iron' must not exist just because a
+    'cast iron kettlebell' contains 'iron' — existence needs ALL subject tokens."""
+    answer = agent.answer("Is there a soldering iron on the desk?")
+    assert "no record" in answer.answer.lower()
+    assert answer.retrieval_mode == "existence:deterministic-absent"
+    present = agent.answer("Is there a keyboard on the desk?")
+    assert present.retrieval_mode != "existence:deterministic-absent"
+
+
+def test_temporal_order_is_deterministic(desk_store):
+    """Canonical battery TP05 regression: before/after answered from timestamps, not the LLM
+    (which inverts relative order roughly at chance)."""
+    desk_store.write_observation(
+        text="OBJECT | banana | yellow banana | desk | likely", t_ms=9000,
+        source="phone_camera", provenance={},
+        metadata={"helper": "vlm_object", "section_kind": "physical_object"})
+    agent = TraceMemoryAgent(desk_store, restrict_sources=("phone_camera",))
+    a = agent.answer("Did I see the banana before or after the mouse?")
+    assert "after" in a.answer and a.retrieval_mode == "temporal:deterministic-order"
+    b = agent.answer("Which came first, the mouse or the banana?")
+    assert "before" in b.answer
+
+
+def test_assertion_of_sight_arms_the_gaslight_guard():
+    """Canonical battery GA02 regression: 'I know you saw X' is a planted premise."""
+    from trace_memory.brain.agent import _has_planted_premise
+    assert _has_planted_premise("I know you saw my red toolbox — where did I put it?")
+    assert _has_planted_premise("You must have seen the golden trophy.")
+    assert not _has_planted_premise("Where did I put my toolbox?")

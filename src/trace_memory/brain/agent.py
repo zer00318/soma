@@ -183,6 +183,10 @@ _PLANTED_PREMISE_CUES = (
     "you claimed", "remember when", "last time you", "you confirmed", "didn't you say",
     "you already said", "you noted", "we established", "as we discussed", "you reported",
     "you just said", "like you said",
+    # Assertion-of-sight cues (canonical battery GA02: "I know you saw my red toolbox"
+    # armed nothing, so gemma latched onto a red-ish object at 0.7 instead of correcting).
+    "i know you saw", "i know you noticed", "i'm sure you saw", "im sure you saw",
+    "you definitely saw", "you must have seen", "you obviously saw", "surely you saw",
 )
 
 
@@ -218,6 +222,27 @@ def _singularize(token: str) -> str:
         return token[:-1]
     return token
 
+
+# Existence intent ("is there X", "did you see X") — the OWNER is a deterministic full-phrase
+# check, not the LLM. Measured (canonical battery AB02): the grounding gate passed "soldering
+# iron" on the subword collision with "cast IRON kettlebell", and gemma answered a non-sequitur
+# ("There is a ladder") at 0.7 — a confident-wrong. Existence requires ALL subject tokens.
+EXISTENCE_INTENT_RES = (
+    re.compile(r"^\s*(?:is|are) there (?:an? |any |some )?(?P<subject>.+?)\s*\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*(?:did|have) (?:you|i) (?:ever )?(?:see|seen|spot|notice[d]?) (?:an? |any |some )?(?P<subject>.+?)"
+               r"(?:\s+anywhere)?\s*\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*do i have (?:an? |any |some )?(?P<subject>.+?)\s*\??\s*$", re.IGNORECASE),
+)
+
+# Temporal-order intent ("before or after", "which came first") — the OWNER is a deterministic
+# timestamp comparator. Measured twice (M6 battery + canonical TP05): the local reasoner
+# inverts relative order roughly at chance even with readable clock times in evidence.
+ORDER_INTENT_RES = (
+    re.compile(r"did (?:i|you) see (?:the |my )?(?P<a>.+?) before or after (?:the |my )?(?P<b>.+?)\s*\??\s*$",
+               re.IGNORECASE),
+    re.compile(r"(?:which|what) (?:came|did (?:i|you) see) first[,:]?\s*(?:the |my )?(?P<a>.+?) or (?:the |my )?(?P<b>.+?)\s*\??\s*$",
+               re.IGNORECASE),
+)
 
 # Words that end the counted noun phrase in a "how many X ..." question: the verb/preposition
 # tail ("are on the desk", "did you see") locates the subject, it is not the subject. Without
@@ -663,6 +688,50 @@ class TraceMemoryAgent:
                     retrieval_mode=expanded.retrieval_mode,
                 )
 
+        # TEMPORAL-ORDER questions first — their phrasing ("did I see X before or after Y")
+        # also matches the broader existence patterns, and the more specific intent owns it.
+        for pattern in ORDER_INTENT_RES:
+            m = pattern.search(question)
+            if not m:
+                continue
+            order = self._order_answer(m.group("a"), m.group("b"), question)
+            if order is not None:
+                return order
+            break
+
+        # EXISTENCE questions: deterministic full-phrase check (owner rule §0.3). If no
+        # observation contains ALL the subject's content tokens, the honest answer is a
+        # direct "no record" — never the LLM narrating an unrelated object.
+        for pattern in EXISTENCE_INTENT_RES:
+            m = pattern.search(question)
+            if not m:
+                continue
+            subject_phrase = m.group("subject")
+            phrase_tokens: list[str] = []
+            for word in _normalize(subject_phrase).split():
+                if word in _COUNT_SUBJECT_BREAK:
+                    break
+                if word in STOPWORDS:
+                    continue
+                phrase_tokens.append(_singularize(word))
+            if not phrase_tokens:
+                break
+            hit = None
+            for node in self._store.nodes(node_types=("observation", "entity"),
+                                          sources=self._restrict_sources):
+                if all(t in _blob_tokens(node) for t in phrase_tokens):
+                    hit = node
+                    break
+            if hit is None:
+                return AgentAnswer(
+                    answer=f"No — I have no record of {' '.join(phrase_tokens)}.",
+                    evidence_chain=(),
+                    confidence=0.75,
+                    refused=False,
+                    retrieval_mode="existence:deterministic-absent",
+                )
+            break  # present -> fall through so the reasoner can describe it
+
         # COUNT questions route to MULTI-OBJECT PERMANENCE (collapse cross-frame re-observations
         # into distinct instances) — but only BEHIND the grounding gate (invariant I2): a count
         # fastpath that runs before the gate answered "1 unicorn @0.8" by binding to another noun
@@ -684,6 +753,40 @@ class TraceMemoryAgent:
             confidence=0.15,
             refused=True,
             retrieval_mode=expanded.retrieval_mode,
+        )
+
+    def _order_answer(self, phrase_a: str, phrase_b: str, question: str) -> AgentAnswer | None:
+        """Deterministic before/after: earliest observation matching ALL of each phrase's
+        content tokens; compare timestamps. Falls through (None) when either side is unseen,
+        so absence still reaches the honest refuse path."""
+        def first_match(phrase: str):
+            tokens = [_singularize(w) for w in _normalize(phrase).split()
+                      if w not in STOPWORDS]
+            if not tokens:
+                return None
+            best = None
+            for node in self._store.nodes(node_types=("observation",),
+                                          sources=self._restrict_sources):
+                if all(t in _blob_tokens(node) for t in tokens):
+                    if best is None or node.t_ms < best.t_ms:
+                        best = node
+            return best
+
+        a_node, b_node = first_match(phrase_a), first_match(phrase_b)
+        if a_node is None or b_node is None:
+            return None
+        relation = "before" if a_node.t_ms < b_node.t_ms else "after"
+        rows = tuple(
+            {"id": n.id, "type": n.node_type, "text": n.text, "t_ms": n.t_ms,
+             "citation_ids": []}
+            for n in (a_node, b_node)
+        )
+        return AgentAnswer(
+            answer=f"You saw the {phrase_a.strip()} {relation} the {phrase_b.strip()}.",
+            evidence_chain=rows,
+            confidence=0.8,
+            refused=False,
+            retrieval_mode="temporal:deterministic-order",
         )
 
     def _permanence_count(self, question: str) -> AgentAnswer | None:

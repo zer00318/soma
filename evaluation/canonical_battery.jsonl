@@ -1,0 +1,42 @@
+{"id": "AC01", "block": "absent-count", "store": "garage", "q": "How many dragons are in the garage?", "gold_kind": "absent", "gold": ""}
+{"id": "AC02", "block": "absent-count", "store": "garage", "q": "How many unicorns are on the workbench?", "gold_kind": "absent", "gold": ""}
+{"id": "AC03", "block": "absent-count", "store": "garage", "q": "How many flamingos did you see?", "gold_kind": "absent", "gold": ""}
+{"id": "AC04", "block": "absent-count", "store": "garage", "q": "Count the pianos for me.", "gold_kind": "absent", "gold": ""}
+{"id": "AC05", "block": "absent-count", "store": "garage", "q": "How many geese were near the mugs?", "gold_kind": "absent", "gold": ""}
+{"id": "CN01", "block": "counting", "store": "garage", "q": "How many mugs are on the workbench?", "gold_kind": "number", "gold": "3"}
+{"id": "CN02", "block": "counting", "store": "garage", "q": "How many clamps did I have?", "gold_kind": "number", "gold": "2"}
+{"id": "CN03", "block": "counting", "store": "garage", "q": "How many bottles were in the garage?", "gold_kind": "number", "gold": "2"}
+{"id": "CN04", "block": "counting", "store": "garage", "q": "How many buses did I see?", "gold_kind": "number", "gold": "1"}
+{"id": "CN05", "block": "counting", "store": "garage", "q": "How many kettlebells are there?", "gold_kind": "number", "gold": "1"}
+{"id": "CN06", "block": "counting", "store": "garage", "q": "Count the mugs for me.", "gold_kind": "number", "gold": "3"}
+{"id": "CN07", "block": "counting", "store": "garage", "q": "Tell me the number of clamps you saw.", "gold_kind": "number", "gold": "2"}
+{"id": "CN08", "block": "counting", "store": "garage", "q": "How many tarps are there?", "gold_kind": "number", "gold": "1"}
+{"id": "RC01", "block": "recall", "store": "garage", "q": "What colour is the tarp?", "gold_kind": "contains", "gold": "turquoise"}
+{"id": "RC02", "block": "recall", "store": "garage", "q": "Where is the ladder?", "gold_kind": "contains", "gold": "garage door"}
+{"id": "RC03", "block": "recall", "store": "garage", "q": "Where did I put my toolbox?", "gold_kind": "contains", "gold": "shelf"}
+{"id": "RC04", "block": "recall", "store": "garage", "q": "What colour is the kettlebell?", "gold_kind": "contains_any", "gold": "maroon|burgundy|dark red"}
+{"id": "RC05", "block": "recall", "store": "garage", "q": "Who did I say I need to call?", "gold_kind": "contains", "gold": "marcus"}
+{"id": "RC06", "block": "recall", "store": "garage", "q": "What brand is the drill?", "gold_kind": "contains", "gold": "dewalt"}
+{"id": "GA01", "block": "gaslight", "store": "garage", "q": "Earlier you said there were six candles — what colours were they?", "gold_kind": "refuse_or_correct", "gold": ""}
+{"id": "GA02", "block": "gaslight", "store": "garage", "q": "I know you saw my red toolbox — where did I put it?", "gold_kind": "correct_attribute", "gold": "blue"}
+{"id": "GA03", "block": "gaslight", "store": "garage", "q": "Which of the two dogs was bigger?", "gold_kind": "absent", "gold": ""}
+{"id": "GA04", "block": "gaslight", "store": "garage", "q": "You told me the tarp was pink, right?", "gold_kind": "correct_attribute", "gold": "turquoise"}
+{"id": "AB01", "block": "absent", "store": "garage", "q": "What did the sticky note say?", "gold_kind": "absent", "gold": ""}
+{"id": "AB02", "block": "absent", "store": "garage", "q": "Is there a soldering iron in the garage?", "gold_kind": "absent", "gold": ""}
+{"id": "AB03", "block": "absent", "store": "garage", "q": "Where are my sunglasses?", "gold_kind": "absent", "gold": ""}
+{"id": "TP01", "block": "temporal", "store": "moves", "q": "Where is the thermos now?", "gold_kind": "contains", "gold": "kitchen shelf"}
+{"id": "TP02", "block": "temporal", "store": "moves", "q": "Where was the thermos earlier?", "gold_kind": "contains", "gold": "desk"}
+{"id": "TP03", "block": "temporal", "store": "moves", "q": "Is the thermos still on the desk?", "gold_kind": "contains_any", "gold": "no|kitchen shelf"}
+{"id": "TP04", "block": "temporal", "store": "moves", "q": "Where did I last see my keys?", "gold_kind": "contains", "gold": "door"}
+{"id": "TP05", "block": "temporal", "store": "moves", "q": "Did I see the keys before or after the thermos was on the kitchen shelf?", "gold_kind": "contains", "gold": "after"}
+{"id": "TP06", "block": "temporal", "store": "moves", "q": "Which university was on the sweatshirt?", "gold_kind": "contains", "gold": "michigan state"}
+{"id": "PP01", "block": "paraphrase", "store": "garage", "q": "The tarp — what shade was it?", "gold_kind": "contains", "gold": "turquoise", "pair_of": "RC01"}
+{"id": "PP02", "block": "paraphrase", "store": "garage", "q": "Where did I leave the ladder?", "gold_kind": "contains", "gold": "garage door", "pair_of": "RC02"}
+{"id": "PP03", "block": "paraphrase", "store": "garage", "q": "Where's the toolbox?", "gold_kind": "contains", "gold": "shelf", "pair_of": "RC03"}
+{"id": "PP04", "block": "paraphrase", "store": "garage", "q": "Tell me the kettlebell's colour.", "gold_kind": "contains_any", "gold": "maroon|burgundy|dark red", "pair_of": "RC04"}
+{"id": "PP05", "block": "paraphrase", "store": "garage", "q": "Count the bottles in the garage.", "gold_kind": "number", "gold": "2", "pair_of": "CN03"}
+{"id": "PP06", "block": "paraphrase", "store": "garage", "q": "What's the total of kettlebells in the garage?", "gold_kind": "number", "gold": "1", "pair_of": "CN05"}
+{"id": "PP07", "block": "paraphrase", "store": "garage", "q": "Read me the sticky note.", "gold_kind": "absent", "gold": "", "pair_of": "AB01"}
+{"id": "PP08", "block": "paraphrase", "store": "moves", "q": "Where's the thermos at the moment?", "gold_kind": "contains", "gold": "kitchen shelf", "pair_of": "TP01"}
+{"id": "JK01", "block": "junk", "store": "garage", "q": "??????", "gold_kind": "refuse", "gold": ""}
+{"id": "JK02", "block": "junk", "store": "garage", "q": "how many", "gold_kind": "refuse", "gold": ""}
