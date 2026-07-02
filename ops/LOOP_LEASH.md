@@ -37,6 +37,12 @@ A **working prototype** that feels like *magic — "it remembers everything"* �
 - Failing #6 → move the heavy compute to a background gemma job; keep my turn light.
 
 ## Iteration log (newest first)
+- _iter M7 (2026-07-02):_ Canonical ledger M7 CODE DONE+committed (25170b7): threaded hub,
+  lock-free /health, evidence+badge payload, demo page, exception-proof asks. Hammer 40 asks:
+  0 crashes, honesty held; found+fixed sqlite thread-affinity (masked by my own error
+  fallback — fallbacks can hide total failure, check the happy path!) and junk-input gate
+  bypass. LEASH: product ✓ moat ✓. Next: canonical battery authoring + M8 rehearsal prep
+  (founder-gated), then idle-loop maintenance until founder session.
 - _iter M6 (2026-07-02):_ Canonical ledger M6 DONE+committed (812894c): landmark expansion
   (flagged world-knowledge notes; 'which university' answered from OCR 'MICHIGAN STATE'),
   succession verified, humanized 'when' in evidence (fixed a measured before/after inversion

@@ -145,11 +145,15 @@
   current-state/landmark battery 10/10 (gate ≥80%), 0 confident-wrong; 'which university' →
   'Michigan State University' end-to-end. Suite 233 green.
 
-**M7 — ONE demo surface.**
-  /ask hardened (timeout, concurrent asks, evidence rendering) + the phone app's ask view or a
-  single cockpit page showing answer + evidence + confidence. No second surface.
-  DoD: 30-minute live session, 40 mixed questions typed by a stranger, zero crashes, median
-  answer <15 s (27b) — honesty gate holds throughout.
+**M7 — ONE demo surface. ✅ CODE DONE 2026-07-02 (commit 25170b7); stranger-session DoD
+  runs at the founder session.**
+  Threaded hub + store lock; lock-free /health (max 0.05s during generation); /ask returns
+  answer + calibrated badge + evidence chain with clock times; minimal demo page at /;
+  exception-proof asks. HAMMER: 40 asks (3 concurrent, gaslights, SQL injection, junk) ->
+  zero crashes, honesty held; caught+fixed 2 real defects (sqlite thread-affinity masked by
+  the error fallback; zero-content questions bypassing the empty grounding gate at 0.7).
+  Follow-ups queued: channel questions ('what did anyone say') over-refuse; compound
+  questions answer first count only. Suite 238 green.
 
 **M8 — Full-gate rehearsal.**
   Fresh capture of a never-seen room, Canonical Battery run blind by the founder.
