@@ -110,6 +110,25 @@ public struct VideoFrameView: View {
     }
 }
 
+// Shared CIContext to turn a camera CVPixelBuffer into a CGImage for display.
+// WHY: assigning a raw CVPixelBuffer to `layer.contents` renders on the physical screen, but
+// its IOSurface backing is NOT captured by AirPlay / screen mirroring / screen recording — so
+// the live preview shows BLACK on a projector while looking fine on the phone. A CGImage-backed
+// layer mirrors correctly. (Camera preview only; the perception pipeline keeps the raw buffer.)
+private let _previewCIContext = CIContext(options: [.useSoftwareRenderer: false])
+
+private func _displayContents(_ image: Any) -> Any {
+    let obj = image as AnyObject
+    if CFGetTypeID(obj) == CVPixelBufferGetTypeID() {
+        let pb = obj as! CVPixelBuffer  // CVImageBuffer is a CVPixelBuffer
+        let ci = CIImage(cvPixelBuffer: pb)
+        if let cg = _previewCIContext.createCGImage(ci, from: ci.extent) {
+            return cg
+        }
+    }
+    return image
+}
+
 #if os(iOS)
     /// Internal view to display a CVImageBuffer
     private struct _ImageView: UIViewRepresentable {
@@ -124,7 +143,8 @@ public struct VideoFrameView: View {
         }
 
         func updateUIView(_ uiView: UIView, context: Context) {
-            uiView.layer.contents = image
+            // CGImage (not the raw pixel buffer) so the preview is visible under screen mirroring.
+            uiView.layer.contents = _displayContents(image)
         }
     }
 #else
@@ -141,7 +161,7 @@ public struct VideoFrameView: View {
         }
 
         func updateNSView(_ uiView: NSView, context: Context) {
-            uiView.layer?.contents = image
+            uiView.layer?.contents = _displayContents(image)
         }
     }
 
