@@ -233,6 +233,25 @@ final class TraceAudioContextEngine: NSObject, ObservableObject {
             return
         }
 
+        #if os(iOS)
+        // On iOS the microphone hardware stays OFF until an AVAudioSession is
+        // configured and activated. Nothing in this app ever did that — in the
+        // old mode the AVCapture pipeline warmed the audio route incidentally,
+        // but with ARKit owning the camera SFSpeech ran against silence
+        // (measured 2026-07-03: founder spoke through a whole walk, zero ASR
+        // rows landed). Activate explicitly; ARKit does not use the mic, so
+        // there is no ownership conflict.
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playAndRecord, mode: .measurement,
+                                    options: [.mixWithOthers, .defaultToSpeaker])
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            status = "Audio session activation failed: \(error.localizedDescription)"
+            return
+        }
+        #endif
+
         recognitionTask?.cancel()
         recognitionTask = nil
 

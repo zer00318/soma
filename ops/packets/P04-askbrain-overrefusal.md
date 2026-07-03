@@ -2,6 +2,19 @@
 wave: W0 · tag: judgment · executor: Opus effort=high or Fable · depends: none
 
 ## Context (self-contained)
+UPDATE 2026-07-04: a 4th defect found + root-caused live, and the temporal-qualifier
+confident-wrong that shadowed it is already FIXED at HEAD (TEMPORAL_QUALIFIER_WORDS in
+agent.py; regression tests in tests/unit/test_count_grounding.py).
+4. **existence-present over-refusal**: "did you see a truck" with a PERFECT evidence
+   window (3 rows: "OBJECT | truck | black, white, ups logo, parked...") → gemma answers
+   "I don't know" @0.15. The existence owner (agent.py ~line 705) answers ABSENCE
+   deterministically but falls through to the LLM for PRESENCE ("present -> fall through
+   so the reasoner can describe it") — and the reasoner won't confirm "did you see X"
+   phrasing. Fix inside the SAME owner (L4): when the full-phrase scan finds a hit,
+   return a deterministic confirmation citing the matched row(s) + 'when'
+   (mode existence:deterministic-present), and let follow-up description go to the LLM.
+   Verify against the canonical battery's existence-present questions before merge.
+
 Three measured defects in `src/trace_memory/brain/agent.py` (the ask brain), found on the
 REAL live store `data/trace_store.sqlite3` with gemma3:12b-it-qat via ollama:
 1. **where-is over-refusal** (found 2026-07-03): "where is the laptop" → "I don't know"

@@ -125,6 +125,23 @@ ABSTRACT_QUERY_WORDS = {
     "time", "colour", "color", "brand", "name", "number", "kind", "type", "amount",
     "price", "size", "count", "flavour", "flavor", "material", "shape", "model", "make", "text",
 }
+# Closed-class temporal qualifiers (function words of WHEN, not content words of WHAT).
+# They must never be treated as part of a question's subject: "did you see a truck
+# today" asks about a *truck*, filtered by time — but the existence checker required a
+# row containing the literal token "today", which no observation text ever holds, so it
+# confidently denied things that were plainly in the store (live repro 2026-07-03:
+# 18 truck rows present, "no record of truck today" @0.75). This is grammar, not a
+# content lexicon (I5-safe, same class as STOPWORDS).
+TEMPORAL_QUALIFIER_WORDS = {
+    "today", "tonight", "yesterday", "tomorrow", "now", "currently", "recently",
+    "earlier", "later", "morning", "afternoon", "evening", "night", "noon", "midnight",
+    "week", "month", "year", "monday", "tuesday", "wednesday", "thursday", "friday",
+    "saturday", "sunday",
+    # determiners that only ever introduce temporal phrases in these questions
+    # ("this morning", "last week") — "this" is not in STOPWORDS and was being
+    # singularized into the nonsense subject token "thi".
+    "this", "that", "last", "next", "past",
+}
 # M3 (invariant I5): the content lexicons that used to live here — a bedroom-specific
 # LOCATION_ANCHORS noun list, SCREEN_REPORT_NOISE literals scraped from our own dev
 # screenshots, a drink-cue lexicon — are DELETED, not relocated. Ranking may key only on
@@ -711,7 +728,7 @@ class TraceMemoryAgent:
             for word in _normalize(subject_phrase).split():
                 if word in _COUNT_SUBJECT_BREAK:
                     break
-                if word in STOPWORDS:
+                if word in STOPWORDS or word in TEMPORAL_QUALIFIER_WORDS:
                     continue
                 phrase_tokens.append(_singularize(word))
             if not phrase_tokens:

@@ -106,6 +106,31 @@ def test_existence_requires_full_subject_phrase(agent):
     assert present.retrieval_mode != "existence:deterministic-absent"
 
 
+@pytest.mark.parametrize("question", [
+    "Did you see a mug today?",
+    "Did you see a keyboard this morning?",
+    "Did I see a mouse yesterday?",
+])
+def test_existence_temporal_qualifier_is_not_subject(agent, question):
+    """Live repro 2026-07-03: 'did you see a truck today' confidently denied 18 truck rows
+    because 'today' was treated as a required subject token — and no observation text ever
+    contains the literal word 'today'. Temporal qualifiers filter WHEN, never define WHAT."""
+    answer = agent.answer(question)
+    assert answer.retrieval_mode != "existence:deterministic-absent", (
+        f"{question!r} -> {answer.answer!r} (temporal word leaked into the existence subject)"
+    )
+
+
+def test_existence_absent_with_temporal_word_still_denies(agent):
+    """The fix must not weaken absence: a truly-absent object with a temporal qualifier
+    is still denied or refused — never confirmed. (The S1 grounding gate may refuse it
+    before the existence owner runs; both are honest outcomes.)"""
+    answer = agent.answer("Did you see a unicorn today?")
+    honest_deny = answer.retrieval_mode == "existence:deterministic-absent"
+    honest_refuse = answer.refused and answer.confidence <= 0.5
+    assert honest_deny or honest_refuse, f"{answer.answer!r} @ {answer.confidence}"
+
+
 def test_temporal_order_is_deterministic(desk_store):
     """Canonical battery TP05 regression: before/after answered from timestamps, not the LLM
     (which inverts relative order roughly at chance)."""

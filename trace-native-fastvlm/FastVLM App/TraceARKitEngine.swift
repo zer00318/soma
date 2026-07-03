@@ -40,7 +40,8 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
     private var framesReceived = 0
     private var framesConverted = 0
     private var lastConversionAt = Date.distantPast
-    private static let conversionMinInterval: TimeInterval = 0.1
+    private static let conversionMinInterval: TimeInterval = 0.1          // ~10 fps: ceiling of the perception drain rate
+    private static let conversionMinIntervalRecording: TimeInterval = 1.0 / 30.0  // smooth forensic video while recording
 
     nonisolated private static let worldMapURL: URL = {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -329,7 +330,19 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         // to 1 observation in 7 minutes. Convert at most ~10 fps.
         framesReceived += 1
         let now = Date()
-        if now.timeIntervalSince(lastConversionAt) >= Self.conversionMinInterval,
+        // Cadence is set by what the consumers can actually drain, not taste:
+        // the VLM takes ~1-3 s per description, the detector cycles at
+        // VISION_FRAME_DELAY (180 ms -> ~5.5 fps), and both sit behind
+        // bufferingNewest(1) streams that silently drop everything faster.
+        // Converting above the drain rate buys zero extra memories and costs a
+        // full-res render each time (the measured 2026-07-03 lag). While the
+        // ground-truth recorder is rolling we pay 30 fps so the forensic video
+        // is smooth; these constants get re-derived from the frames_received/
+        // frames_converted counters once real instrumented walks accumulate.
+        let minInterval = VideoRecorder.shared.isRecording
+            ? Self.conversionMinIntervalRecording
+            : Self.conversionMinInterval
+        if now.timeIntervalSince(lastConversionAt) >= minInterval,
            let sampleBuffer = Self.makeSampleBuffer(from: frame.capturedImage) {
             lastConversionAt = now
             framesConverted += 1
