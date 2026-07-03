@@ -1106,7 +1106,14 @@ class TraceMemoryAgent:
                 time_bias = 0.0
                 if "current" in hints:
                     time_bias = hit.node.t_ms / 100_000.0
-                return direct + support_bonus + subject_bonus, lexical, time_bias
+                # SEMANTIC BRIDGE: the store's embedding search already knows "what did I eat
+                # for breakfast" ~ "scrambled eggs" and "whose lectures" ~ "Mr. Ryan Maccombs",
+                # even with ZERO shared words. Without folding that score in here, the lexical
+                # re-rank buried those answer rows below word-matching noise and they never
+                # reached the reasoner (measured on the day-in-life store). Weighted below an
+                # exact subject match (subject_bonus 3-4) so precise recall is unaffected.
+                semantic = 1.6 * float(getattr(hit, "score", 0.0) or 0.0)
+                return direct + support_bonus + subject_bonus + semantic, lexical, time_bias
 
             hits.sort(
                 key=lambda hit: (
@@ -1160,6 +1167,14 @@ class TraceMemoryAgent:
         authored_hits = [h for h in hits if h.node.node_type in AUTHORED_NODE_TYPES]
         raw_hits = [h for h in hits if h.node.node_type not in AUTHORED_NODE_TYPES]
 
+        # DEDUPE near-identical evidence text so a repeated read (e.g. many per-frame "reads
+        # BREAKFAST" OCR rows, or the same scene caption across frames) can't eat all 9 slots
+        # and evict the diverse row that actually answers the question. Keeps the window varied.
+        seen_texts: set[str] = set()
+
+        def _text_key(node: Any) -> str:
+            return _normalize(node.text or "")[:80]
+
         for hit in authored_hits[:AUTHORED_SLOTS]:
             if hit.node.id in appended_ids:
                 continue
@@ -1176,6 +1191,10 @@ class TraceMemoryAgent:
                 continue
             if len(rows) >= CAP:
                 break
+            key = _text_key(hit.node)
+            if key and key in seen_texts:
+                continue
+            seen_texts.add(key)
             _emit_raw(hit)
 
         # If authored memories were highly ranked but slots remained, top up with any remaining authored.
