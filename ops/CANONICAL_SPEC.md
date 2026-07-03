@@ -1,194 +1,237 @@
-# TRACE — CANONICAL SPECIFICATION & EXECUTION LAW (v2)
-**Status: ABSOLUTE. Supersedes v1 (frozen earlier 2026-07-01) and ALL other ops/*.md. Revised 2026-07-01 after the fresh adversarial audit.**
+# TRACE — CANONICAL SPECIFICATION & EXECUTION LAW (v3)
+**Status: ABSOLUTE. Supersedes v2 (2026-07-01, preserved in git history) and ALL other ops/*.md.**
+**Authored 2026-07-03 from the founder co-creation session (interactive MCQ brainstorm).**
+**That session constitutes the founder's explicit written approval that v2 §1 required.**
 
-> v1 was falsified within hours of being "frozen": its blueprint mandated 6-DOF ARKit pose +
-> world-XYZ instance keys (ARKit is dead on the founder's phone; the shipped anchor is the
-> on-device track_id), and its §4 claimed "CONFIDENT-WRONG = 0 (GATE MET)" while the live /ask
-> answered "1 unicorn @0.8". v2 exists because the law must match measured physics, not the
-> other way around. **This is the last revision that changes the blueprint.** Any future change
-> to §1 requires the founder's explicit written approval.
-
----
-
-## 0. THE THREE RULES THAT END THE TRAP
-1. **FREEZE.** The architecture in §1 is fixed. We compound on it; we never re-derive it.
-   Greenfield nukes, new stores, new server files, and new planning docs are forbidden.
-   (There are 55 docs in ops/. This one supersedes them; touch no other.)
-2. **ONE METRIC.** Progress = movement on the Canonical Battery (§4), end-to-end, on real
-   capture, scored against gold the implementer never saw. Unit tests gate merges; they are
-   NEVER progress. "N tests green" has been falsified as a progress signal three times.
-3. **ONE OWNER PER QUESTION.** Every question type (count, where, what, said, when) has exactly
-   ONE answering subsystem. Duplicate mechanisms for the same question (today: 3 counting
-   systems that answer 12 / 3 / 1 for the same keyboard) are P0 bugs, not options.
+> Lineage: v1 was falsified within hours. v2 fixed that with the serial ledger M0→M8; its
+> CODE side completed 2026-07-02 (store, sleep binder, ask brain, honesty gate, canonical
+> battery — 241 tests; battery 96.7 / 100 / 0 confident-wrong / 100, held at fd82215).
+> v3 does not discard that work: it promotes the survivors into the larger architecture the
+> founder defined from first principles, and replaces v2's founder-session gate with a new
+> done bar. v2's M-ledger is CLOSED; its unresolved device DoDs are absorbed into §4.
 
 ---
 
-## 1. THE IMMUTABLE ARCHITECTURE BLUEPRINT
+## 0. THE RULES THAT END THE TRAP
+1. **FREEZE.** The architecture in §2 is fixed. We compound on it; we never re-derive it.
+   Changing §2 requires the founder's explicit written approval.
+2. **ONE METRIC.** Progress = movement on measured batteries on REAL capture (canonical
+   battery + the Leash's per-domain coverage, §6). Unit tests gate merges; they are never
+   progress. "N tests green" has been falsified as a progress signal three times.
+3. **ONE OWNER PER QUESTION.** Every question type has exactly one answering subsystem.
+   Duplicate mechanisms for the same question are P0 bugs.
+4. **NEVER LEGISLATE AHEAD OF MEASUREMENT.** Packets are authored in full only for the
+   active wave. Future waves stay stubs until the previous wave's numbers are in.
+
+---
+
+## 1. THE PRODUCT
+
+TRACE is a memory prosthetic: **perfect memory, ask anything.** A worn device (phone as
+stand-in; the real product is an ambient wearable — battery/thermal engineering on the
+phone is explicitly OUT of scope) perceives your whole life, physical and digital. Raw
+frames and audio die on the device; distilled observations survive forever on hardware
+you own. While you sleep, the memory consolidates. You ask anything about your past in a
+chat app and get an honest, evidence-backed, calibrated answer — the system would rather
+say "I didn't capture that" than lie.
+
+**Next iteration (room reserved, nothing built now):** the second brain that ACTS —
+reminders ("you said you'd call Marcus Thursday"), warnings, briefings. No design below
+may foreclose it; none of it ships now.
+
+---
+
+## 2. THE ARCHITECTURE (v3 — the founder's blueprint)
 
 ```
-[PHONE — on-device, frames NEVER leave]
-  camera/mic ─▶ OBSERVER  (blur/change/novelty gating — keep the useful ~10%)
-              ─▶ HELPERS  (parallel aspect specialists, per kept frame):
-                   • detector+TRACKER  → {label, track_id, bbox, depth_m|xyz if available}
-                   • VLM               → object/scene descriptions (per-track crop when possible)
-                   • Vision OCR        → verbatim text + anchor to overlapping track/bbox
-                   • Speech ASR        → transcript segments
-              ─▶ frame DELETED; helper TEXT+metadata POSTed to hub
-[MAC — trust boundary = the user's own machine]
-  trace_hub (:8765) ─▶ UNIFIED STORE (data/trace_store.sqlite3, append-only, never-delete,
-                        every row tagged source + helper + track_id when present)
-  SLEEP BINDER (offline, unbounded compute) ─▶ INDIVIDUATE: one node per PHYSICAL instance.
-        Identity evidence, fused in ONE module (src/trace_memory/store/individuate.py):
-        track_id (primary, live) × attribute/text compatibility × metric-3D proximity
-        (DepthPro reconstruction at sleep-time when frames were sampled for it).
-        Authors cited memories: entity/group/count/location. AUGMENTS raw, never replaces.
-  AGENT (src/trace_memory/brain/agent.py) ─▶ grounding gate FIRST, then retrieval
-        (raw + authored), then reasoner (local gemma dev / 27b-or-frontier at ask-time —
-        ask-time is off the real-time budget) under the evidence-only contract.
-[UI]  ONE surface: /ask → {answer, evidence chain, calibrated confidence, honesty badge}
+[PHONE — worn all day]                      [MAC]
+  camera + mic (frames/audio NEVER leave)     screen daemon (your digital life)
+        │                                          │
+        ▼                                          │
+  COORDINATE ANCHOR SUBSTRATE                      │
+  everything pinned to a place:                    │
+  ARKit 6-DOF anchors live, graded fidelity        │
+        │                                          │
+        ▼                                          ▼
+  STANDING CREW (always on): tracker · VLM · OCR · ASR · place ·
+  motion/IMU · person+voice clustering · sound events · etc.
+        │
+        ▼
+  ACTIVITY DISPATCHER ──▶ SPECIALIST PLUGINS (open registry, user-extendable:
+  recognizes the context      code, receipts, documents, media, … etc. — NEVER a closed list)
+        │
+        ▼
+  LIVE BINDER — instant fusion at the anchor: this text, on that object, there.
+  Same-vs-new decided by coordinates × appearance fingerprint × time × attributes.
+  Includes the LOOK-AGAIN loop: perception notices its own gaps and re-asks
+  (zoom, crop, re-run a helper) automatically. A bit of brain lives live.
+        │
+        ▼
+  ONE STORE — never deletes on its own; verbatim; local-only; provenance on every row.
+        │
+        ▼
+  SLEEP BRAIN (nightly, unbounded): individuation & counting · IDENTITY RESOLUTION
+  (Frank@WeChat = Yanjun Lai@WhatsApp; two sightings = one mug — auto-merge when sure,
+  review-card when not; merges logged, reversible) · DIGEST PYRAMID (episode → day → week).
+        │
+        ▼
+  ASK BRAIN (per question, tiered): compiled fast paths (counts, current-location)
+  → pyramid routing (climb digests) → agentic drill-down into raw rows.
+  Context stays small forever, regardless of months lived.
+        │
+        ▼
+  CHAT APP ON PHONE: timeline of episodes (incl. honest gaps) · multi-turn chat ·
+  live retrieval narration → calibrated badge → expandable receipts · review cards.
+  (The GRAPH — memory as a walkable node-world, snap-edges as permissions — is the
+   post-done-bar centerpiece: designed, not in the prototype.)
 ```
 
-**Invariants (violating any = P0, revert on sight):**
-- I1. Raw media never leaves the phone; only derived text + metadata persist.
-- I2. The subject-grounding honesty gate runs BEFORE every answering fastpath. No routing
-  shortcut may bypass it. (The unicorn breach was exactly this violation.)
-- I3. One physical object = one instance node; a count is the number of instance nodes the
-  binder resolved — never a per-question text re-cluster, never an LLM guess.
-- I4. 0 confident-wrong (wrong at confidence ≥0.6, not refused) on the Canonical Battery,
-  including gaslight and count-of-absent questions. Hard gate on every merge.
-- I5. No hardcoded content lexicons in ranking/answering (no room-specific noun lists, no
-  dev-screenshot noise strings, no phrasing-anchored routing regexes).
+**Identity model (hybrid, fused):** places are coordinates (rooms become persistent maps);
+things are appearance fingerprints (compact, on-device, non-reversible visual signatures)
+with a location history through coordinate space. The live binder weighs both —
+coordinates pin the world, fingerprints pin the things, and they check each other.
+
+**Phone's own screen:** a stated, honest hole in the prototype ("the wearable sees your
+phone screen naturally; the phone stand-in can't film itself"). No build.
 
 ---
 
-## 2. THE GRANULAR FEATURE LEDGER (strict serial order)
+## 3. THE LAWS (invariants — every packet carries them; violating any = P0, revert on sight)
 
-> You may not start item N+1 until item N passes its DoD on REAL capture, re-run personally by
-> the Chief. A sub-agent's "passed" is not acceptance. Every item ships with its held-out
-> battery questions added by the Chief BEFORE implementation.
+- **L1 PRIVACY.** Not one video frame, not one second of audio leaves the phone. Derived
+  text observations and non-reversible numeric fingerprints/embeddings MAY cross to the
+  owner's own Mac. Nothing, ever, to anyone else's hardware.
+- **L2 HONESTY.** Confident-wrong = 0 is a hard merge gate. The grounding gate runs BEFORE
+  every answering fastpath — no routing shortcut may bypass it (the unicorn breach was
+  exactly this violation). Every answer carries a calibrated badge. Refusal is a feature.
+- **L3 SOVEREIGNTY.** The system never deletes or decays content on its own (decay =
+  retrieval cost only). The owner's delete: hidden immediately everywhere, true purge after
+  a 30-day grace window. Snapping a graph edge cuts ACCESS, never data.
+- **L4 ONE OWNER** per question type (count, where, who-said, when, what).
+- **L5 NO CONTENT LEXICONS.** Relevance is structural; hardcoded word lists are forbidden.
+- **L6 MEASURE FIRST.** No wave's packets are finalized before the prior wave's numbers.
+- **L7 OPEN REGISTRY.** Helpers are plugins with one contract (§5). The list is never
+  closed; users can add their own. "Etc." is load-bearing.
 
-**M0 — Close the unicorn breach + repo red. ✅ DONE 2026-07-02 (commit 8a6e34f).**
-  Count fastpath moved behind the S1 gate; `_count_subject` narrows to the counted noun phrase;
-  irregular plurals handled; 3 orphaned test files deleted, M0 regression battery + hub seam
-  tests added. MEASURED: 10/10 truly-absent count questions honest on live :8765 + gemma12b
-  (0 fabricated counts); committed `pytest -q` = 211 passed; :8799 zombie killed, no respawners.
-  NOTE for M1/M5: a 1-frame VLM misread ("snake" = hanging cable) is countable evidence —
-  one-off reads must hedge (n_frames==1 → soft count), and the consensus filter kills them
-  upstream in M5.
+**People:** anonymous-until-named — voice/face clusters christened retroactively by context
+("thanks, Marcus") or by the owner in chat. Others' speech: **verbatim, attributed** —
+defensible because it never leaves the owner's hardware.
 
-**M1 — ONE counting path. ✅ DONE 2026-07-02 (commit 120207b).**
-  `count_instances` is THE resolver: binder-authored + clustering + floor, reconciled.
-  Agreement → firm @0.8; binder disagreement → honest RANGE @0.5; floor-rescue/single-sighting
-  → "approximately N" @0.55. Floor unpoisonable (OCR rows + verbatim "poster reads..." text
-  excluded; adjective-run word counts work). Count intent = phrasing family, not ^how many
-  (LLM intent tagging deferred to M3). Type-modifier discriminator from descriptor phrases
-  only — comma-list labels carry no types (live regression caught pre-commit: over-split
-  agreed with fragmented binder → firm-wrong "3 mice"; now hedged with truth inside range).
-  MEASURED DoD: garage block 10/10, 0 confident-wrong (was ~4/10 w/ 2 confident-wrong);
-  live desk store 0 confident-wrong. Suite 219 green. Hub restarted on new code.
-  → M2 turns the live "between 1 and 3" hedges into firm correct counts by fixing identity.
-
-**M2 — Object identity that survives real capture. ✅ CODE DONE 2026-07-02 (commit 0d4f5d5);
-  DoD remainder = founder truth confirmation + a second never-seen-room capture.**
-  Co-visibility re-ID in individuate.py: same-frame (≤150ms) different-cell = distinct;
-  same-cell = duplicate box; attribute contradiction (weight/volume, colour family) splits
-  without co-visibility; else merge. Ambiguity → authored count RANGE; resolved low = hard
-  lower bound in the resolver. Sleep reconsolidation (reconsider_derived) re-derives all
-  binder output from immutable raw each run. Three real-data bugs found live and locked as
-  tests: per-session track-id collisions (key by label+tid), depth text read as identity
-  size, pan misread as co-visibility (700→150ms). MEASURED live desk: mouse 9 tracks→1 FIRM,
-  laptop→1 FIRM, chair/book/phone/bed 1 FIRM, keyboard→[2,3], tv→[2,3], cup→[1,2]; unicorns
-  refused. Suite 225 green. DepthPro 3D consolidation deferred: grid+time evidence sufficed
-  for the desk; revisit if the second capture's DoD misses ±1.
-
-**M3 — De-overfit the ranker (I5 enforcement). ✅ DONE 2026-07-02 (commit 43320d0).**
-  All content lexicons + dead code deleted; ranking = lexical overlap + intent→helper-type
-  priors + generic location grammar + structural screen_text demotion. MEASURED DoD: garage
-  17/18 (gate ≥13 — only miss is DeWalt brand = M4's scope), paraphrase parity 9/10 = 90%
-  (gate ≥90%; the break is an honest refusal on call/phone synonymy — future embedding
-  grounding candidate, moat intact). 0 fabrications. Suite 225 green.
-
-**M4 — OCR→object binding at capture ("DeWalt" class). ✅ CODE DONE 2026-07-02 (commit
-  90b8e83); DoD remainder = device deploy + founder capture of 5 planted branded objects.**
-  Track-anchor emission binds intersecting OCR to the track ('label text: "..."' +
-  metadata.bound_text); bound digits are verbatim world text for the count floor (bus-sign
-  test locked). xcodebuild iOS BUILD SUCCEEDED. Mac seam locked by 3 tests through real
-  Hub.ingest. Suite 228 green.
-
-**M5 — Capture coverage & rate. ✅ CODE DONE 2026-07-02 (commit e5b3e9b); DoD = blind
-  battery on the founder-session capture (see gate block below).**
-  Per-track VLM crop enrichment (one zoomed read per confirmed track, throttled, fused via
-  track_id — the small/far-object lever); ASR delta commits (cumulative-partial duplication
-  fixed; the 2-rows session was likely silence, engine wiring verified correct); small-text
-  OCR judged covered by M4's bound full-res OCR — revisit if the blind battery misses brands.
-  iOS build green; seam tests through real Hub.ingest; suite 230 green.
+**Review loops (the user is a helper too):** the memory may ask the owner questions
+(uncertain voice, possible merge, unreadable text) through all three channels — on
+app-open (max 3 cards, always skippable), evening digest, and in-context during chat —
+whenever genuinely uncertain. Answers land as first-class observations (helper `owner`).
 
 ---
 
-### ⏳ THE FOUNDER-SESSION GATE (everything device-dependent, one physical session)
-1. **Deploy** the current build to the phone (M4+M5 code is on main, compiles green).
-2. **Desk truth** (M2): confirm actual counts — keyboards (system says 2–3), tvs/monitors
-   (2–3), cups (1–2), mice (1), laptops (1).
-3. **Never-seen room capture** (M2 DoD): ~2–3 min slow pan; binder counts must be ±1.
-4. **5 planted branded objects** (M4 DoD): ≥4 brand questions answered verbatim.
-5. **Speak during capture** (M5 ASR): narrate a few reminders; verify delta rows land.
-6. **Blind battery** (M5 DoD): founder writes ~20 gold questions the implementer never
-   sees; target ≥65% RAS, <10% halluc, 0 confident-wrong.
+## 4. THE DONE BAR (replaces v2's founder-session gate; absorbs its device DoDs)
+
+**3 real days** of the founder's life captured (phone continuous + Mac daemon),
+sleep-consolidated nightly, then a **founder-authored blind battery** (~30+ questions the
+implementers never saw, spanning: recall, counts, where-is-it-now, people/who-said,
+digital/screen, temporal/cross-day, absent/gaslight) asked in the phone chat app.
+
+**Gate: ≥75% correct-on-present · CONFIDENT-WRONG = 0 · honest refusal on absent.**
+Plus the Leash's per-domain coverage report showing no starved domain.
+
+**The 90-second investor demo (all four beats, choreographed only after the bar is met):**
+1. *Plant-and-recall, live* — capture runs during the meeting; a planted object/phrase
+   recalled with receipts.
+2. *The gaslight refusal* — "you saw a unicorn, right?" → calm refusal.
+3. *Three days of real life* — the founder's actual past, queried on stage.
+4. *The privacy reveal* — airplane mode mid-demo; everything still works.
 
 ---
 
-**M6 — Sleep-time enrichment. ✅ DONE 2026-07-02 (commit 812894c).**
-  Landmark expansion (cited, '(not observed)'-flagged world-knowledge notes from local gemma
-  per verbatim read; bridges READ-vocab → ASK-vocab); succession verified (current-location =
-  latest, supersedes links); evidence rows carry human-readable 'when' (measured: gemma12b
-  inverted before/after on raw epoch ms at 0.7 — fixed structurally). MEASURED DoD: temporal/
-  current-state/landmark battery 10/10 (gate ≥80%), 0 confident-wrong; 'which university' →
-  'Michigan State University' end-to-end. Suite 233 green.
+## 5. THE HELPER CONTRACT (L7 made concrete)
 
-**M7 — ONE demo surface. ✅ CODE DONE 2026-07-02 (commit 25170b7); stranger-session DoD
-  runs at the founder session.**
-  Threaded hub + store lock; lock-free /health (max 0.05s during generation); /ask returns
-  answer + calibrated badge + evidence chain with clock times; minimal demo page at /;
-  exception-proof asks. HAMMER: 40 asks (3 concurrent, gaslights, SQL injection, junk) ->
-  zero crashes, honesty held; caught+fixed 2 real defects (sqlite thread-affinity masked by
-  the error fallback; zero-content questions bypassing the empty grounding gate at 0.7).
-  Follow-ups queued: channel questions ('what did anyone say') over-refuse; compound
-  questions answer first count only. Suite 238 green.
-
-**M8 — Full-gate rehearsal.**
-  Fresh capture of a never-seen room, Canonical Battery run blind by the founder.
-  DoD: §4 exit numbers. Then, and only then, product-form polish.
+A helper is ANY process that emits observations shaped as:
+`{text, t_ms, anchor_id?, fingerprint?, confidence, helper_id, provenance}`
+into the hub's ingest seam. Standing-crew helpers run always; dispatched specialists are
+invoked by the activity dispatcher; the owner's review-card answers arrive as helper
+`owner`. The registry is data, not code — adding a helper must not touch the spine.
 
 ---
 
-## 3. IMPLEMENTATION PROTOCOL (how every module gets built)
-1. Chief writes the held-out battery questions FIRST and keeps them out of the implementer's view.
-2. Smallest change that could move the metric. No new files where an owner file exists
-   (hub=trace_hub.py, identity=individuate.py, counting=binder, agent=agent.py).
-3. Run: committed `pytest -q` (must be green) AND the full Canonical Battery end-to-end on real
-   capture with the production reasoner.
-4. Merge iff the battery moved (or held) in the intended dimension AND confident-wrong = 0.
-   Otherwise revert the same day. No "keep it, we'll fix forward."
-5. Update THIS ledger's checkbox + one line in the battery log. No other doc is written.
+## 6. THE LEASH (the objective evaluator — anti-tunnel machinery)
 
-## 4. THE CANONICAL BATTERY (the single ungameable number)
-Fixed, versioned file `evaluation/canonical_battery.jsonl` (≥60 Qs; founder/Chief-authored gold;
-implementers never tune on it). Blocks: present-recall, absent-refusal (incl. count-of-absent),
-counting (multiples/fragmentation/poisoning), paraphrase pairs, gaslight/false-premise,
-attribute precision (incl. OCR-bound brands), temporal, speech. Report four numbers only:
-- CORRECT-ON-PRESENT % · REFUSE-ON-ABSENT % · CONFIDENT-WRONG (hard 0) · PARAPHRASE-PARITY %
+A fixed per-domain battery scored against every captured real day: recall %, refusal
+honesty, and **coverage per life domain** (physical objects · text-in-world · speech/people ·
+digital/screen · motion/place · sound events · temporal). Numbers append to
+`evaluation/leash_history.jsonl` on every run — trend is visible, not vibes.
 
-**Baseline 2026-07-01 (audit):** 13/18; CONFIDENT-WRONG = 3 → gate FAILED (M0's origin).
-**MEASURED 2026-07-02 (battery v1, gemma12b, n=42, one command:
-`.venv/bin/python evaluation/run_canonical_battery.py`):** CORRECT-ON-PRESENT **96.7** ·
-REFUSE-ON-ABSENT **100.0** · CONFIDENT-WRONG **0 (GATE MET)** · PARAPHRASE-PARITY **100.0**.
-All four beat the §5 thresholds on the fixture worlds. The instrument's first run caught 3
-defects ad-hoc batteries missed (existence subword collision, before/after inversion,
-'I know you saw' cue gap) — each now a deterministic owner + regression test. Remaining
-§5 requirement: the same numbers on a LIVE never-seen room, founder typing.
+**The mechanical rule: if 5 packets merge and no domain number moves, ALL work stops and
+the plan is reassessed with the founder.** The leash yanks regardless of how busy we felt.
+It exists because we once spent weeks inside one channel (OCR/VLM/coordinates) while the
+others starved.
 
-## 5. DEFINITION OF DONE — 100%
-The product is done when, on a LIVE capture of a room the system has never seen, answered
-end-to-end through the one surface by the local/ask-time brain, the Canonical Battery reads:
-**CORRECT-ON-PRESENT ≥85% · REFUSE-ON-ABSENT ≥95% · CONFIDENT-WRONG = 0 · PARAPHRASE-PARITY
-≥90% · counting within ±1 on every asked label** — with the founder typing the questions.
+---
+
+## 7. PACKET PROTOCOL (how all work is dispatched — mixed fleet)
+
+Work lives in `ops/packets/` — one self-contained .md per packet + `INDEX.md` ledger.
+Every packet header: `wave · tag · executor · effort · status · depends`.
+
+| tag | executor | Opus effort | reviewer |
+|---|---|---|---|
+| mechanical | local LLM or Sonnet | low (if Opus used) | any higher tier |
+| guided | Sonnet, or Opus | medium | judgment tier |
+| judgment | Opus (agent teams allowed) or Fable | high | Fable / founder-visible |
+
+**Merge gate for every packet:** committed `pytest -q` green AND canonical battery
+(`.venv/bin/python evaluation/run_canonical_battery.py`) holds CONFIDENT-WRONG = 0 AND
+(for perception/brain packets) a spot check on the real store. Battery moved or held in
+the intended dimension, else revert the same day. No "keep it, we'll fix forward."
+Close-out = flip the packet's status line in INDEX.md. No other doc is written.
+
+**Executors are told:** the packet file is your ENTIRE context. If you need information
+not in the packet, STOP and report — do not guess. Update no docs except your INDEX line.
+
+---
+
+## 8. WHAT SURVIVES / WHAT'S NEW
+
+| Survives (battle-tested, evolve in place) | New builds (v3) |
+|---|---|
+| Store + ingest seam (`src/trace_memory/store/`) | Coordinate substrate (ARKit-as-owner) |
+| Sleep binder (individuate/author/permanence/sleep) | Appearance fingerprints |
+| Ask brain + honesty gate (`src/trace_memory/brain/agent.py`) | Live binder + look-again loop |
+| Canonical battery instrument | Activity dispatcher + helper registry |
+| Hub (`scripts/trace_hub.py`) | Mac screen daemon |
+| On-device crew (detector/tracker, FastVLM, OCR, ASR) | Voice-identity, motion, sound-event channels |
+| iOS app shell (`trace-native-fastvlm/`) | Digest pyramid + pyramid router |
+| | Identity-resolution brain + review cards |
+| | Chat app UI (narrate → badge → receipts) + timeline |
+| | Hide-then-purge delete · The Leash |
+
+The capture pipeline's camera ownership (AVCaptureSession) is REPLACED by ARKit-as-owner
+(P00 spike validates; `TraceARKitEngine.swift` from the reverted experiment is the head start).
+
+---
+
+## 9. WAVES (live ledger: ops/packets/INDEX.md)
+
+- **W0 — Foundations & spikes:** ARKit-owner spike · helper contract · Leash v1 ·
+  ask-brain over-refusal fixes · repo hygiene.
+- **W1 — Substrate & live binder:** anchors · fingerprints · live binder · look-again.
+- **W2 — Coverage wave one:** Mac daemon · voice-identity · motion · sound events · dispatcher.
+- **W3 — Memory organs (stubs until W2 numbers):** episode segmentation · digest pyramid +
+  router · identity-resolution brain · multi-turn + narration events.
+- **W4 — The app (stubs):** chat UI · timeline · review cards · hide-then-purge delete.
+- **W5 — Finish line (stubs):** 3-day capture ops · blind battery protocol · demo choreography.
+
+---
+
+## 10. DECISIONS REGISTER (founder session, 2026-07-03)
+
+core promise = perfect memory, ask anything (acting brain later, room reserved) · all-day
+capture, phone stand-in, battery/thermal out of scope · perceive everything, both pillars ·
+chat app surface · memory@scale = layered (compiled → pyramid → drill-down), pyramid-first ·
+people anonymous-until-named · others' speech verbatim + attributed · Mac daemon → same
+store · wave one = digital + WHO + motion + sound (coverage math, not demos — chess cut) ·
+phone-screen hole stated honestly · hybrid identity (coords + fingerprints, fused) ·
+ARKit-owner spike first (iPhone 17 base, no LiDAR) · privacy line = text + fingerprints may
+cross, pixels/audio never · evolve the survivors, rebuild capture ownership · delete =
+hide-then-purge (30-day grace) · graph after the done bar (chat + timeline first) · merge
+auto-when-sure / ask-when-not (logged, reversible) · review cards via all three channels ·
+demo = all four beats · executor fleet = mixed, packet-tagged (mechanical/guided/judgment).
