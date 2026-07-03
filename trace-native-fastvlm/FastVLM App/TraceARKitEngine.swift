@@ -35,6 +35,12 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
     private var relocalizingSince: Date?
     private var staleMapBypassed = false
     private static let relocalizationGraceSeconds: TimeInterval = 10
+    // Frame-accounting (rides on metadataSnapshot -> every observation's metadata,
+    // so context procurement is auditable from the store on the Mac).
+    private var framesReceived = 0
+    private var framesConverted = 0
+    private var lastConversionAt = Date.distantPast
+    private static let conversionMinInterval: TimeInterval = 0.1
 
     nonisolated private static let worldMapURL: URL = {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -196,7 +202,19 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
             "arkit_tracking_status": trackingStatus,
             "arkit_anchors": anchors,
             "arkit_camera": camera,
+            "frames_received": framesReceived,
+            "frames_converted": framesConverted,
         ]
+    }
+
+    /// Full-resolution still from the running ARSession, upright. The OCR
+    /// still-pass used camera.captureStill() (AVCapturePhoto), which is dead in
+    /// spatial mode — ARKit owns the camera. Measured 2026-07-03: OCR emitted 0
+    /// rows for a whole spatial walk because of this.
+    func captureStillCGImage() -> CGImage? {
+        guard let frame = session.currentFrame else { return nil }
+        let ci = CIImage(cvPixelBuffer: frame.capturedImage).oriented(.right)
+        return Self.ciContext.createCGImage(ci, from: ci.extent)
     }
 
     /// Raycast a grid of screen points to WORLD coordinates — the estimated-depth
@@ -302,7 +320,19 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         // Feed the captured image into both the UI/perception pipeline and the
         // explicit recorder. In spatial mode ARKit owns the camera, so without
         // this the Record/Stop UI would arm correctly but never receive frames.
-        if let sampleBuffer = Self.makeSampleBuffer(from: frame.capturedImage) {
+        //
+        // THROTTLED: ARKit delivers ~60 fps but every consumer downstream sits
+        // behind bufferingNewest(1) streams and the FrameSupplier keyframe gate
+        // (~8/s max), so converting every frame paid a full-resolution CIContext
+        // render 60x/s on the main actor for frames that were dropped unread —
+        // measured 2026-07-03 as "lagging significantly" with the VLM starved
+        // to 1 observation in 7 minutes. Convert at most ~10 fps.
+        framesReceived += 1
+        let now = Date()
+        if now.timeIntervalSince(lastConversionAt) >= Self.conversionMinInterval,
+           let sampleBuffer = Self.makeSampleBuffer(from: frame.capturedImage) {
+            lastConversionAt = now
+            framesConverted += 1
             VideoRecorder.shared.append(sampleBuffer)
             framesContinuation?.yield(sampleBuffer)
         }

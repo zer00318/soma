@@ -35,6 +35,9 @@ let ENABLE_TRACK_ANCHOR_EMISSION = true
 // the app on device. OFF for the demo; the app streams capture + answers via the hub without it.
 let ENABLE_TRACK_CROP_ENRICHMENT = false
 let ENABLE_LOCAL_DETECTOR_MEMORY = true
+// L1 (ops/CANONICAL_SPEC.md v3): raw media never leaves the phone. Flip only for
+// bench debugging with a dev hub; product builds ship false.
+let DEBUG_FRAMES_BUILD_ALLOWED = false
 let STABLE_VLM_REFRESH_SECONDS: TimeInterval = 4
 let ENABLE_PERSON_VLM_ENRICHMENT = true
 let PERSON_VLM_ENRICHMENT_COOLDOWN: TimeInterval = 30
@@ -128,11 +131,12 @@ struct ContentView: View {
     @State private var lastObjectCount = 0
     @State private var lastFaceCount = 0
     @State private var lastOcrStillAt = Date.distantPast
-    // TESTING ONLY: stream ~1 downscaled JPEG/sec to the Mac so the operator can
-    // SEE what the camera saw while debugging the loop. The product NEVER sends
-    // raw media; the Mac sink (/debug/frame) is itself gated by TRACE_DEBUG_FRAMES.
+    // L1 (ops/CANONICAL_SPEC.md v3): not one video frame leaves the phone — ever.
+    // This debug path JPEG-encoded + POSTed every keyframe (up to 8/s) to a hub
+    // endpoint that 404s it (pure waste, measured as capture lag 2026-07-03).
+    // Default is OFF and stays OFF; the toggle survives for bench debugging only.
     @State private var lastDebugFrameAt = Date.distantPast
-    @AppStorage("traceDebugFrames") private var debugFramesEnabled = true
+    @AppStorage("traceDebugFrames") private var debugFramesEnabled = false
     @AppStorage(GroundTruthRecorder.toggleKey) private var gtRecordingEnabled = false
     // Ask Trace — queries the Mac brain (over the LAN) about the LIVE perception stream.
     @State private var showAsk = false
@@ -1364,7 +1368,16 @@ struct ContentView: View {
             }
             if ocrStillDue {
                 await MainActor.run { lastOcrStillAt = Date() }
-                if let still = await camera.captureStill() {
+                // Spatial mode: ARKit owns the camera, AVCapturePhoto is dead —
+                // take the still from the running ARSession instead.
+                let useARKitStill = await MainActor.run { spatialMode }
+                let still: CGImage?
+                if useARKitStill {
+                    still = await MainActor.run { TraceARKitEngine.shared.captureStillCGImage() }
+                } else {
+                    still = await camera.captureStill()
+                }
+                if let still {
                     let text = accurateOCR(cgImage: still)
                     let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
                     if cleaned.count >= 12 {
@@ -3089,6 +3102,9 @@ struct ContentView: View {
     }
 
     func sendDebugFrame(_ buffer: CVImageBuffer, frameIndex: Int) async {
+        // L1 (spec v3): raw frames never leave the phone. Hard-off regardless of
+        // the persisted Settings toggle (older installs stored it as true).
+        guard DEBUG_FRAMES_BUILD_ALLOWED else { return }
         struct FrameCtx { let baseURL: String; let pose: [String: Any]; let arkit: [String: Any]; let depthGrid: [String: Any]?; let motion: [String: Any] }
         let ctx: FrameCtx? = await MainActor.run {
             guard debugFramesEnabled else { return nil }
