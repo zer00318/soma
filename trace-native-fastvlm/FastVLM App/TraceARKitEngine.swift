@@ -25,6 +25,16 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
     private var loggedFirstFrameState = false
     private var loggedTenFrameAnchorCount = false
     private var framesContinuation: AsyncStream<CMSampleBuffer>.Continuation?
+    // Stale-map watchdog: with initialWorldMap set, ARKit stays in
+    // .limited(.relocalizing) until it recognizes the saved surroundings — a map
+    // from another room/lighting holds the whole session hostage (measured
+    // 2026-07-03: 100% of observations across every session were
+    // "Limited: relocalizing"; tracking never established). If relocalization
+    // hasn't succeeded shortly after start, abandon the map and track fresh.
+    private var startedWithSavedMap = false
+    private var relocalizingSince: Date?
+    private var staleMapBypassed = false
+    private static let relocalizationGraceSeconds: TimeInterval = 10
 
     nonisolated private static let worldMapURL: URL = {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -61,6 +71,9 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         observedFrameCount = 0
         loggedFirstFrameState = false
         loggedTenFrameAnchorCount = false
+        startedWithSavedMap = savedMap != nil
+        relocalizingSince = nil
+        staleMapBypassed = false
         session.run(config, options: savedMap != nil ? [] : [.resetTracking])
         isTracking = true
         trackingStatus = "ARKit starting"
@@ -79,6 +92,8 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         observedFrameCount = 0
         loggedFirstFrameState = false
         loggedTenFrameAnchorCount = false
+        startedWithSavedMap = false
+        relocalizingSince = nil
         session.run(config, options: [.resetTracking, .removeExistingAnchors])
         isTracking = true
         trackingStatus = "ARKit starting"
@@ -261,6 +276,22 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         if !loggedFirstFrameState {
             loggedFirstFrameState = true
             print("[TraceARKitEngine] ARKit tracking state at first frame: \(trackingStateDescription(frame.camera.trackingState))")
+        }
+
+        if startedWithSavedMap, !staleMapBypassed,
+           case .limited(.relocalizing) = frame.camera.trackingState {
+            if let since = relocalizingSince {
+                if Date().timeIntervalSince(since) > Self.relocalizationGraceSeconds {
+                    staleMapBypassed = true
+                    print("[TraceARKitEngine] stale world map: relocalization exceeded \(Int(Self.relocalizationGraceSeconds))s — abandoning map, tracking fresh")
+                    forceFreshStart()
+                    return
+                }
+            } else {
+                relocalizingSince = Date()
+            }
+        } else {
+            relocalizingSince = nil
         }
 
         if observedFrameCount >= 10, !loggedTenFrameAnchorCount {

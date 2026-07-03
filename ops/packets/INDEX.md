@@ -11,7 +11,7 @@ real-store spot check for perception/brain packets. The Leash (§6) audits every
 
 | id | packet | tag | executor · effort | depends | status |
 |---|---|---|---|---|---|
-| P00 | [ARKit-as-camera-owner spike](P00-spike-arkit-camera-owner.md) | judgment | Opus high / Fable | — | READY |
+| P00 | [ARKit-as-camera-owner spike](P00-spike-arkit-camera-owner.md) | judgment | Opus high / Fable | — | CONDITIONAL GREEN — stale-worldmap watchdog fixed + built; awaiting one clean full-crew re-walk |
 | P01 | [Repo hygiene](P01-repo-hygiene.md) | mechanical | local/Sonnet | — | READY |
 | P02 | [Helper contract + registry](P02-helper-contract-registry.md) | judgment | Fable | — | READY |
 | P03 | [The Leash v1](P03-leash-v1.md) | guided | Opus medium | P02 | READY |

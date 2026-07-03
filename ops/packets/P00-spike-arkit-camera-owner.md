@@ -46,5 +46,31 @@ GREEN (all four sane) → P10 proceeds on ARKit pose as the session-geometry tie
 RED → fallback is the coordinate-light place-graph (place recognition + fingerprints +
 tracks) per spec §2's coordinates ruling — NOT open-source SLAM, NOT proprietary VIO.
 
-## Findings
-- (written after the device session)
+## Findings (founder walks 2026-07-02/03, analyzed from store metadata — VERDICT: CONDITIONAL GREEN)
+Sessions analyzed: Jul 2 12:27 (1.2min, full crew), Jul 3 19:01 (8.6min, vlm+ocr),
+Jul 3 21:01 (6.4min, detector, 31 track_ids, build cf3b08b). Data initially landed in
+evaluation/day_in_life/day_in_life.sqlite3 — the hub had been left pointed at the demo
+store; 164 nodes copied into data/trace_store.sqlite3, hub restarted on the canonical
+store (spec: ONE store).
+- **a. throughput:** crew runs on ARKit frames — Jul 3 live walk 12.6 rows/min sustained
+  over 6.4min with 31 distinct track_ids; short bursts up to 117 rows/min (Jul 2). No
+  starvation signal. Full crew simultaneously (detector+VLM+OCR+ASR) proven Jul 2 12:27.
+- **b. tracking stability: THE defect.** 100% of observations in EVERY session were
+  `Limited: relocalizing` — tracking never reached normal. Root cause: `start()` force-
+  loads the saved ARWorldMap (`initialWorldMap`), and a stale map (other room/lighting)
+  holds the session in relocalization forever. The engine's own `forceFreshStart()`
+  comment admits the mode; it was never invoked automatically. FIXED same day: 10s
+  relocalization watchdog → abandon map, track fresh (background save then overwrites the
+  stale map with a good one — self-healing). Build green.
+- **c. anchor sanity:** cross-session anchor persistence WORKS (Jul 3 19:01 and 21:01
+  restored identical anchor positions from the saved map). Camera world position on ~100%
+  of rows; travel extent 9.3m × 12.7m matches the flat. Spread: laptop 0.65m (≈target),
+  bottle 1.46m, bed 4.71m. Two design flaws deferred to P10: anchors are keyed per LABEL
+  (all bottles collapse to one anchor; must key per track/instance) and movable/moving
+  labels (person, truck) get world-anchored (must be excluded).
+- **d. crew integrity:** ASR absent in the Jul 3 walks (founder didn't speak or channel
+  off — re-walk must include speech); OCR present 19:01, absent 21:01 (config differed
+  between walks; needs one clean full-crew run).
+- **VERDICT: CONDITIONAL GREEN.** ARKit proceeds as the session-geometry tier (P10 GREEN
+  branch). Condition: one clean 10-min re-walk on the watchdog build, all helpers on,
+  speech included, must show majority `Tracking` status. RED fallback unchanged.
