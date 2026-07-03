@@ -251,6 +251,36 @@ EXISTENCE_INTENT_RES = (
     re.compile(r"^\s*do i have (?:an? |any |some )?(?P<subject>.+?)\s*\??\s*$", re.IGNORECASE),
 )
 
+# Channel intent ("what did anyone say", "was anything said about X") — the OWNER is a
+# deterministic scan of the speech channel (P04 defect 2). These questions have no object
+# noun, so the subject-grounding path structurally refused them even when ASR rows sat in
+# the store. The channel itself is the grounding: rows from the speech helpers, filtered
+# by topic tokens when given. Structural (helper identity), never content (I5).
+CHANNEL_INTENT_RES = (
+    re.compile(r"^\s*what (?:did|has|have|was) (?:anyone|someone|anybody|somebody|people|i|you|we)\s+"
+               r"(?:say|said|saying|mention(?:ed)?|talk(?:ed)?(?:\s+about)?)"
+               r"(?:\s+about\s+(?P<topic>.+?))?\s*\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*what was said(?:\s+about\s+(?P<topic>.+?))?\s*\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*did (?:anyone|someone|anybody|somebody) say anything"
+               r"(?:\s+about\s+(?P<topic>.+?))?\s*\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*(?:any|what) (?:speech|conversations?|reminders?) "
+               r"(?:did you (?:hear|catch|capture)|were there|do you remember)\s*\??\s*$",
+               re.IGNORECASE),
+)
+
+_SPEECH_HELPERS = {"asr", "apple_speech", "native_speech", "speech"}
+
+
+def _is_speech_row(node: Any) -> bool:
+    md = node.metadata or {}
+    helper = str(md.get("helper") or md.get("helper_prompt") or "").lower()
+    if helper in _SPEECH_HELPERS:
+        return True
+    return str(node.text or "").lower().startswith("event | nearby speech")
+
+
+_TRANSCRIPT_RE = re.compile(r'transcript:\s*"([^"]+)"')
+
 # Temporal-order intent ("before or after", "which came first") — the OWNER is a deterministic
 # timestamp comparator. Measured twice (M6 battery + canonical TP05): the local reasoner
 # inverts relative order roughly at chance even with readable clock times in evidence.
@@ -309,6 +339,15 @@ def _blob(node: Any) -> str:
 
 def _blob_tokens(node: Any) -> set[str]:
     return {_singularize(token) for token in _normalize(_blob(node)).split() if token}
+
+
+def _text_tokens(node: Any) -> set[str]:
+    """Tokens of the observation TEXT alone. The blob includes metadata_json, and since
+    ARKit landed every observation's metadata carries arkit_anchors labels for the whole
+    session — so blob-matching 'truck' hit 124 rows including person rows (live repro
+    2026-07-04: existence answered 'Yes — 124 sightings' citing a person). What a row
+    SAYS is its text; metadata is provenance."""
+    return {_singularize(token) for token in _normalize(str(node.text or "")).split() if token}
 
 
 def _question_hints(question: str) -> set[str]:
@@ -679,6 +718,12 @@ class TraceMemoryAgent:
                 retrieval_mode="no-subject",
             )
 
+        # CHANNEL questions own their grounding (the speech rows themselves) and carry no
+        # object noun, so they must route before the object-subject machinery refuses them.
+        channel = self._channel_answer(question)
+        if channel is not None:
+            return channel
+
         expanded = _search_context(self._store, question, max_hops=2, sources=self._restrict_sources)
 
         # (S1 replaced the old coverage-RATIO gate. That gate divided covered-tokens by ALL question
@@ -733,13 +778,13 @@ class TraceMemoryAgent:
                 phrase_tokens.append(_singularize(word))
             if not phrase_tokens:
                 break
-            hit = None
-            for node in self._store.nodes(node_types=("observation", "entity"),
-                                          sources=self._restrict_sources):
-                if all(t in _blob_tokens(node) for t in phrase_tokens):
-                    hit = node
-                    break
-            if hit is None:
+            matches = [
+                node
+                for node in self._store.nodes(node_types=("observation", "entity"),
+                                              sources=self._restrict_sources)
+                if all(t in _text_tokens(node) for t in phrase_tokens)
+            ]
+            if not matches:
                 return AgentAnswer(
                     answer=f"No — I have no record of {' '.join(phrase_tokens)}.",
                     evidence_chain=(),
@@ -747,7 +792,37 @@ class TraceMemoryAgent:
                     refused=False,
                     retrieval_mode="existence:deterministic-absent",
                 )
-            break  # present -> fall through so the reasoner can describe it
+            # PRESENT: the same owner answers deterministically (P04 defect 4). Falling
+            # through to the reasoner made a perfect evidence window worthless — gemma12b
+            # answered "I don't know" @0.15 to "did you see a truck" with three truck rows
+            # in hand (live repro 2026-07-04). Presence proven by full-phrase match is a
+            # fact, not a judgment call; cite the sightings and say yes.
+            matches.sort(key=lambda n: n.t_ms, reverse=True)
+            evidence = []
+            for node in matches[:3]:
+                try:
+                    from datetime import datetime, timezone
+                    when = datetime.fromtimestamp(
+                        node.t_ms / 1000, tz=timezone.utc).strftime("%H:%M:%S")
+                except (OverflowError, OSError, ValueError):
+                    when = None
+                evidence.append({
+                    "id": node.id, "type": node.node_type, "text": node.text,
+                    "place": node.place, "t_ms": node.t_ms, "when": when,
+                })
+            latest = evidence[0]
+            snippet = str(latest["text"] or "").removeprefix("OBJECT | ").strip()
+            if len(snippet) > 110:
+                snippet = snippet[:110].rstrip() + "…"
+            seen_at = f" (last seen {latest['when']})" if latest["when"] else ""
+            plural = "s" if len(matches) > 1 else ""
+            return AgentAnswer(
+                answer=f"Yes — {len(matches)} sighting{plural}{seen_at}: {snippet}",
+                evidence_chain=tuple(evidence),
+                confidence=0.75,
+                refused=False,
+                retrieval_mode="existence:deterministic-present",
+            )
 
         # COUNT questions route to MULTI-OBJECT PERMANENCE (collapse cross-frame re-observations
         # into distinct instances) — but only BEHIND the grounding gate (invariant I2): a count
@@ -756,6 +831,9 @@ class TraceMemoryAgent:
         # _count_subject), never an incidental location word. Falls through when nothing matching
         # that subject was ever observed, so absence still reaches the honest refuse/correct path.
         if "count" in _question_hints(question):
+            compound = self._compound_count(question)
+            if compound is not None:
+                return compound
             perm = self._permanence_count(question)
             if perm is not None:
                 return perm
@@ -784,7 +862,7 @@ class TraceMemoryAgent:
             best = None
             for node in self._store.nodes(node_types=("observation",),
                                           sources=self._restrict_sources):
-                if all(t in _blob_tokens(node) for t in tokens):
+                if all(t in _text_tokens(node) for t in tokens):
                     if best is None or node.t_ms < best.t_ms:
                         best = node
             return best
@@ -863,6 +941,116 @@ class TraceMemoryAgent:
             confidence=confidence,
             refused=False,
             retrieval_mode=f"permanence:{res.method}",
+        )
+
+    def _compound_count(self, question: str) -> AgentAnswer | None:
+        """P04 defect 3: 'how many mugs and how many drills…' answered only the first
+        clause. Split on 'and'; when EVERY clause resolves to a distinct countable subject
+        through the one permanence resolver, answer all of them. Any clause that doesn't
+        resolve -> None (the old single-subject path), so this can only add answers,
+        never change existing ones."""
+        parts = [p.strip() for p in re.split(r"\s+and\s+", question, flags=re.IGNORECASE) if p.strip()]
+        if len(parts) < 2:
+            return None
+        subjects: list[str] = []
+        sub_answers: list[AgentAnswer] = []
+        for part in parts:
+            sub_q = part if _count_subject(part) else f"how many {part}"
+            subject = _count_subject(sub_q)
+            if not subject:
+                return None
+            perm = self._permanence_count(sub_q)
+            if perm is None:
+                return None
+            subjects.append(subject)
+            sub_answers.append(perm)
+        if len(set(subjects)) < 2:
+            return None
+        combined = " · ".join(
+            f"{subject}: {ans.answer}" for subject, ans in zip(subjects, sub_answers)
+        )
+        evidence: list[dict[str, Any]] = []
+        for ans in sub_answers:
+            evidence.extend(ans.evidence_chain)
+        return AgentAnswer(
+            answer=combined,
+            evidence_chain=tuple(evidence[:6]),
+            confidence=min(a.confidence for a in sub_answers),
+            refused=False,
+            retrieval_mode="permanence:compound",
+        )
+
+    def _channel_answer(self, question: str) -> AgentAnswer | None:
+        """P04 defect 2: speech-channel questions ('what did anyone say') carry no object
+        noun and were structurally refused even with ASR rows in the store. Deterministic
+        owner: scan speech-helper rows (structural identity, not content), filter by the
+        optional topic, quote the latest utterances with their times."""
+        topic: str | None = None
+        matched = False
+        for pattern in CHANNEL_INTENT_RES:
+            m = pattern.search(question)
+            if m:
+                matched = True
+                topic = (m.groupdict().get("topic") or "").strip() or None
+                break
+        if not matched:
+            return None
+
+        rows = [
+            node
+            for node in self._store.nodes(node_types=("observation",),
+                                          sources=self._restrict_sources)
+            if _is_speech_row(node)
+        ]
+        if not rows:
+            return AgentAnswer(
+                answer="I didn't capture any speech.",
+                evidence_chain=(),
+                confidence=0.7,
+                refused=False,
+                retrieval_mode="speech-channel:empty",
+            )
+        if topic:
+            topic_tokens = {
+                _singularize(w)
+                for w in _normalize(topic).split()
+                if w not in STOPWORDS and w not in TEMPORAL_QUALIFIER_WORDS
+            }
+            if topic_tokens:
+                rows = [n for n in rows if topic_tokens & set(_text_tokens(n))]
+            if not rows:
+                return AgentAnswer(
+                    answer=f"I heard speech, but nothing about {topic}.",
+                    evidence_chain=(),
+                    confidence=0.6,
+                    refused=False,
+                    retrieval_mode="speech-channel:no-topic-match",
+                )
+        rows.sort(key=lambda n: n.t_ms, reverse=True)
+        evidence: list[dict[str, Any]] = []
+        quotes: list[str] = []
+        for node in rows[:5]:
+            try:
+                from datetime import datetime, timezone
+                when = datetime.fromtimestamp(
+                    node.t_ms / 1000, tz=timezone.utc).strftime("%H:%M:%S")
+            except (OverflowError, OSError, ValueError):
+                when = None
+            evidence.append({
+                "id": node.id, "type": node.node_type, "text": node.text,
+                "place": node.place, "t_ms": node.t_ms, "when": when,
+            })
+            if len(quotes) < 2:
+                tm = _TRANSCRIPT_RE.search(str(node.text or ""))
+                quote = tm.group(1) if tm else str(node.text or "").strip()
+                quotes.append(f'"{quote}"' + (f" ({when})" if when else ""))
+        plural = "s" if len(rows) > 1 else ""
+        return AgentAnswer(
+            answer=f"{len(rows)} utterance{plural} captured; latest: " + " · ".join(quotes),
+            evidence_chain=tuple(evidence),
+            confidence=0.75,
+            refused=False,
+            retrieval_mode="speech-channel:deterministic",
         )
 
     @staticmethod

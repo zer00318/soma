@@ -118,3 +118,8 @@ trace-native-fastvlm/device_captures/
 *.mlpackage/
 *.gguf
 ggml-*.bin
+
+# stray test dbs must never land in repo root (ops/packets/P01)
+/tmp*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm

@@ -1,5 +1,19 @@
 # P04 — Ask-brain over-refusal fixes (three known defects, one owner each)
 wave: W0 · tag: judgment · executor: Opus effort=high or Fable · depends: none
+status: MERGED 2026-07-04 (see INDEX). Outcomes:
+- defect 1 (where-is): NO code change — root cause was the test harness using the default
+  heuristic reasoner (which refuses all fall-throughs) instead of the hub's local-ollama,
+  PLUS the store never having been sleep-consolidated. After rebind + production reasoner:
+  "The laptop is on a gray surface and a table." @0.9 badge=firm through live /ask.
+  LESSON: every brain spot-check MUST pass reasoner="local-ollama".
+- defect 2 (channel): speech-channel deterministic owner (CHANNEL_INTENT_RES), topic
+  filter, honest empty/no-topic-match negatives.
+- defect 3 (compound): _compound_count splits on 'and', all clauses through the ONE
+  resolver, additive-only fallback.
+- defect 4 (existence-present): deterministic yes with receipts from the same owner.
+- BONUS defect found by the fix: _blob_tokens is anchor-poisoned since ARKit (every row's
+  metadata carries the session's arkit_anchors labels) — existence matched 'truck' on 124
+  rows incl. persons. Existence/order/channel scans now use _text_tokens (text only).
 
 ## Context (self-contained)
 UPDATE 2026-07-04: a 4th defect found + root-caused live, and the temporal-qualifier

@@ -121,6 +121,55 @@ def test_existence_temporal_qualifier_is_not_subject(agent, question):
     )
 
 
+def test_existence_present_is_deterministic_yes(agent):
+    """P04 defect 4 (live repro 2026-07-04): 'did you see a truck' with three perfect
+    truck rows in evidence -> gemma said 'I don't know' @0.15. Presence proven by the
+    full-phrase scan is a fact: the same owner now answers yes, with receipts."""
+    answer = agent.answer("Did you see a mug?")
+    assert answer.retrieval_mode == "existence:deterministic-present"
+    assert not answer.refused
+    assert answer.answer.lower().startswith("yes")
+    assert answer.evidence_chain and "mug" in str(answer.evidence_chain[0].get("text", "")).lower()
+
+
+def test_compound_count_answers_both_clauses(agent):
+    """P04 defect 3: 'how many X and how many Y' answered only the first clause."""
+    answer = agent.answer("How many mugs and how many keyboards are on the desk?")
+    assert answer.retrieval_mode == "permanence:compound"
+    assert "mug" in answer.answer and "keyboard" in answer.answer
+    assert not answer.refused
+
+
+def test_compound_count_falls_back_when_second_clause_uncountable(agent):
+    """'and' inside a single-subject count question must not break the old behavior."""
+    answer = agent.answer("How many mugs are on the desk and in the kitchen?")
+    assert answer.retrieval_mode != "permanence:compound"
+
+
+def test_channel_question_quotes_speech(desk_store):
+    """P04 defect 2: 'what did anyone say' was structurally refused with ASR rows present."""
+    desk_store.write_observation(
+        text='EVENT | nearby speech | transcript: "remember to call Marcus about the invoice" | likely',
+        t_ms=99_000, source="phone_camera", provenance={"source": "test"},
+        metadata={"helper": "asr", "helper_prompt": "asr", "section_kind": "speech"},
+    )
+    channel_agent = TraceMemoryAgent(desk_store, restrict_sources=("phone_camera",))
+    answer = channel_agent.answer("What did anyone say?")
+    assert answer.retrieval_mode == "speech-channel:deterministic"
+    assert "call Marcus" in answer.answer
+    topical = channel_agent.answer("What did anyone say about the invoice?")
+    assert topical.retrieval_mode == "speech-channel:deterministic"
+    off_topic = channel_agent.answer("What did anyone say about unicorns?")
+    assert off_topic.retrieval_mode == "speech-channel:no-topic-match"
+    assert not off_topic.refused
+
+
+def test_channel_question_honest_when_no_speech(agent):
+    answer = agent.answer("What did anyone say?")
+    assert answer.retrieval_mode == "speech-channel:empty"
+    assert "didn't capture any speech" in answer.answer
+
+
 def test_existence_absent_with_temporal_word_still_denies(agent):
     """The fix must not weaken absence: a truly-absent object with a temporal qualifier
     is still denied or refused — never confirmed. (The S1 grounding gate may refuse it

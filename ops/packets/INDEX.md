@@ -12,10 +12,10 @@ real-store spot check for perception/brain packets. The Leash (§6) audits every
 | id | packet | tag | executor · effort | depends | status |
 |---|---|---|---|---|---|
 | P00 | [ARKit-as-camera-owner spike](P00-spike-arkit-camera-owner.md) | judgment | Opus high / Fable | — | CONDITIONAL GREEN — stale-worldmap watchdog fixed + built; awaiting one clean full-crew re-walk |
-| P01 | [Repo hygiene](P01-repo-hygiene.md) | mechanical | local/Sonnet | — | READY |
+| P01 | [Repo hygiene](P01-repo-hygiene.md) | mechanical | local/Sonnet | — | MERGED (with P04 commit): strays deleted, wal/shm gitignore fences; writer was one-off Jul-1 audit tooling |
 | P02 | [Helper contract + registry](P02-helper-contract-registry.md) | judgment | Fable | — | READY |
 | P03 | [The Leash v1](P03-leash-v1.md) | guided | Opus medium | P02 | READY |
-| P04 | [Ask-brain over-refusal fixes](P04-askbrain-overrefusal.md) | judgment | Opus high / Fable | — | READY |
+| P04 | [Ask-brain over-refusal fixes](P04-askbrain-overrefusal.md) | judgment | Opus high / Fable | — | MERGED: all 4 defects owned (temporal-qualifier 457f9f2; existence-present + channel + compound + text-token anchor-poisoning fix). Where-is resolved = harness artifact (heuristic reasoner) + missing sleep run; live hub answers 'on a gray surface and a table' @0.9 |
 
 ## W1 — Substrate & live binder (author fully when W0 numbers are in)
 
