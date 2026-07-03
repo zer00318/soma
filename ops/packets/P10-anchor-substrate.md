@@ -21,9 +21,10 @@ L1: pose/anchor metadata and text may leave the phone; frames may not. L2, L4.
    old rows breaks (they simply have no anchor).
 
 ## Do (P00 RED branch)
-Track-anchor stays primary; add on-device monocular depth (small ANE model) per kept frame
-to lift track anchors into camera-relative 3D; room identity from place+scene. Same
-contract fields, lower grade label.
+Coordinate-light place-graph (spec §2 coordinates ruling): track-anchor stays primary;
+room identity from place recognition (place+scene+GPS); optional on-device monocular
+depth (small ANE model) for per-frame camera-relative 3D. Same contract fields, lower
+grade label. NOT open-source SLAM, NOT proprietary VIO — that decision is closed.
 
 ## Forbidden
 No counting/answering logic here (owners stay in binder/agent). No Mac-side processing of

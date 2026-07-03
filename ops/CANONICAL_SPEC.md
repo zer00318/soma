@@ -48,9 +48,10 @@ may foreclose it; none of it ships now.
   camera + mic (frames/audio NEVER leave)     screen daemon (your digital life)
         │                                          │
         ▼                                          │
-  COORDINATE ANCHOR SUBSTRATE                      │
-  everything pinned to a place:                    │
-  ARKit 6-DOF anchors live, graded fidelity        │
+  PLACE-ANCHOR HIERARCHY                           │
+  everything pinned to a place, graded:            │
+  semantic place → session pose (ARKit, only       │
+  because it's free) → track anchor (always)       │
         │                                          │
         ▼                                          ▼
   STANDING CREW (always on): tracker · VLM · OCR · ASR · place ·
@@ -90,6 +91,19 @@ may foreclose it; none of it ships now.
 things are appearance fingerprints (compact, on-device, non-reversible visual signatures)
 with a location history through coordinate space. The live binder weighs both —
 coordinates pin the world, fingerprints pin the things, and they check each other.
+
+**Coordinates ruling (founder question, 2026-07-03): a signal, not the foundation.**
+The product's questions want semantic places ("on the kitchen shelf"), and firm counts
+were already achieved coordinate-free at room scale (v2's M2, live desk). Metric pose is
+adopted ONLY because ARKit provides it for free alongside the camera frames — it
+strengthens same-vs-new (a pan is not co-visibility) and look-again re-acquisition.
+Provider = ARKit, sole camera owner (P00 measures; the apparatus already exists in-app as
+the `spatialMode` toggle). Open-source SLAM on iOS is rejected on evidence: the best OSS
+mapping app on iOS (RTAB-Map) itself uses ARKit as its odometry front-end; porting
+ORB-SLAM3/OKVIS2-class stacks is months of work for worse IMU fusion. Proprietary VIO of
+our own is years, absurd for a prototype. If P00 fails on-device, the fallback is the
+coordinate-light place-graph (place recognition + fingerprints + tracks) — NOT OSS SLAM —
+which loses nothing the done-bar battery measures.
 
 **Phone's own screen:** a stated, honest hole in the prototype ("the wearable sees your
 phone screen naturally; the phone stand-in can't film itself"). No build.
