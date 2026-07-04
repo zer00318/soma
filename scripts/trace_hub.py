@@ -300,7 +300,14 @@ class Handler(BaseHTTPRequestHandler):
                                         "source": "empty", "citations": [], "model": "trace"})
             with self.hub.answer_lock:
                 result = self.hub.ask(q)
-            citations = [{"t": None, "label": str(e.get("text", ""))[:120]}
+            # Carry the FULL evidence row (when · helper · text), not just a flat label — the
+            # phone renders expandable receipts identical to the demo page, so "it shows its
+            # evidence" is true on the product surface, not only in the browser. `label` stays
+            # for older app builds that only decode that field.
+            citations = [{"t": None, "label": str(e.get("text", ""))[:120],
+                          "when": e.get("when"),
+                          "helper": e.get("helper") or e.get("type"),
+                          "text": str(e.get("text", ""))[:220]}
                          for e in result.get("evidence", [])]
             return self._send(200, {
                 "answer": result.get("answer", "I don't know"),

@@ -54,9 +54,11 @@ P13 fed by real usage gaps, (6) founder blind battery on the 3-day store = the n
 - P32 identity-resolution brain (cross-source merge, auto/ask policy, review-card queue)
 - P33 multi-turn ask + retrieval-narration events streamed from /ask
 
-## W4 — The app (STUBS)
-- P40 chat screen (narrate → badge → receipts) · P41 timeline w/ gap honesty ·
-- P42 review cards (3 channels) · P43 hide-then-purge delete
+## W4 — The app (P40 pulled forward — it IS the product loop)
+| id | packet | tag | executor · effort | depends | status |
+|---|---|---|---|---|---|
+| P40 | [Phone ask surface](P40-chat-ask-surface.md) | judgment | Fable/chief | P02, hub /ask | REVIEW — LANDED 2026-07-04: phone ask is now a CHAT thread (AskTurn/AskReceipt/AskTurnView) with calibrated badge + confidence + expandable receipts; hub POST /ask enriched with when/helper/text; verified live ("how many bottles" → "between 2 and 3" hedged 0.5 + receipt). iOS build green. DEVICE-RENDER PENDING (phone→hub round-trip on next carry) → MERGED |
+- P41 timeline w/ gap honesty · P42 review cards (3 channels) · P43 hide-then-purge delete
 
 ## W5 — Finish line (STUBS)
 - P50 3-day capture ops runbook · P51 blind-battery protocol + scoring · P52 demo choreography

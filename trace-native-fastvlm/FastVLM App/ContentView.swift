@@ -152,12 +152,11 @@ struct ContentView: View {
     // Ask Trace — queries the Mac brain (over the LAN) about the LIVE perception stream.
     @State private var showAsk = false
     @State private var askText = ""
-    @State private var askAnswer = ""
-    @State private var askCitations: [String] = []
-    @State private var askSource = ""
-    @State private var askRefused = false
+    // P40 — the ask surface is a CONVERSATION, not a single-shot form. Each turn keeps its own
+    // calibrated badge + expandable receipts so the honesty moat ("it shows its evidence, and
+    // refuses what it didn't see") is visible on the product surface the founder touches daily.
+    @State private var askThread: [AskTurn] = []
     @State private var isAsking = false
-    @State private var askError = ""
     // Plain-words connection state to the Mac brain ("Brain connected" / not).
     @State private var brainReachable: Bool? = nil
     @State private var lastBodyCount = 0
@@ -545,54 +544,49 @@ struct ContentView: View {
 
     @ViewBuilder var askSheet: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(spacing: 0) {
                 if traceHubURL.isEmpty {
                     Text("Set the brain address first (tap the brain icon in the toolbar) — e.g. http://<mac-ip>:8765")
                         .font(.footnote).foregroundStyle(.orange)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding()
                 }
-                HStack {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 16) {
+                            if askThread.isEmpty {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Ask Trace anything it might have seen. It answers with a confidence badge, shows its evidence, and refuses what it didn't see.")
+                                        .font(.callout).foregroundStyle(.secondary)
+                                    ForEach(["What did I see?", "Any people?",
+                                             "What did the text say?", "How many bottles?"], id: \.self) { q in
+                                        Button { askText = q; performAsk() } label: {
+                                            Text(q).font(.callout)
+                                        }.buttonStyle(.bordered)
+                                    }
+                                }.padding(.vertical, 8)
+                            }
+                            ForEach(askThread) { turn in
+                                AskTurnView(turn: turn).id(turn.id)
+                            }
+                        }
+                        .padding()
+                    }
+                    .onChange(of: askThread.count) { _, _ in
+                        if let last = askThread.last {
+                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                        }
+                    }
+                }
+                Divider()
+                HStack(spacing: 8) {
                     TextField("Ask about what Trace saw…", text: $askText, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit { performAsk() }
                     Button { performAsk() } label: {
                         Image(systemName: "arrow.up.circle.fill").font(.title2)
                     }.disabled(askText.trimmingCharacters(in: .whitespaces).isEmpty || isAsking)
-                }
-                HStack {
-                    ForEach(["What did I see?", "Any people?", "What did the text say?"], id: \.self) { q in
-                        Button(q) { askText = q; performAsk() }
-                            .font(.caption).buttonStyle(.bordered)
-                    }
-                }
-                if isAsking {
-                    HStack { ProgressView(); Text("Trace is thinking… (the brain can take a while)").foregroundStyle(.secondary) }
-                }
-                if !askError.isEmpty {
-                    Text(askError).font(.footnote).foregroundStyle(.red)
-                }
-                if !askAnswer.isEmpty {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack(spacing: 6) {
-                                Image(systemName: askRefused ? "checkmark.shield" : "checkmark.seal.fill")
-                                    .foregroundStyle(askRefused ? .orange : .green)
-                                Text(askRefused ? "Honest: not in memory" : "Answered")
-                                    .font(.caption.bold())
-                                if !askSource.isEmpty {
-                                    Text("· \(askSource)").font(.caption2).foregroundStyle(.secondary)
-                                }
-                            }
-                            Text(askAnswer).font(.body).textSelection(.enabled)
-                            if !askCitations.isEmpty {
-                                Text("from memory at: " + askCitations.joined(separator: ", "))
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-                Spacer()
+                }.padding()
             }
-            .padding()
             .navigationTitle("Ask Trace")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { showAsk = false } } }
@@ -896,20 +890,45 @@ struct ContentView: View {
         let q = askText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return }
         let base = traceHubURL.isEmpty ? "http://127.0.0.1:8765" : traceHubURL
-        isAsking = true; askError = ""; askAnswer = ""; askCitations = []; askSource = ""
+        let turn = AskTurn(question: q)
+        let turnID = turn.id
+        askThread.append(turn)
+        askText = ""
+        isAsking = true
+
+        func update(_ mutate: @escaping (inout AskTurn) -> Void) {
+            if let i = askThread.firstIndex(where: { $0.id == turnID }) { mutate(&askThread[i]) }
+        }
+
         Task {
             do {
                 let r = try await BrainClient.ask(base: base, question: q, allowFrontier: false)
                 await MainActor.run {
-                    askAnswer = r.answer
-                    askRefused = r.refused ?? false
-                    askSource = r.source ?? ""
-                    askCitations = (r.citations ?? []).compactMap { $0.label }
+                    update {
+                        $0.answer = r.answer
+                        $0.refused = r.refused ?? false
+                        $0.confidence = r.confidence ?? 0
+                        // Trust the brain's calibrated badge; fall back to the refused flag for
+                        // older hubs that don't send one (never invent a firm badge).
+                        $0.badge = r.badge?.isEmpty == false
+                            ? r.badge!
+                            : ((r.refused ?? false) ? "refused" : "hedged")
+                        $0.receipts = (r.citations ?? []).map {
+                            AskReceipt(when: $0.when ?? "",
+                                       helper: $0.helper ?? "",
+                                       text: $0.text ?? $0.label ?? "")
+                        }
+                        $0.isLoading = false
+                    }
                     isAsking = false
                 }
             } catch {
                 await MainActor.run {
-                    askError = "Couldn't reach Trace's brain at \(base). \(error.localizedDescription)"
+                    update {
+                        $0.error = "Couldn't reach Trace's brain at \(base). \(error.localizedDescription)"
+                        $0.badge = "error"
+                        $0.isLoading = false
+                    }
                     isAsking = false
                 }
             }
@@ -3502,18 +3521,139 @@ struct TraceHubSetupView: View {
     ContentView()
 }
 
+// ── Ask conversation model (P40) ─────────────────────────────────────────── //
+/// One evidence row behind an answer — the receipt the honesty promise rests on.
+struct AskReceipt: Identifiable {
+    let id = UUID()
+    let when: String
+    let helper: String
+    let text: String
+}
+/// One question→answer turn in the ask thread, with its own calibrated verdict.
+struct AskTurn: Identifiable {
+    let id = UUID()
+    let question: String
+    var answer: String = ""
+    var badge: String = ""          // firm · hedged · refused · error
+    var confidence: Double = 0
+    var refused: Bool = false
+    var receipts: [AskReceipt] = []
+    var isLoading: Bool = true
+    var error: String = ""
+}
+
+/// One question→answer turn rendered as a chat bubble + calibrated verdict + tap-to-open
+/// receipts. The badge IS the product's honesty moat made visible: firm/hedged carry the
+/// confidence, refused says "not in memory" as a feature, and the receipts are the evidence.
+struct AskTurnView: View {
+    let turn: AskTurn
+    @State private var showReceipts = false
+
+    private var badgeColor: Color {
+        switch turn.badge {
+        case "firm": return .green
+        case "hedged": return .orange
+        case "refused": return .blue
+        default: return .red
+        }
+    }
+    private var badgeLabel: String {
+        switch turn.badge {
+        case "firm": return "firm"
+        case "hedged": return "hedged"
+        case "refused": return "not in memory"
+        case "error": return "couldn't answer"
+        default: return turn.badge.isEmpty ? "—" : turn.badge
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Spacer(minLength: 40)
+                Text(turn.question)
+                    .font(.callout)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(Color.accentColor.opacity(0.15),
+                                in: RoundedRectangle(cornerRadius: 14))
+            }
+            if turn.isLoading {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("Trace is thinking… (the local brain can take a moment)")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            } else if !turn.error.isEmpty {
+                Text(turn.error).font(.footnote).foregroundStyle(.red)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
+                        Circle().fill(badgeColor).frame(width: 8, height: 8)
+                        Text(badgeLabel).font(.caption.bold()).foregroundStyle(badgeColor)
+                        if turn.badge == "firm" || turn.badge == "hedged" {
+                            Text(String(format: "%.0f%% sure", turn.confidence * 100))
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if !turn.receipts.isEmpty {
+                            Button { withAnimation { showReceipts.toggle() } } label: {
+                                Label("\(turn.receipts.count)",
+                                      systemImage: showReceipts ? "chevron.up" : "doc.text.magnifyingglass")
+                                    .font(.caption2)
+                            }
+                        }
+                    }
+                    Text(turn.answer).font(.body).textSelection(.enabled)
+                    if showReceipts {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(turn.receipts) { r in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 8) {
+                                        if !r.when.isEmpty {
+                                            Text(r.when).font(.caption2).foregroundStyle(.secondary)
+                                        }
+                                        if !r.helper.isEmpty {
+                                            Text(r.helper).font(.caption2).foregroundStyle(.blue)
+                                        }
+                                    }
+                                    Text(r.text).font(.caption)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(8)
+                                .background(Color.secondary.opacity(0.08),
+                                            in: RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
+                    }
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+            }
+        }
+    }
+}
+
 // ── TRACE brain client ────────────────────────────────────────────────────── //
 // Talks to the Mac brain (scripts/trace_brain_server.py) over the LAN. The phone
 // already live-streams perception to /capture/perception; this asks /ask about
 // the rolling "live" moment and gets a cited, honest-or-answered reply.
 enum BrainClient {
-    struct Citation: Decodable { let t: Double?; let label: String? }
+    struct Citation: Decodable {
+        let t: Double?
+        let label: String?
+        let when: String?
+        let helper: String?
+        let text: String?
+    }
     struct AskResult: Decodable {
         let answer: String
         let source: String?
         let refused: Bool?
         let citations: [Citation]?
         let model: String?
+        let confidence: Double?
+        let badge: String?
     }
 
     static func ask(base: String, question: String, allowFrontier: Bool) async throws -> AskResult {
