@@ -43,7 +43,7 @@ def test_validate_rejects_specifically():
         ({**GOOD, "confidence": 1.7}, "confidence"),
         ({**GOOD, "contract": 99}, "contract version"),
         ({**GOOD, "fingerprint": ["a", "b"]}, "fingerprint"),
-        ({**GOOD, "fingerprint": [0.1] * 600}, "fingerprint"),
+        ({**GOOD, "fingerprint": [0.1] * 5000}, "fingerprint"),
     ]
     for packet, needle in checks:
         norm, err = validate_observation(packet)

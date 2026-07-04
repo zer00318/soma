@@ -38,7 +38,7 @@ def test_fingerprint_validation():
     assert is_valid_fingerprint([0.1, 0.2, 0.3])
     assert not is_valid_fingerprint([])            # empty is not a signature
     assert not is_valid_fingerprint(["a", "b"])    # not numbers
-    assert not is_valid_fingerprint([0.1] * 600)   # over the ≤512 L1 cap
+    assert not is_valid_fingerprint([0.1] * 5000)  # over the cap (fits a ~2048-float featureprint)
     assert normalize_fingerprint([1, 2]) == [1.0, 2.0]
     assert normalize_fingerprint("not a vector") is None
 

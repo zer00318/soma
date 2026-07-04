@@ -34,6 +34,12 @@ let ENABLE_TRACK_ANCHOR_EMISSION = true
 // SHARED VLM actor for every tracked object — it contends with the capture loop and can freeze
 // the app on device. OFF for the demo; the app streams capture + answers via the hub without it.
 let ENABLE_TRACK_CROP_ENRICHMENT = false
+// P11: per-track appearance fingerprint. UNLIKE the M5 crop enrichment above this is CHEAP —
+// a Vision featureprint runs on the ANE, not the shared VLM actor, so it does not contend with
+// the capture loop. Own kill switch, own throttle, one dedicated row per confirmed track (the
+// ~2048-float vector never rides the high-frequency detector posts). If a device run shows it
+// taxing perception (frames_received/converted dropping), flip this false.
+let ENABLE_TRACK_FINGERPRINT = true
 let ENABLE_LOCAL_DETECTOR_MEMORY = true
 // L1 (ops/CANONICAL_SPEC.md v3): raw media never leaves the phone. Flip only for
 // bench debugging with a dev hub; product builds ship false.
@@ -126,6 +132,11 @@ struct ContentView: View {
     @State private var enrichedTrackKeys: Set<String> = []
     @State private var lastTrackEnrichmentAt = Date.distantPast
     @State private var trackEnrichmentRunning = false
+    // P11: per-track appearance fingerprint throttling — once per confirmed track, one at a
+    // time, gentle cooldown so the ANE is never hammered.
+    @State private var fingerprintedTrackKeys: Set<String> = []
+    @State private var lastFingerprintAt = Date.distantPast
+    @State private var fingerprintRunning = false
     @State private var lastRawOcrCount = 0
     @State private var lastAcceptedOcrCount = 0
     @State private var lastObjectCount = 0
@@ -1778,6 +1789,99 @@ struct ContentView: View {
         }
     }
 
+    // P11 — per-track APPEARANCE FINGERPRINT. A compact, non-reversible visual signature so
+    // the Mac binder can ask "same thing?" (keys occupy six coordinates a day → six objects by
+    // geometry, one by identity). Cheap ANE featureprint (NOT the shared VLM), one dedicated
+    // row per confirmed track carrying the vector — kept OFF the high-frequency detector posts.
+    // Crops never leave the phone (L1); only the non-reversible vector does.
+    @MainActor
+    func maybeFingerprintTrackCrop(frame: CVImageBuffer, label: String, box: CGRect, trackID: String) {
+        guard ENABLE_TRACK_FINGERPRINT, ENABLE_TRACK_ANCHOR_EMISSION else { return }
+        let key = "\(label)|\(trackID)"
+        guard !fingerprintRunning,
+              !fingerprintedTrackKeys.contains(key),
+              Date().timeIntervalSince(lastFingerprintAt) >= 2,
+              label != "person"  // people are identity-resolved separately (P21), not fingerprinted here
+        else { return }
+        fingerprintRunning = true
+        lastFingerprintAt = Date()
+        fingerprintedTrackKeys.insert(key)
+        if fingerprintedTrackKeys.count > 400 { fingerprintedTrackKeys.removeAll() }  // session hygiene
+
+        let ci = CIImage(cvPixelBuffer: frame)
+        let w = ci.extent.width, h = ci.extent.height
+        // Vision boxes are normalized, bottom-left origin — same space as CIImage.
+        let pad: CGFloat = 0.10
+        let rect = CGRect(
+            x: max(0, (box.minX - pad * box.width) * w),
+            y: max(0, (box.minY - pad * box.height) * h),
+            width: min(w, (box.width * (1 + 2 * pad)) * w),
+            height: min(h, (box.height * (1 + 2 * pad)) * h)
+        ).intersection(ci.extent)
+        guard rect.width > 24, rect.height > 24 else {
+            fingerprintRunning = false
+            return
+        }
+        let crop = ci.cropped(to: rect)
+        Task.detached {
+            let vector = Self.computeFeaturePrint(crop)
+            await MainActor.run {
+                self.fingerprintRunning = false
+                guard let vector, !vector.isEmpty else {
+                    self.appendNativeStatusLog(status: "track_fingerprint_empty", extra: [
+                        "track_id": trackID, "label": label,
+                    ])
+                    return
+                }
+                // Dedicated, low-frequency row: the vector rides here, fused onto the physical
+                // instance by track_id (same fuse pattern as M5's crop enrichment).
+                let payload: [String: Any] = [
+                    "timestamp": ISO8601DateFormatter().string(from: Date()),
+                    "memory_text": "TRACK | \(label) | appearance signature captured",
+                    "source": "track_fingerprint",
+                    "source_type": "vision",
+                    "location_hint": self.locationContext.locationMemoryHint,
+                    "fingerprint": vector,
+                    "metadata": ["track_id": trackID, "detector_label": label,
+                                 "fingerprint_dims": vector.count],
+                ]
+                self.postPerceptionPacketToHub(payload)
+                self.appendNativeStatusLog(status: "track_fingerprint_committed", extra: [
+                    "track_id": trackID, "label": label, "dims": vector.count,
+                ])
+            }
+        }
+    }
+
+    /// P11: a compact, non-reversible appearance vector from an image crop, via the Vision
+    /// featureprint (ANE). L2-normalized so cosine == dot on the Mac side. nil when Vision has
+    /// no result, the element type isn't float32, or the vector would exceed the contract cap
+    /// (the Mac's FINGERPRINT_MAX_FLOATS) — we never emit a vector the hub would drop.
+    nonisolated static func computeFeaturePrint(_ image: CIImage) -> [Float]? {
+        let request = VNGenerateImageFeaturePrintRequest()
+        let handler = VNImageRequestHandler(ciImage: image, options: [:])
+        do {
+            try handler.perform([request])
+        } catch {
+            return nil
+        }
+        guard let observation = request.results?.first as? VNFeaturePrintObservation,
+              observation.elementType == .float else {
+            return nil
+        }
+        let count = observation.elementCount
+        guard count > 0, count <= 4096 else { return nil }  // matches the Mac contract cap
+        let data = observation.data
+        guard data.count == count * MemoryLayout<Float>.stride else { return nil }
+        var floats = [Float](repeating: 0, count: count)
+        floats.withUnsafeMutableBytes { data.copyBytes(to: $0) }
+        let norm = sqrt(floats.reduce(Float(0)) { $0 + $1 * $1 })
+        if norm > 0 {
+            for i in floats.indices { floats[i] /= norm }
+        }
+        return floats
+    }
+
     @MainActor
     func clearTextMemory(deleteLogFile: Bool) {
         memoryRecords.removeAll()
@@ -2120,6 +2224,9 @@ struct ContentView: View {
                     // M5: one zoomed VLM read per confirmed track (throttled inside).
                     self.maybeEnrichTrackCrop(frame: frame, label: det.label,
                                               box: det.box, trackID: a.trackID)
+                    // P11: one cheap appearance fingerprint per confirmed track (throttled inside).
+                    self.maybeFingerprintTrackCrop(frame: frame, label: det.label,
+                                                   box: det.box, trackID: a.trackID)
                 }
             }
         }

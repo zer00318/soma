@@ -46,21 +46,20 @@ Fully tested (`tests/unit/test_appearance_fingerprints.py`, 8 tests; pytest + ba
   pairs and the threshold sits in the gap — the MACHINERY is sound; the featureprint's real
   separation on our crops is the device unknown.
 
-## Swift side — NOT YET SHIPPED (deliberate). Plan + caution:
-Insertion point is clean: `maybeEnrichTrackCrop` (ContentView) already extracts a per-track
-crop, throttled + kill-switched + deduped. But a fingerprint pass is a NEW per-frame ANE
-compute path, and its whole value (does a Vision featureprint separate OUR crops?) is
-device-gated — shipping it blind right after the recording-taxes-perception fix repeats the
-exact scar. Do it as a focused pass:
-1. Its OWN lightweight kill switch (`ENABLE_TRACK_FINGERPRINT`), NOT gated behind the heavy
-   VLM crop enrichment; detached Task; once per confirmed track (throttle like M5). It must
-   NOT tax perception — verify frames_received/converted hold on a device run.
-2. Model choice — `VNGenerateImageFeaturePrintRequest` is the default, BUT its featureprint is
-   ~2048 floats > the 512 contract cap. MEASURE elementCount + separation on a few real crops
-   FIRST, then choose: (A) fixed-seed random projection to ≤256 (preserves cosine, stays under
-   cap), (B) raise the cap (still non-reversible; L1 "small" is a soft target), or (C) a
-   distilled ≤256 CoreML embedding (P11 RED branch if the featureprint doesn't separate).
-3. Emit `fingerprint` (top-level) + `track_id`; the Mac side above already consumes it.
+## Swift side — LANDED (build-verified compiling; behavior device-pending) 2026-07-04
+`maybeFingerprintTrackCrop` (ContentView) + `computeFeaturePrint` + the `track_fingerprint`
+emission:
+1. Own kill switch `ENABLE_TRACK_FINGERPRINT` (default true), NOT gated behind the disabled
+   heavy VLM crop enrichment. Cheap ANE `VNGenerateImageFeaturePrintRequest`, detached Task,
+   ONE dedicated low-frequency row per confirmed track (the ~2048-float vector never rides the
+   high-frequency detector posts). Throttle: once per track, ≥2s cooldown, one at a time.
+   MUST verify on a device run that frames_received/converted hold (no perception tax).
+2. Model choice = native Vision featureprint (~2048 floats), L2-normalized. Chose to RAISE the
+   contract cap (`FINGERPRINT_MAX_FLOATS` 512→4096) over shipping a blind on-device reduction —
+   L1's hard rule is non-reversibility (holds), the "≤256 small" target was a soft nicety.
+   Reduction (random projection / distilled model) is a future optimization gated on measured
+   need. Swift refuses to emit any vector >4096 or non-float32 (never emits what the hub drops).
+3. Emits `fingerprint` (top-level) + `track_id`; the Mac side above already consumes it.
 
 ## Measured ROC
 - (device-gated — the walk writes real same/different pairs here and sets the threshold)

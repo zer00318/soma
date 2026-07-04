@@ -29,7 +29,13 @@ from pathlib import Path
 from typing import Any
 
 CONTRACT_VERSION = 1
-FINGERPRINT_MAX_FLOATS = 512
+# P11: the fingerprint cap. L1's HARD rule is non-reversibility (you cannot reconstruct the
+# crop from the vector) + crops never leave the phone — both hold for a Vision featureprint.
+# The "≤256 small" target in the spec was a soft bandwidth nicety; a native featureprint is
+# ~2048 floats, so we relax the cap to fit it rather than ship a blind on-device dimensionality
+# reduction we can't validate. Reducing the vector (random projection / distilled model) is a
+# future optimization gated on a measured need, not a correctness blocker.
+FINGERPRINT_MAX_FLOATS = 4096
 
 # P10: spatial-fidelity grades, honestly self-reported by the emitter, ordered worst→best.
 # The observation SAYS which grade it carries, so a degraded fix is never dressed up as a
