@@ -37,15 +37,30 @@ _INSTANCE_RADIUS_M = 0.25
 _WORLD_SPLIT_M = 0.30
 _WORLD_SPLIT_LIBERAL_M = 0.15
 
-# Metric co-visibility (walk 2, 3 identical jars, measured): raycasts stamped within the same
-# instant share the camera pose, so their RELATIVE distance is near-exact — the same jar
-# double-boxed/label-flipped measured 0.000-0.001 m between its two tracks, while genuinely
-# different adjacent jars measured >=0.102 m. Perfectly bimodal, 100x gap. Simultaneity is
-# ground truth: two places at one instant = two objects; one place at one instant = one
-# object twice. These preempt the coarse 3x3 grid-cell heuristic whenever both tracks carry
-# coordinates.
+# Metric co-visibility. The DUP direction is regime-proof (measured on choreographed walk 2
+# AND the natural-motion burst): two simultaneous stamps ≤0.05 m apart share the bearing by
+# construction — depth junk moves both along the same ray — so coincidence means one visual
+# target, even when the absolute depth is wrong. The SPLIT direction is NOT depth-proof:
+# under natural motion one jar's duplicate boxes raycast to different depths along nearly
+# the same bearing (jar vs wall behind), pushing 3D distance past any threshold — a
+# 3D-only simultaneous split mints phantom objects (measured: natural burst read 3 jars as
+# [5,8]). A simultaneous split therefore requires BOTH bearing divergence (two directions =
+# two silhouettes; dups measured 0.09-0.15 deg, distinct objects 7-46 deg) AND locally
+# STABLE stamps on both sides (see _STAMP_STABLE_M) so scatter never testifies.
 _COVIS_DUP_M = 0.05
 _COVIS_SPLIT_M = 0.10
+_COVIS_SPLIT_DEG = 3.0
+# Strict (count-LOW) bearing split: must exceed any plausible duplicate-box separation on
+# ONE close object. Measured: dup boxes on one jar reached ~8-18 deg at ~0.5 m; genuinely
+# different jars 20-46 deg. 20 deg is the metric analog of M2's battle-tested
+# non-adjacent-grid-cell strict rule (>1/3 of FOV).
+_COVIS_SPLIT_STRICT_DEG = 20.0
+# A stamp is STABLE when a neighbouring stamp of the SAME track agrees within this distance
+# (stationary-viewing moment — people naturally pause on things they care about). Measured:
+# stable-regime stamps agree to ≤0.10 m; sweeping-regime stamps scatter 0.2-1.3 m along the
+# ray. Only stable stamps may testify for splits or median positions; scattered tracks
+# assert nothing and leave the count an honest range.
+_STAMP_STABLE_M = 0.10
 
 # Grades whose poses share a stable genesis frame. "track" (Limited/relocalizing) coordinates
 # may live in a shifted frame — measured on the jar walk: the one relocalizing-grade track's
@@ -417,11 +432,18 @@ def _track_signature(members: list[Any]) -> tuple[set[str], set[str]]:
     return sizes, colours
 
 
-def _track_world_obs(members: list[Any]) -> list[tuple[int, tuple[float, float, float]]]:
-    """Timestamped trusted `track_world` stamps of one track (P10 per-track raycast).
-    Trusted-grade gating because a relocalizing pose stamps coordinates in a shifted frame
-    (see _TRUSTED_WORLD_GRADES)."""
-    out: list[tuple[int, tuple[float, float, float]]] = []
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:  # annotation-only alias (never evaluated at runtime on 3.9)
+    _Ray = tuple[int, tuple[float, float, float], tuple[float, float, float] | None]
+
+
+def _track_rays(members: list[Any]) -> list[_Ray]:
+    """Timestamped trusted `track_world` stamps of one track (P10 per-track raycast), each
+    with the camera origin when the row carries it — origin + point give the exact BEARING
+    even when the raycast depth is junk. Trusted-grade gating because a relocalizing pose
+    stamps coordinates in a shifted frame (see _TRUSTED_WORLD_GRADES). Time-sorted."""
+    out: list[_Ray] = []
     for n in members:
         meta = getattr(n, "metadata", {}) or {}
         w = meta.get("track_world")
@@ -430,56 +452,130 @@ def _track_world_obs(members: list[Any]) -> list[tuple[int, tuple[float, float, 
         grade = str(meta.get("grade") or "").lower()
         if grade and grade not in _TRUSTED_WORLD_GRADES:
             continue
+        cam = (meta.get("arkit_camera") or {}).get("position")
+        origin = None
+        if isinstance(cam, (list, tuple)) and len(cam) == 3:
+            origin = (float(cam[0]), float(cam[1]), float(cam[2]))
         try:
-            out.append((int(n.t_ms), (float(w[0]), float(w[1]), float(w[2]))))
+            out.append((int(n.t_ms), (float(w[0]), float(w[1]), float(w[2])), origin))
         except (TypeError, ValueError):
             continue
+    out.sort(key=lambda r: r[0])
     return out
 
 
-def _world_median(
-    wobs: list[tuple[int, tuple[float, float, float]]],
-) -> tuple[float, float, float] | None:
-    """Per-axis median position of a track — single raycasts can glance off a background
-    surface, the median can't be moved by one outlier."""
-    if not wobs:
+def _stable_points(rays: list[_Ray]) -> list[tuple[float, float, float]]:
+    """Stamps from stationary-viewing moments: a time-adjacent stamp of the SAME track agrees
+    within _STAMP_STABLE_M. Sweeping-regime stamps scatter 0.2-1.3 m along the ray (measured)
+    and never qualify — scatter must not testify."""
+    pts = [p for _, p, _ in rays]
+    out = []
+    for i, p in enumerate(pts):
+        if (i > 0 and math.dist(p, pts[i - 1]) <= _STAMP_STABLE_M) or (
+            i + 1 < len(pts) and math.dist(p, pts[i + 1]) <= _STAMP_STABLE_M
+        ):
+            out.append(p)
+    return out
+
+
+def _median_and_sigma(
+    pts: list[tuple[float, float, float]],
+) -> tuple[tuple[float, float, float], float] | None:
+    """Per-axis median + a self-noise estimate (half the max pairwise spread, floored) —
+    the track's own demonstrated uncertainty, so split thresholds scale with measured noise
+    instead of a scene-independent constant."""
+    if not pts:
         return None
-    pts = [p for _, p in wobs]
     mid = len(pts) // 2
-    return tuple(sorted(p[axis] for p in pts)[mid] for axis in range(3))  # type: ignore[return-value]
+    med = tuple(sorted(p[axis] for p in pts)[mid] for axis in range(3))
+    sigma = max(
+        (math.dist(a, b) for i, a in enumerate(pts) for b in pts[i + 1:]), default=0.0
+    ) / 2.0
+    return med, max(sigma, 0.02)  # type: ignore[return-value]
+
+
+def _bearing_angle_deg(pa, oa, pb, ob) -> float | None:
+    """Angle between two rays' bearings when both origins exist and coincide (same frame).
+    Bearings are exact regardless of raycast depth — the depth-junk-proof quantity."""
+    if oa is None or ob is None or math.dist(oa, ob) > 0.10:
+        return None
+    va = tuple(pa[i] - oa[i] for i in range(3))
+    vb = tuple(pb[i] - ob[i] for i in range(3))
+    na, nb = math.sqrt(sum(x * x for x in va)), math.sqrt(sum(x * x for x in vb))
+    if na < 0.05 or nb < 0.05:
+        return None
+    cos = max(-1.0, min(1.0, sum(a * b for a, b in zip(va, vb)) / (na * nb)))
+    return math.degrees(math.acos(cos))
+
+
+def _covis_verdict(rays_a: list[_Ray], rays_b: list[_Ray], *, liberal: bool) -> bool | None:
+    """Simultaneous-stamp verdict: coincident 3D = one target (depth-junk-proof — dup boxes
+    share the bearing, junk moves both along the same ray); diverging BEARINGS = two
+    silhouettes at one instant (liberal 3 deg, strict 20 deg — see constants). Rows without
+    camera origins fall back to the original 3D split rule."""
+    sim = [
+        (pa, oa, pb, ob)
+        for ta, pa, oa in rays_a
+        for tb, pb, ob in rays_b
+        if abs(ta - tb) <= _COVIS_WINDOW_MS
+    ]
+    if not sim:
+        return None
+    dists = [math.dist(pa, pb) for pa, _, pb, _ in sim]
+    if max(dists) <= _COVIS_DUP_M:
+        return False
+    angles = [
+        ang for pa, oa, pb, ob in sim
+        if (ang := _bearing_angle_deg(pa, oa, pb, ob)) is not None
+    ]
+    if angles:
+        if max(angles) >= (_COVIS_SPLIT_DEG if liberal else _COVIS_SPLIT_STRICT_DEG):
+            return True
+    elif min(dists) >= _COVIS_SPLIT_M:
+        return True  # no bearings recorded -> original 3D rule
+    return None
 
 
 def _world_verdict(
-    wobs_a: list[tuple[int, tuple[float, float, float]]],
-    wobs_b: list[tuple[int, tuple[float, float, float]]],
+    rays_a: list[_Ray],
+    rays_b: list[_Ray],
     *,
     liberal: bool = False,
 ) -> bool | None:
-    """P10 fusion, two regimes with measured thresholds (see the constants above):
-    SIMULTANEOUS stamps (shared camera pose, relative distance near-exact) are ground truth —
-    two places at one instant = two objects, one place at one instant = a duplicate box or a
-    label flip on one object. Never-simultaneous tracks fall back to the median split, tiered
-    liberal/strict so mid-zone separations widen the count range instead of asserting (far
-    apart in the genesis frame = different objects, the case grid cells cannot see: three
-    identical jars visited one at a time). Anything else: None — existing
-    co-visibility/attribute evidence decides."""
-    if not wobs_a or not wobs_b:
+    """P10/P12 fusion, honesty-asymmetric by design. LIBERAL (feeds the count's HIGH) splits
+    eagerly — any plausible distinctness widens the range, which can only make the answer
+    vaguer, never wrong. STRICT (feeds the LOW) splits only on regime-proof evidence:
+    simultaneous bearings ≥20° apart (the metric analog of M2's non-adjacent-cell rule; a
+    duplicate box on one close object measured up to ~18°, genuinely different objects
+    20-46°) or stable-stamp medians separated beyond the tracks' own demonstrated noise.
+    DUP (must-merge) is regime-proof in all data: simultaneous stamps that coincide share
+    the bearing by construction. Rows without camera origins (pre-P10 stores, synthetic
+    fixtures) fall back to the original 3D rules — those stores carry no sweep scatter."""
+    if not rays_a or not rays_b:
         return None
-    sim = [
-        math.dist(wa, wb)
-        for ta, wa in wobs_a
-        for tb, wb in wobs_b
-        if abs(ta - tb) <= _COVIS_WINDOW_MS
-    ]
-    if sim:
-        if min(sim) >= _COVIS_SPLIT_M:
+    covis = _covis_verdict(rays_a, rays_b, liberal=liberal)
+    if covis is not None:
+        return covis
+    has_bearings = any(o for _, _, o in rays_a) and any(o for _, _, o in rays_b)
+    if not has_bearings:
+        med_a = _median_and_sigma([p for _, p, _ in rays_a])
+        med_b = _median_and_sigma([p for _, p, _ in rays_b])
+        split_m = _WORLD_SPLIT_LIBERAL_M if liberal else _WORLD_SPLIT_M
+        if med_a and med_b and math.dist(med_a[0], med_b[0]) >= split_m:
             return True
-        if max(sim) <= _COVIS_DUP_M:
-            return False
-    med_a, med_b = _world_median(wobs_a), _world_median(wobs_b)
-    split_m = _WORLD_SPLIT_LIBERAL_M if liberal else _WORLD_SPLIT_M
-    if med_a is not None and med_b is not None and math.dist(med_a, med_b) >= split_m:
-        return True
+        return None
+    if liberal:
+        med_a = _median_and_sigma([p for _, p, _ in rays_a])
+        med_b = _median_and_sigma([p for _, p, _ in rays_b])
+        if med_a and med_b and math.dist(med_a[0], med_b[0]) >= _WORLD_SPLIT_LIBERAL_M:
+            return True
+        return None
+    stab_a = _median_and_sigma(_stable_points(rays_a))
+    stab_b = _median_and_sigma(_stable_points(rays_b))
+    if stab_a and stab_b:
+        (ma, sa), (mb, sb) = stab_a, stab_b
+        if math.dist(ma, mb) >= max(_WORLD_SPLIT_M, 4.0 * (sa + sb)):
+            return True
     return None
 
 
@@ -490,8 +586,8 @@ def _tracks_conflict(
     sig_b: tuple[set[str], set[str]],
     *,
     min_cell_dist: int,
-    world_a: list[tuple[int, tuple[float, float, float]]] | None = None,
-    world_b: list[tuple[int, tuple[float, float, float]]] | None = None,
+    world_a: list[_Ray] | None = None,
+    world_b: list[_Ray] | None = None,
 ) -> bool:
     sizes_a, cols_a = sig_a
     sizes_b, cols_b = sig_b
@@ -523,7 +619,7 @@ def _resolve_instances(
         for members in track_members
     ]
     sigs = [_track_signature(members) for members in track_members]
-    worlds = [_track_world_obs(members) for members in track_members]
+    worlds = [_track_rays(members) for members in track_members]
     order = sorted(range(len(track_members)), key=lambda i: obs[i][0][0] if obs[i] else 0)
     groups: list[list[int]] = []
     for i in order:
@@ -574,15 +670,15 @@ def _mustlink_components(
     pre-P10 behaviour follows exactly. Returns (tids, det_labels, identity label, fused
     members) per physical component; identity from the largest track's label (deterministic;
     VLM-priority already applied per track)."""
-    wobs = [_track_world_obs(members) for _, _, _, members in per_track]
+    wobs = [_track_rays(members) for _, _, _, members in per_track]
 
     def linked(i: int, j: int) -> bool:
         if not wobs[i] or not wobs[j]:
             return False
         sim = [
             math.dist(wa, wb)
-            for ta, wa in wobs[i]
-            for tb, wb in wobs[j]
+            for ta, wa, _oa in wobs[i]
+            for tb, wb, _ob in wobs[j]
             if abs(ta - tb) <= _COVIS_WINDOW_MS
         ]
         return bool(sim) and max(sim) <= _COVIS_DUP_M

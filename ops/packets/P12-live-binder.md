@@ -60,3 +60,31 @@ arrives when one frame witnesses all three simultaneously; Swift raycast now fal
 estimated planes (stamp density was 50/~1100 rows) to make that likely on the next pan.
 REMAINING for this packet: live (at-ingest or on-phone) binding + instance hints; the sleep
 binder consumes the same graph.
+
+
+## Natural-motion hardening 2026-07-04 (founder correction: adapt to users, not vice versa)
+Founder's burst 3 (same 3 jars, NATURAL glancing/walking, world-grade session) broke the
+walk-2-calibrated rules and taught the regime-proof set. Measured failures:
+- one jar's stamps scattered 0.2-1.3 m ALONG THE RAY (raycast depth junk while moving;
+  walk-2 self-spread was <=0.16) -> fixed 0.15/0.30 median thresholds minted phantoms:
+  count read [5,8] vs ~3 truth — a FIRM-WRONG (low>truth), the cardinal sin;
+- the phone TRACKER drifts across adjacent identical jars (two "dup" track pairs showed
+  7-9 deg simultaneous bearing separation = two silhouettes) -> tracks are NOT identity
+  anchors near identical items; triangulation over drifting tracks converges to the table
+  centroid (0.01 m agreement between tracks that were provably boxing different jars) —
+  plausible-but-wrong, caught only by the bearing check;
+- the detector double-boxes one close jar up to ~18 deg apart (6 'bottle' boxes in ONE
+  frame on the 3-jar row) -> centre-angle alone cannot separate dup boxes from adjacent
+  objects at close range; needs BOX EXTENTS (now emitted: box_w/box_h, this commit).
+REGIME-PROOF RULES now in individuate.py (honesty-asymmetric: strict/LOW needs proof,
+liberal/HIGH splits eagerly — a wide range is vague, a wrong low is a lie):
+- DUP: simultaneous 3D <=0.05 m (depth-proof — junk moves both stamps along one ray);
+- STRICT split: simultaneous bearings >=20 deg (metric analog of M2's non-adjacent-cell
+  rule; dups measured <=18 deg, distinct 20-46 deg) OR stable-stamp medians beyond
+  max(0.30, 4x the tracks' own measured noise); scatter (no stable stamps) NEVER testifies;
+- LIBERAL split: bearings >=3 deg or medians >=0.15 — widens the range only.
+RESULTS: walk 2 partition/count unchanged (3 groups exactly = ground truth, [2,3]);
+burst 3 low 5->4 high 8 — low=4 is now a FALSIFIABLE claim (3 jar-zone groups + one
+stable track ~30 cm away by the toothbrush/scissors: founder to confirm a real 4th
+bottle-kind object there). Pauses tighten counts, sweeps widen them, no choreography.
+NEXT LEVEL: instant-disjointness floor from box extents (data flows from next build).

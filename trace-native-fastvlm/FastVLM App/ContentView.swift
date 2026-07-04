@@ -2197,6 +2197,13 @@ struct ContentView: View {
                 // Per-object depth (metres) sampled at the box centre — the spatial signal that lets
                 // the brain reason "in front of / behind / on top of". nil when depth is unavailable.
                 var md: [String: Any] = ["track_id": a.trackID, "detector_label": det.label]
+                // Box extents (normalized) — with intrinsics (already per-row) the Mac derives
+                // each detection's ANGULAR size, the discriminant between a duplicate box on one
+                // close object and a genuinely adjacent object: two DISJOINT silhouettes at one
+                // instant are two objects; overlapping boxes may be one. Measured need: at 0.5 m
+                // a jar spans ~11 deg, so centre-angle alone cannot make that call.
+                md["box_w"] = Double(det.box.width)
+                md["box_h"] = Double(det.box.height)
                 var depthTxt = ""
                 // COORDINATE-FIRST: unproject the box to a measured 3D position + physical size, so
                 // the binder can individuate by location and the brain answers "how big / where /

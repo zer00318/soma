@@ -20,10 +20,12 @@ from trace_memory.store.individuate import individuate
 T0 = 1_700_000_000_000
 
 
-def _write(store, tid, t_ms, world=None, grade="session", label="bottle"):
+def _write(store, tid, t_ms, world=None, grade="session", label="bottle", cam=None):
     meta = {"helper": "detector", "track_id": tid, "detector_label": label, "grade": grade}
     if world is not None:
         meta["track_world"] = list(world)
+    if cam is not None:
+        meta["arkit_camera"] = {"position": list(cam)}
     store.write_observation(
         text=f"OBJECT | {label} | detected by on-device tracker | middle-center of frame",
         t_ms=t_ms, source="phone_camera", provenance={"kind": "phone_helper"},
@@ -145,6 +147,52 @@ def test_covisible_duplicate_boxes_stay_one_object(tmp_path):
     clusters = _clusters(store)
     assert len(clusters) == 1
     assert clusters[0].instance_count == 1
+
+
+CAM = (0.0, 0.0, 1.0)
+
+
+def test_sweep_scatter_never_testifies_for_a_firm_split(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # Natural-motion regime (measured: one jar's stamps scattered 0.2-1.3 m along the ray).
+    # Two tracks, both pure scatter (no consecutive stamps agree), medians far apart.
+    # LIBERAL may split (range widens — vaguer, never wrong); STRICT must not (low stays 1).
+    _write(store, "trk-1", T0 + 0, world=(0.0, 0.0, 0.0), cam=CAM)
+    _write(store, "trk-1", T0 + 1000, world=(0.5, 0.0, 0.3), cam=CAM)
+    _write(store, "trk-1", T0 + 2000, world=(0.1, 0.2, 0.8), cam=CAM)
+    _write(store, "trk-2", T0 + 10000, world=(1.0, 0.0, 0.0), cam=(0.3, 0.0, 1.0))
+    _write(store, "trk-2", T0 + 11000, world=(1.5, 0.1, 0.4), cam=(0.3, 0.0, 1.0))
+    _write(store, "trk-2", T0 + 12000, world=(0.9, 0.3, 0.9), cam=(0.3, 0.0, 1.0))
+    clusters = _clusters(store)
+    assert all(c.count_low == 1 for c in clusters)
+    assert clusters[0].instance_count == 2  # liberal widened the range
+
+
+def test_simultaneous_bearing_divergence_is_a_firm_split(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # Two stable tracks whose SIMULTANEOUS bearings diverge ~25 deg (measured: genuinely
+    # different jars 20-46 deg) — regime-proof two-silhouettes evidence -> firm 2.
+    _write(store, "trk-1", T0 + 0, world=(0.0, 0.0, 0.0), cam=CAM)
+    _write(store, "trk-1", T0 + 5000, world=(0.01, 0.0, 0.01), cam=CAM)
+    _write(store, "trk-2", T0 + 30, world=(0.466, 0.0, 0.0), cam=CAM)
+    _write(store, "trk-2", T0 + 5030, world=(0.476, 0.0, 0.01), cam=CAM)
+    clusters = _clusters(store)
+    assert len(clusters) == 2
+    assert all(c.count_low == 2 and c.instance_count == 2 for c in clusters)
+
+
+def test_duplicate_box_angular_zone_widens_but_never_firms(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # Simultaneous bearings ~8 deg apart, 3D 0.14 m: inside the measured duplicate-box zone
+    # on one close object (dup boxes reached ~18 deg). The old 3D rule (>=0.10 m) minted a
+    # phantom second object here; now it widens the range only.
+    _write(store, "trk-1", T0 + 0, world=(0.0, 0.0, 0.0), cam=CAM)
+    _write(store, "trk-1", T0 + 5000, world=(0.01, 0.0, 0.01), cam=CAM)
+    _write(store, "trk-2", T0 + 30, world=(0.1405, 0.0, 0.0), cam=CAM)
+    _write(store, "trk-2", T0 + 5030, world=(0.1505, 0.0, 0.01), cam=CAM)
+    clusters = _clusters(store)
+    assert all(c.count_low == 1 for c in clusters)  # never a firm phantom
+    assert clusters[0].instance_count == 2          # honest [1,2]
 
 
 def test_coordinate_free_tracks_keep_legacy_behaviour(tmp_path):
