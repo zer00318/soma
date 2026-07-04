@@ -11,18 +11,19 @@ real-store spot check for perception/brain packets. The Leash (§6) audits every
 
 | id | packet | tag | executor · effort | depends | status |
 |---|---|---|---|---|---|
-| P00 | [ARKit-as-camera-owner spike](P00-spike-arkit-camera-owner.md) | judgment | Opus high / Fable | — | CONDITIONAL GREEN — stale-worldmap watchdog fixed + built; awaiting one clean full-crew re-walk |
+| P00 | [ARKit-as-camera-owner spike](P00-spike-arkit-camera-owner.md) | judgment | Opus high / Fable | — | GREEN 2026-07-04: 85% Tracking, all 4 channels alive on ARKit frames, counters live. W1 unblocked |
 | P01 | [Repo hygiene](P01-repo-hygiene.md) | mechanical | local/Sonnet | — | MERGED (with P04 commit): strays deleted, wal/shm gitignore fences; writer was one-off Jul-1 audit tooling |
 | P02 | [Helper contract + registry](P02-helper-contract-registry.md) | judgment | Fable | — | READY |
 | P03 | [The Leash v1](P03-leash-v1.md) | guided | Opus medium | P02 | READY |
+| P05 | [Speech quality: whole utterances](P05-speech-quality.md) | guided | Opus medium | — | READY (founder-reported 2026-07-04: shredded transcripts; diagnosis + design inside) |
 | P04 | [Ask-brain over-refusal fixes](P04-askbrain-overrefusal.md) | judgment | Opus high / Fable | — | MERGED: all 4 defects owned (temporal-qualifier 457f9f2; existence-present + channel + compound + text-token anchor-poisoning fix). Where-is resolved = harness artifact (heuristic reasoner) + missing sleep run; live hub answers 'on a gray surface and a table' @0.9 |
 
 ## W1 — Substrate & live binder (author fully when W0 numbers are in)
 
 | id | packet | tag | executor · effort | depends | status |
 |---|---|---|---|---|---|
-| P10 | [Coordinate anchor substrate](P10-anchor-substrate.md) | judgment | Fable / Opus high | P00 | BLOCKED(P00) |
-| P11 | [Appearance fingerprints](P11-appearance-fingerprints.md) | guided | Opus medium | P00 | BLOCKED(P00) |
+| P10 | [Coordinate anchor substrate](P10-anchor-substrate.md) | judgment | Fable / Opus high | P00 | READY (P00 GREEN; ARKit branch; incl. per-instance anchor keying + moving-object exclusion) |
+| P11 | [Appearance fingerprints](P11-appearance-fingerprints.md) | guided | Opus medium | P00 | READY (P00 GREEN) |
 | P12 | [Live binder](P12-live-binder.md) | judgment | Fable | P10,P11,P02 | BLOCKED |
 | P13 | [Look-again loop](P13-look-again.md) | guided | Opus medium | P12 | BLOCKED |
 

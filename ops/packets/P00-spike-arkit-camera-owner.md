@@ -74,3 +74,12 @@ store (spec: ONE store).
 - **VERDICT: CONDITIONAL GREEN.** ARKit proceeds as the session-geometry tier (P10 GREEN
   branch). Condition: one clean 10-min re-walk on the watchdog build, all helpers on,
   speech included, must show majority `Tracking` status. RED fallback unchanged.
+
+## Condition met — FINAL VERDICT: GREEN (founder walk 2026-07-04 morning)
+308 observations over the session window: tracking `Tracking` 261/308 (**85%**, watchdog
+working — residual Limited rows are session starts and a 9-row insufficientFeatures
+patch); ALL FOUR standing channels alive on ARKit frames simultaneously (detector 226,
+vlm 38, ocr 16 — read shampoo brands ELVITAL/PANTENE — asr 28 after the audio-session
+fix); frame accounting live: 10,928 received / 2,195 converted (20%, consistent with the
+10fps cap). P10 proceeds on the ARKit branch. Known quality items spun out: ASR
+fragmentation → P05; per-label anchors + moving-object anchors → P10.
