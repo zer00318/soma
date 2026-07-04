@@ -26,12 +26,21 @@ from typing import Any, Iterable
 _INSTANCE_RADIUS_M = 0.25
 
 # Genesis-frame split distance for per-track world coordinates (P10 `track_world`, raycast
-# through each track's own box centre on-device). Measured 2026-07-04 on the 3-nutella-jar
-# walk: repeat raycasts of ONE static object from different camera poses agree to ≲0.15 m;
-# genuinely different jars sat ≥0.33 m apart. 0.30 sits between with margin on the noise
-# side. Between _INSTANCE_RADIUS_M and this value neither merge nor split is asserted —
-# ambiguity stays with the co-visibility/attribute evidence, which keeps counts honest ranges.
+# through each track's own box centre on-device), applied to per-track MEDIANS of tracks that
+# were never co-visible. Cross-time absolute positions carry per-pose raycast noise (measured
+# 2026-07-04 walk 2: up to ~0.16 m within one static jar's track), so the never-covisible
+# split stays coarse. Below it nothing is asserted — co-visibility/attribute evidence decides.
 _WORLD_SPLIT_M = 0.30
+
+# Metric co-visibility (walk 2, 3 identical jars, measured): raycasts stamped within the same
+# instant share the camera pose, so their RELATIVE distance is near-exact — the same jar
+# double-boxed/label-flipped measured 0.000-0.001 m between its two tracks, while genuinely
+# different adjacent jars measured >=0.102 m. Perfectly bimodal, 100x gap. Simultaneity is
+# ground truth: two places at one instant = two objects; one place at one instant = one
+# object twice. These preempt the coarse 3x3 grid-cell heuristic whenever both tracks carry
+# coordinates.
+_COVIS_DUP_M = 0.05
+_COVIS_SPLIT_M = 0.10
 
 # Grades whose poses share a stable genesis frame. "track" (Limited/relocalizing) coordinates
 # may live in a shifted frame — measured on the jar walk: the one relocalizing-grade track's
@@ -325,7 +334,7 @@ def _object_label_field(text: str) -> str:
     """The app emits ``OBJECT | <label> | <attributes>`` (and ``EVENT | ...``). The IDENTITY is the
     middle field, not the attribute tail — return it when present, else the whole text."""
     parts = [p.strip() for p in str(text).split("|")]
-    if len(parts) >= 2 and parts[0].strip().upper() in ("OBJECT", "EVENT"):
+    if len(parts) >= 2 and parts[0].strip().upper() in ("OBJECT", "EVENT", "TRACK"):
         return parts[1]
     return text
 
@@ -403,12 +412,11 @@ def _track_signature(members: list[Any]) -> tuple[set[str], set[str]]:
     return sizes, colours
 
 
-def _track_world(members: list[Any]) -> tuple[float, float, float] | None:
-    """One genesis-frame position per track: per-axis median of its trusted `track_world`
-    stamps (P10 per-track raycast). Median because single raycasts can glance off a
-    background surface; trusted-grade gating because a relocalizing pose stamps coordinates
-    in a shifted frame (see _TRUSTED_WORLD_GRADES)."""
-    pts: list[tuple[float, float, float]] = []
+def _track_world_obs(members: list[Any]) -> list[tuple[int, tuple[float, float, float]]]:
+    """Timestamped trusted `track_world` stamps of one track (P10 per-track raycast).
+    Trusted-grade gating because a relocalizing pose stamps coordinates in a shifted frame
+    (see _TRUSTED_WORLD_GRADES)."""
+    out: list[tuple[int, tuple[float, float, float]]] = []
     for n in members:
         meta = getattr(n, "metadata", {}) or {}
         w = meta.get("track_world")
@@ -418,30 +426,51 @@ def _track_world(members: list[Any]) -> tuple[float, float, float] | None:
         if grade and grade not in _TRUSTED_WORLD_GRADES:
             continue
         try:
-            pts.append((float(w[0]), float(w[1]), float(w[2])))
+            out.append((int(n.t_ms), (float(w[0]), float(w[1]), float(w[2]))))
         except (TypeError, ValueError):
             continue
-    if not pts:
+    return out
+
+
+def _world_median(
+    wobs: list[tuple[int, tuple[float, float, float]]],
+) -> tuple[float, float, float] | None:
+    """Per-axis median position of a track — single raycasts can glance off a background
+    surface, the median can't be moved by one outlier."""
+    if not wobs:
         return None
+    pts = [p for _, p in wobs]
     mid = len(pts) // 2
     return tuple(sorted(p[axis] for p in pts)[mid] for axis in range(3))  # type: ignore[return-value]
 
 
 def _world_verdict(
-    a: tuple[float, float, float] | None, b: tuple[float, float, float] | None
+    wobs_a: list[tuple[int, tuple[float, float, float]]],
+    wobs_b: list[tuple[int, tuple[float, float, float]]],
 ) -> bool | None:
-    """P10 fusion: genesis-frame coordinates rule when both tracks carry them. Far apart =
-    different physical objects even if NEVER co-visible (the case grid cells cannot see:
-    three identical jars visited one at a time). Same spot = one object re-sighted, skip
-    the viewpoint-dependent grid heuristic entirely. In between (or missing): None, so the
-    existing co-visibility/attribute evidence decides and counts stay honest ranges."""
-    if a is None or b is None:
+    """P10 fusion, two regimes with measured thresholds (see the constants above):
+    SIMULTANEOUS stamps (shared camera pose, relative distance near-exact) are ground truth —
+    two places at one instant = two objects, one place at one instant = a duplicate box or a
+    label flip on one object. Never-simultaneous tracks fall back to the coarse median split
+    (far apart in the genesis frame = different objects, the case grid cells cannot see:
+    three identical jars visited one at a time). Anything else: None — existing
+    co-visibility/attribute evidence decides and counts stay honest ranges."""
+    if not wobs_a or not wobs_b:
         return None
-    d = math.dist(a, b)
-    if d >= _WORLD_SPLIT_M:
+    sim = [
+        math.dist(wa, wb)
+        for ta, wa in wobs_a
+        for tb, wb in wobs_b
+        if abs(ta - tb) <= _COVIS_WINDOW_MS
+    ]
+    if sim:
+        if min(sim) >= _COVIS_SPLIT_M:
+            return True
+        if max(sim) <= _COVIS_DUP_M:
+            return False
+    med_a, med_b = _world_median(wobs_a), _world_median(wobs_b)
+    if med_a is not None and med_b is not None and math.dist(med_a, med_b) >= _WORLD_SPLIT_M:
         return True
-    if d <= _INSTANCE_RADIUS_M:
-        return False
     return None
 
 
@@ -452,8 +481,8 @@ def _tracks_conflict(
     sig_b: tuple[set[str], set[str]],
     *,
     min_cell_dist: int,
-    world_a: tuple[float, float, float] | None = None,
-    world_b: tuple[float, float, float] | None = None,
+    world_a: list[tuple[int, tuple[float, float, float]]] | None = None,
+    world_b: list[tuple[int, tuple[float, float, float]]] | None = None,
 ) -> bool:
     sizes_a, cols_a = sig_a
     sizes_b, cols_b = sig_b
@@ -461,7 +490,7 @@ def _tracks_conflict(
         return True
     if _colours_conflict(cols_a, cols_b):
         return True
-    world = _world_verdict(world_a, world_b)
+    world = _world_verdict(world_a or [], world_b or [])
     if world is not None:
         return world
     for ta, ca in obs_a:
@@ -485,7 +514,7 @@ def _resolve_instances(
         for members in track_members
     ]
     sigs = [_track_signature(members) for members in track_members]
-    worlds = [_track_world(members) for members in track_members]
+    worlds = [_track_world_obs(members) for members in track_members]
     order = sorted(range(len(track_members)), key=lambda i: obs[i][0][0] if obs[i] else 0)
     groups: list[list[int]] = []
     for i in order:

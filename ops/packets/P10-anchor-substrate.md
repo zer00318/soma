@@ -81,3 +81,22 @@ NUTELLA JARS — the exact case this packet exists for — and exposed a structu
   grades only (thresholds measured on this walk). 6 regression tests
   (`test_world_individuation.py`); 302 pytest green; iOS build green.
 - NEW device-proof item: re-walk the 3 jars → binder authors a FIRM count of 3.
+
+## Walk 2 (2026-07-04, new build) — SUBSTRATE PROVEN on the three jars
+50 `track_world` rows, 17 tracks, one ARKit session. The decisive measurement — relative
+distance between raycasts stamped at the SAME instant (shared camera pose → bias cancels):
+- same jar double-boxed / label-flipped as two tracks: **0.000–0.001 m** (4 pairs, incl.
+  cup-trk-16 vs bottle-trk-17 — COCO label flip on ONE jar, exposed by coordinates)
+- genuinely different adjacent jars: **0.102–0.127 m** (5 pairs)
+PERFECTLY BIMODAL, 100× gap. Identity graph from these constraints resolves 8 fragmented
+tracks → exactly 3 jars = ground truth. The coordinate thesis is device-proven on the
+hardest case (identical objects ~12 cm apart).
+CORRECTION from walk 1: real adjacent-jar spacing is ~0.10–0.15 m (walk 1's "≥0.33 m" was
+the per-label anchor-jump artifact), so the walk-1 merge radius (≤0.25 m ⇒ same object) was
+WRONG — it would merge adjacent jars. Binder rules now (measured, this walk):
+`_COVIS_DUP_M 0.05` / `_COVIS_SPLIT_M 0.10` on simultaneous stamps (ground truth, preempts
+the 3×3 grid), `_WORLD_SPLIT_M 0.30` only for never-covisible medians, nothing asserted
+between. Also fixed: `TRACK |` rows no longer poison identity labels (`_object_label_field`).
+REMAINING (→ P12): cross-label unification. Per-label buckets cannot see that cup-trk-16 =
+bottle-trk-17 (0.000 m simultaneous); the global identity graph (union-find + cannot-link
+from covis constraints) is the live binder's job — substrate now proven for it.

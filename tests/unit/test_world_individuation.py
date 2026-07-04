@@ -93,6 +93,30 @@ def test_outlier_raycast_does_not_move_the_median(tmp_path):
     assert len(clusters) == 1
 
 
+def test_covisible_adjacent_jars_split_by_metric_distance(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # Walk 2 measured case: three jars ~0.12 m apart, tracked SIMULTANEOUSLY (same instant,
+    # shared camera pose -> relative distance near-exact). The 3x3 grid puts adjacent jars in
+    # the SAME cell (dup-box rule would merge); metric co-visibility must split them.
+    _write(store, "trk-1", T0 + 0, world=(0.42, -0.25, -0.61))
+    _write(store, "trk-2", T0 + 30, world=(0.45, -0.12, -0.60))
+    _write(store, "trk-3", T0 + 60, world=(0.61, -0.06, -0.57))
+    clusters = _clusters(store)
+    assert len(clusters) == 3
+    assert all(c.instance_count == 3 and c.count_low == 3 for c in clusters)
+
+
+def test_covisible_duplicate_boxes_stay_one_object(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # Walk 2 measured case: one jar double-boxed — two tracks at the same instant 0.001 m
+    # apart. Simultaneous same-place = the same object twice, never a second object.
+    _write(store, "trk-1", T0 + 0, world=(0.42, -0.253, -0.613))
+    _write(store, "trk-2", T0 + 31, world=(0.421, -0.253, -0.613))
+    clusters = _clusters(store)
+    assert len(clusters) == 1
+    assert clusters[0].instance_count == 1
+
+
 def test_coordinate_free_tracks_keep_legacy_behaviour(tmp_path):
     store = TraceMemoryStore(tmp_path / "s.sqlite3")
     # No track_world anywhere -> pre-P10 path exactly: sequential same-label tracks merge.

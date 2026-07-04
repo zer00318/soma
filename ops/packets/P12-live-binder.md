@@ -24,6 +24,19 @@ hypotheses, not authored memories.
    different-cell = distinct; same-cell = duplicate box; attribute contradiction
    (weight/volume, colour family) splits; fingerprint distance beyond P11's threshold
    splits; else same. Ambiguity → both hypotheses recorded, low grade.
+   **UPDATE from the 2026-07-04 three-jar walks (P10/P11 measured results — supersedes two
+   assumptions above):** (a) fingerprint cosine CANNOT split same-kind objects (same-jar
+   0.28-0.68 overlaps cross-kind 0.13-0.52) — it is a category/corroboration signal only;
+   there is NO P11 threshold to split on. (b) The strongest identity signal is METRIC
+   co-visibility from per-track `track_world` stamps: simultaneous raycasts of one jar
+   measured 0.000-0.001 m apart across its duplicate/flip-flopped tracks, different adjacent
+   jars 0.102-0.127 m — perfectly bimodal (constants `_COVIS_DUP_M`/`_COVIS_SPLIT_M` in
+   individuate.py). THE CORE JOB HERE: a GLOBAL identity graph over tracks — union on
+   simultaneous-same-place (this crosses COCO label flips: cup-trk-16 = bottle-trk-17 at
+   0.000 m), cannot-link on simultaneous-different-place, propagate constraints. Per-label
+   buckets in individuate.py cannot represent this; on walk 2 the graph resolves 8 tracks ->
+   exactly 3 jars where per-label counting cannot. That graph is what makes "how many
+   nutella jars" answer a FIRM 3.
 3. Output: observations arrive at the store already carrying anchor_id + bound_text +
    live_instance_hint. Sleep binder consumes hints as evidence, keeps final authority.
 4. Regression: the full M2 live-desk results must not regress (mouse 1 FIRM, laptop 1
