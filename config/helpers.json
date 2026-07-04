@@ -1,0 +1,16 @@
+{
+  "comment": "THE HELPER REGISTRY (spec §5, L7). Data, not code: add a helper here and it participates — the spine never changes. Unknown helper_ids still ingest (flagged unregistered); this file is documentation + dispatch + coverage grouping.",
+  "helpers": [
+    { "id": "detector",       "kind": "standing",   "pillar": "phone", "description": "on-device object detector + tracker (track ids, boxes, bound OCR labels)" },
+    { "id": "vlm_object",     "kind": "standing",   "pillar": "phone", "description": "FastVLM open-vocab object/scene descriptions" },
+    { "id": "ocr",            "kind": "standing",   "pillar": "phone", "description": "Vision OCR — verbatim text in the world" },
+    { "id": "asr",            "kind": "standing",   "pillar": "phone", "description": "on-device speech transcripts, verbatim, attributed (P21 adds WHO)" },
+    { "id": "motion_activity","kind": "standing",   "pillar": "phone", "description": "CoreMotion state changes: walking/driving/stationary (P22)" },
+    { "id": "sound_event",    "kind": "standing",   "pillar": "phone", "description": "SoundAnalysis ambient events: doorbell, music, alarm (P23)" },
+    { "id": "mac_screen_ocr", "kind": "standing",   "pillar": "mac",   "description": "Mac screen daemon — what your digital life said (P20)" },
+    { "id": "mac_app_focus",  "kind": "standing",   "pillar": "mac",   "description": "frontmost app + window title changes (P20)" },
+    { "id": "activity_context","kind": "standing",  "pillar": "phone", "description": "fused context classification: cooking/coding/shopping (P24)" },
+    { "id": "owner",          "kind": "standing",   "pillar": "owner", "description": "the user's own review-card answers — the user is a helper too" },
+    { "id": "barcode",        "kind": "dispatched", "pillar": "phone", "dispatch_hint": "shopping", "description": "P24's proof-of-seam specialist: Vision barcode/QR reads" }
+  ]
+}

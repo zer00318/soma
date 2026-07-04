@@ -29,20 +29,18 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from trace_memory.store import TraceMemoryStore  # noqa: E402
+from trace_memory.contract import (  # noqa: E402
+    PILLAR_SOURCES,
+    helper_id_from_legacy,
+    load_registry,
+    validate_observation,
+)
 
 
 def helper_of(source: str) -> str:
-    """Map the app's per-record `source` to the canonical helper aspect."""
-    s = (source or "").lower()
-    if s.startswith("fastvlm") or s == "vlm":
-        return "vlm_object"
-    if "vision" in s or "ocr" in s:
-        return "ocr"
-    if "speech" in s or "whisper" in s or "asr" in s:
-        return "asr"
-    if "detector" in s or s == "native":
-        return "detector"
-    return "vlm_object"
+    """Map the app's per-record `source` to the canonical helper_id. One owner: the
+    mapping lives in trace_memory.contract (P02); this name survives for callers."""
+    return helper_id_from_legacy(source)
 
 
 def _t_ms(timestamp: str) -> int:
@@ -69,6 +67,11 @@ class Hub:
         self.write_lock = threading.Lock()
         self.answer_lock = threading.Lock()
         self._answer_store = None  # lazily opened reader connection
+        # P02: the helper registry is DATA (config/helpers.json). Unknown helper_ids
+        # still ingest — they surface as "unregistered" in /status, never as a crash.
+        self.registry = load_registry()
+        self.reject_counts: dict[str, int] = {}
+        self.unregistered_seen: set[str] = set()
 
     def _reader(self) -> TraceMemoryStore:
         if self._answer_store is None:
@@ -76,6 +79,11 @@ class Hub:
         return self._answer_store
 
     def ingest(self, packet: dict) -> dict:
+        # P02: two accepted shapes through ONE seam. Contract packets (helper_id/text/
+        # t_ms, spec §5) are validated loudly; the phone app's legacy shape (memory_text/
+        # source/timestamp) keeps working unchanged.
+        if "helper_id" in packet or "contract" in packet:
+            return self._ingest_contract(packet)
         text = str(packet.get("memory_text") or packet.get("raw_text") or "").strip()
         if not text:
             return {"ok": False, "reason": "empty text"}
@@ -102,9 +110,42 @@ class Hub:
         self.counts[helper] = self.counts.get(helper, 0) + 1
         return {"ok": True, "helper": helper, "total": sum(self.counts.values())}
 
+    def _ingest_contract(self, packet: dict) -> dict:
+        norm, err = validate_observation(packet)
+        if err:
+            self.reject_counts[err] = self.reject_counts.get(err, 0) + 1
+            print(f"  ! contract reject: {err}", flush=True)
+            return {"ok": False, "reason": err}
+        helper_id = norm["helper_id"]
+        entry = self.registry.get(helper_id)
+        if entry is None:
+            self.unregistered_seen.add(helper_id)
+        pillar = str(packet.get("pillar") or (entry or {}).get("pillar") or "phone")
+        source = PILLAR_SOURCES.get(pillar, PILLAR_SOURCES["phone"])
+        meta = dict(norm["metadata"])
+        meta.update({
+            "helper": helper_id,
+            "helper_prompt": helper_id,
+            "contract": 1,
+            "registered": entry is not None,
+        })
+        for key in ("confidence", "anchor_id", "fingerprint", "session_id"):
+            if norm[key] is not None:
+                meta[key] = norm[key]
+        provenance = dict(norm["provenance"])
+        provenance.setdefault("helper_id", helper_id)
+        provenance.setdefault("pillar", pillar)
+        self.store.write_observation(
+            text=norm["text"], t_ms=norm["t_ms"], source=source,
+            provenance=provenance, metadata=meta,
+        )
+        self.counts[helper_id] = self.counts.get(helper_id, 0) + 1
+        return {"ok": True, "helper": helper_id, "registered": entry is not None,
+                "total": sum(self.counts.values())}
+
     def store_helper_counts(self) -> dict[str, int]:
         counts: dict[str, int] = {}
-        for node in self.store.nodes(node_types=("observation",), sources=("phone_camera",)):
+        for node in self.store.nodes(node_types=("observation",), sources=tuple(PILLAR_SOURCES.values())):
             h = (node.metadata or {}).get("helper") or "untagged"
             counts[h] = counts.get(h, 0) + 1
         return counts
@@ -116,7 +157,7 @@ class Hub:
         from trace_memory.brain import TraceMemoryAgent
         try:
             agent = TraceMemoryAgent(self._reader(), reasoner="local-ollama",
-                                     restrict_sources=("phone_camera",))
+                                     restrict_sources=tuple(PILLAR_SOURCES.values()))
             a = agent.answer(question)
             evidence = [
                 {"when": r.get("when"), "helper": r.get("helper_prompt") or r.get("helper_type"),
@@ -238,7 +279,12 @@ class Handler(BaseHTTPRequestHandler):
             with self.hub.write_lock:
                 per_helper = dict(self.hub.store_helper_counts())
                 nodes = self.hub.store.node_count()
-            return self._send(200, {"ok": True, "nodes": nodes, "by_helper": per_helper})
+            return self._send(200, {
+                "ok": True, "nodes": nodes, "by_helper": per_helper,
+                "registry": sorted(self.hub.registry),
+                "unregistered_seen": sorted(self.hub.unregistered_seen),
+                "contract_rejects": self.hub.reject_counts,
+            })
         if parsed.path == "/ask":
             q = (parse_qs(parsed.query).get("q") or [""])[0]
             if not q:
