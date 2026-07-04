@@ -1808,10 +1808,26 @@ struct ContentView: View {
         fingerprintedTrackKeys.insert(key)
         if fingerprintedTrackKeys.count > 400 { fingerprintedTrackKeys.removeAll() }  // session hygiene
 
+        // P10: the track's own genesis-frame coordinate rides on the fingerprint row, so the
+        // "same thing?" packet carries BOTH identity signals (appearance + place). Captured
+        // now, while this frame is current — the detached featureprint task runs later.
+        var trackWorld: [Double]? = nil
+        #if os(iOS)
+        if let arFrame = TraceARKitEngine.shared.session.currentFrame,
+           TraceARKitEngine.shared.isTracking,
+           let wp = TraceARKitEngine.shared.trackWorldPosition(
+               boxCenter: CGPoint(x: box.midX, y: box.midY), in: arFrame) {
+            trackWorld = [Double(wp.x), Double(wp.y), Double(wp.z)]
+        }
+        #endif
+
         let ci = CIImage(cvPixelBuffer: frame)
         let w = ci.extent.width, h = ci.extent.height
         // Vision boxes are normalized, bottom-left origin — same space as CIImage.
-        let pad: CGFloat = 0.10
+        // Pad 0.10 → 0.02: measured 2026-07-04, identical jars scored 0.28–0.68 while a
+        // re-sighted laptop scored 0.81 — the loose crop fed the featureprint mostly
+        // table/background, diluting the object's own signature.
+        let pad: CGFloat = 0.02
         let rect = CGRect(
             x: max(0, (box.minX - pad * box.width) * w),
             y: max(0, (box.minY - pad * box.height) * h),
@@ -1835,6 +1851,9 @@ struct ContentView: View {
                 }
                 // Dedicated, low-frequency row: the vector rides here, fused onto the physical
                 // instance by track_id (same fuse pattern as M5's crop enrichment).
+                var fpMeta: [String: Any] = ["track_id": trackID, "detector_label": label,
+                                             "fingerprint_dims": vector.count]
+                if let trackWorld { fpMeta["track_world"] = trackWorld }
                 let payload: [String: Any] = [
                     "timestamp": ISO8601DateFormatter().string(from: Date()),
                     "memory_text": "TRACK | \(label) | appearance signature captured",
@@ -1842,8 +1861,7 @@ struct ContentView: View {
                     "source_type": "vision",
                     "location_hint": self.locationContext.locationMemoryHint,
                     "fingerprint": vector,
-                    "metadata": ["track_id": trackID, "detector_label": label,
-                                 "fingerprint_dims": vector.count],
+                    "metadata": fpMeta,
                 ]
                 self.postPerceptionPacketToHub(payload)
                 self.appendNativeStatusLog(status: "track_fingerprint_committed", extra: [
@@ -2214,13 +2232,26 @@ struct ContentView: View {
                     }
                 }
                 let text = "OBJECT | \(det.label) | detected by on-device tracker |\(boundTxt)\(depthTxt) \(vert)-\(horiz) of frame; \(frameRelation) | likely"
-                let payload: [String: Any] = [
-                    "memory_text": text,
-                    "source": "detector_track",
-                    "metadata": md,
-                ]
                 Task { @MainActor in
-                    self.postPerceptionPacketToHub(payload)
+                    // P10: per-TRACK genesis-frame coordinate, raycast through THIS track's box
+                    // centre — every confirmed track gets its own world point on every emission,
+                    // so the binder can split same-label tracks by place (repeat measurements of
+                    // one static object agree to ~0.1 m; different jars sit ≥0.3 m apart). Gated
+                    // on tracking: a relocalizing pose would stamp coords in a shifted frame.
+                    var mdWorld = md
+                    #if os(iOS)
+                    if let arFrame = TraceARKitEngine.shared.session.currentFrame,
+                       TraceARKitEngine.shared.isTracking,
+                       let w = TraceARKitEngine.shared.trackWorldPosition(
+                           boxCenter: CGPoint(x: det.box.midX, y: det.box.midY), in: arFrame) {
+                        mdWorld["track_world"] = [Double(w.x), Double(w.y), Double(w.z)]
+                    }
+                    #endif
+                    self.postPerceptionPacketToHub([
+                        "memory_text": text,
+                        "source": "detector_track",
+                        "metadata": mdWorld,
+                    ])
                     // M5: one zoomed VLM read per confirmed track (throttled inside).
                     self.maybeEnrichTrackCrop(frame: frame, label: det.label,
                                               box: det.box, trackID: a.trackID)

@@ -1,0 +1,102 @@
+"""P10 fusion regression battery — genesis-frame coordinates individuate identical objects.
+
+The three-nutella-jar walk (2026-07-04) proved appearance CANNOT split same-kind objects
+(same-jar cosines 0.28-0.68 overlap cross-kind 0.13-0.52) and coordinates CAN (repeat
+raycasts of one static object agree to ≲0.15 m; different jars sit ≥0.33 m apart). Locked
+behaviours:
+  - sequential same-label tracks FAR APART in the genesis frame are DISTINCT objects, even
+    though they were never co-visible (the case grid-cell co-visibility cannot see),
+  - same-spot re-sightings stay ONE object (raycast noise below the split threshold),
+  - the mid zone between merge radius and split distance asserts nothing — existing
+    co-visibility/attribute evidence decides, counts stay honest,
+  - coordinates from untrusted grades (Limited/relocalizing) are ignored, never split on,
+  - a single outlier raycast does not move a track's median position.
+"""
+from __future__ import annotations
+
+from trace_memory.store import TraceMemoryStore
+from trace_memory.store.individuate import individuate
+
+T0 = 1_700_000_000_000
+
+
+def _write(store, tid, t_ms, world=None, grade="session", label="bottle"):
+    meta = {"helper": "detector", "track_id": tid, "detector_label": label, "grade": grade}
+    if world is not None:
+        meta["track_world"] = list(world)
+    store.write_observation(
+        text=f"OBJECT | {label} | detected by on-device tracker | middle-center of frame",
+        t_ms=t_ms, source="phone_camera", provenance={"kind": "phone_helper"},
+        metadata=meta,
+    )
+
+
+def _clusters(store, label="bottle"):
+    return [c for c in individuate(list(store.nodes(node_types=("observation",))))
+            if c.kind == "entity" and label in c.label]
+
+
+def test_three_identical_jars_far_apart_are_three_objects(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # Never co-visible (sequential, well outside the covis window) — pre-P10 these MERGE.
+    _write(store, "trk-1", T0 + 0, world=(0.0, 0.0, 0.0))
+    _write(store, "trk-1", T0 + 1000, world=(0.05, 0.0, 0.02))
+    _write(store, "trk-2", T0 + 5000, world=(0.0, 0.0, -0.65))
+    _write(store, "trk-2", T0 + 6000, world=(0.04, -0.03, -0.68))
+    _write(store, "trk-3", T0 + 10000, world=(0.7, 0.1, 0.1))
+    clusters = _clusters(store)
+    assert len(clusters) == 3
+    # Firm count: strict and liberal agree, so low == high == 3.
+    assert all(c.instance_count == 3 and c.count_low == 3 for c in clusters)
+
+
+def test_same_spot_resightings_stay_one_object(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # Two tracks of one static jar, raycast noise ~0.12 m — below the split threshold.
+    _write(store, "trk-1", T0 + 0, world=(0.0, 0.0, 0.0))
+    _write(store, "trk-8", T0 + 20000, world=(0.08, 0.05, -0.06))
+    clusters = _clusters(store)
+    assert len(clusters) == 1
+    assert clusters[0].instance_count == 1
+
+
+def test_mid_zone_asserts_nothing_and_sequential_tracks_still_merge(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # 0.27 m apart: between _INSTANCE_RADIUS_M and _WORLD_SPLIT_M. No co-visibility, no
+    # attribute conflict -> existing evidence decides -> merge (a track is a sighting).
+    _write(store, "trk-1", T0 + 0, world=(0.0, 0.0, 0.0))
+    _write(store, "trk-2", T0 + 5000, world=(0.27, 0.0, 0.0))
+    clusters = _clusters(store)
+    assert len(clusters) == 1
+
+
+def test_untrusted_grade_coordinates_never_split(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # Relocalizing-grade coords live in a shifted frame (measured ~0.7 m off on the jar
+    # walk). Far-apart junk coords must NOT mint a second object.
+    _write(store, "trk-1", T0 + 0, world=(0.0, 0.0, 0.0))
+    _write(store, "trk-2", T0 + 5000, world=(2.0, 0.0, 0.0), grade="track")
+    clusters = _clusters(store)
+    assert len(clusters) == 1
+
+
+def test_outlier_raycast_does_not_move_the_median(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # trk-1: three good stamps at origin + one glance-off-the-wall outlier. Median holds,
+    # so trk-2 at the same spot still merges.
+    _write(store, "trk-1", T0 + 0, world=(0.0, 0.0, 0.0))
+    _write(store, "trk-1", T0 + 1000, world=(0.03, 0.01, -0.02))
+    _write(store, "trk-1", T0 + 2000, world=(3.5, 1.0, 2.0))
+    _write(store, "trk-1", T0 + 3000, world=(-0.02, 0.02, 0.03))
+    _write(store, "trk-2", T0 + 9000, world=(0.05, 0.0, 0.0))
+    clusters = _clusters(store)
+    assert len(clusters) == 1
+
+
+def test_coordinate_free_tracks_keep_legacy_behaviour(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # No track_world anywhere -> pre-P10 path exactly: sequential same-label tracks merge.
+    _write(store, "trk-1", T0 + 0)
+    _write(store, "trk-2", T0 + 5000)
+    clusters = _clusters(store)
+    assert len(clusters) == 1

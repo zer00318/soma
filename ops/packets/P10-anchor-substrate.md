@@ -63,3 +63,21 @@ session-scoped otherwise. Space id persists with the saved world map, is dropped
 3. Background the app (saves world map), re-enter a mapped room next session →
    `anchors.relocalized` > 0 (GREEN) or grades degrade honestly to `track`/`none` (RED).
 4. Battery still 0-confident-wrong on the post-walk store.
+
+## Walk 1 result (2026-07-04) + the three-jar fix
+Checklist item 2 PASSED on the first walk: 84% row-coverage, real 6-DOF poses, grade
+`session` (fresh map — item 3 still pending). Then the founder pointed at THREE IDENTICAL
+NUTELLA JARS — the exact case this packet exists for — and exposed a structural gap:
+- Genesis-frame quality is REAL: repeat raycasts of one static object from different camera
+  poses agreed to ≲0.15 m; different jars sat ≥0.33 m apart. The thesis (coordinates
+  individuate identical objects) is CONFIRMED by measurement.
+- But the per-LABEL `anchorMap` threw the signal away at the source: one anchor per label,
+  replaced in place, 0.5 m dedup → 3 jars under 2 COCO labels meant the third jar NEVER got
+  a coordinate and the survivors jumped between jars. Relocalizing-grade (`track`) raycasts
+  also landed ~0.7 m off — trusted-grade gating is mandatory.
+- FIXED same day: per-TRACK raycast `trackWorldPosition(boxCenter:in:)` stamps `track_world`
+  (genesis-frame xyz, tracking-gated at source) on every detector_track AND fingerprint row;
+  Mac `_tracks_conflict` fuses it — split ≥0.30 m, merge ≤0.25 m, median per track, trusted
+  grades only (thresholds measured on this walk). 6 regression tests
+  (`test_world_individuation.py`); 302 pytest green; iOS build green.
+- NEW device-proof item: re-walk the 3 jars → binder authors a FIRM count of 3.

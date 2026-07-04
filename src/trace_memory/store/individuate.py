@@ -25,6 +25,19 @@ from typing import Any, Iterable
 # physical instance; beyond it, distinct instances (so 5 nutella jars at 5 coords -> 5 instances).
 _INSTANCE_RADIUS_M = 0.25
 
+# Genesis-frame split distance for per-track world coordinates (P10 `track_world`, raycast
+# through each track's own box centre on-device). Measured 2026-07-04 on the 3-nutella-jar
+# walk: repeat raycasts of ONE static object from different camera poses agree to ≲0.15 m;
+# genuinely different jars sat ≥0.33 m apart. 0.30 sits between with margin on the noise
+# side. Between _INSTANCE_RADIUS_M and this value neither merge nor split is asserted —
+# ambiguity stays with the co-visibility/attribute evidence, which keeps counts honest ranges.
+_WORLD_SPLIT_M = 0.30
+
+# Grades whose poses share a stable genesis frame. "track" (Limited/relocalizing) coordinates
+# may live in a shifted frame — measured on the jar walk: the one relocalizing-grade track's
+# raycast landed ~0.7 m from where trusted frames put the same jars. Never split on those.
+_TRUSTED_WORLD_GRADES = {"world", "session"}
+
 
 def _node_xyz(node: Any) -> tuple[float, float, float] | None:
     anchor = getattr(node, "spatial_anchor", None)
@@ -390,6 +403,48 @@ def _track_signature(members: list[Any]) -> tuple[set[str], set[str]]:
     return sizes, colours
 
 
+def _track_world(members: list[Any]) -> tuple[float, float, float] | None:
+    """One genesis-frame position per track: per-axis median of its trusted `track_world`
+    stamps (P10 per-track raycast). Median because single raycasts can glance off a
+    background surface; trusted-grade gating because a relocalizing pose stamps coordinates
+    in a shifted frame (see _TRUSTED_WORLD_GRADES)."""
+    pts: list[tuple[float, float, float]] = []
+    for n in members:
+        meta = getattr(n, "metadata", {}) or {}
+        w = meta.get("track_world")
+        if not (isinstance(w, (list, tuple)) and len(w) == 3):
+            continue
+        grade = str(meta.get("grade") or "").lower()
+        if grade and grade not in _TRUSTED_WORLD_GRADES:
+            continue
+        try:
+            pts.append((float(w[0]), float(w[1]), float(w[2])))
+        except (TypeError, ValueError):
+            continue
+    if not pts:
+        return None
+    mid = len(pts) // 2
+    return tuple(sorted(p[axis] for p in pts)[mid] for axis in range(3))  # type: ignore[return-value]
+
+
+def _world_verdict(
+    a: tuple[float, float, float] | None, b: tuple[float, float, float] | None
+) -> bool | None:
+    """P10 fusion: genesis-frame coordinates rule when both tracks carry them. Far apart =
+    different physical objects even if NEVER co-visible (the case grid cells cannot see:
+    three identical jars visited one at a time). Same spot = one object re-sighted, skip
+    the viewpoint-dependent grid heuristic entirely. In between (or missing): None, so the
+    existing co-visibility/attribute evidence decides and counts stay honest ranges."""
+    if a is None or b is None:
+        return None
+    d = math.dist(a, b)
+    if d >= _WORLD_SPLIT_M:
+        return True
+    if d <= _INSTANCE_RADIUS_M:
+        return False
+    return None
+
+
 def _tracks_conflict(
     obs_a: list[tuple[int, tuple[int, int] | None]],
     obs_b: list[tuple[int, tuple[int, int] | None]],
@@ -397,6 +452,8 @@ def _tracks_conflict(
     sig_b: tuple[set[str], set[str]],
     *,
     min_cell_dist: int,
+    world_a: tuple[float, float, float] | None = None,
+    world_b: tuple[float, float, float] | None = None,
 ) -> bool:
     sizes_a, cols_a = sig_a
     sizes_b, cols_b = sig_b
@@ -404,6 +461,9 @@ def _tracks_conflict(
         return True
     if _colours_conflict(cols_a, cols_b):
         return True
+    world = _world_verdict(world_a, world_b)
+    if world is not None:
+        return world
     for ta, ca in obs_a:
         if ca is None:
             continue
@@ -425,6 +485,7 @@ def _resolve_instances(
         for members in track_members
     ]
     sigs = [_track_signature(members) for members in track_members]
+    worlds = [_track_world(members) for members in track_members]
     order = sorted(range(len(track_members)), key=lambda i: obs[i][0][0] if obs[i] else 0)
     groups: list[list[int]] = []
     for i in order:
@@ -432,7 +493,8 @@ def _resolve_instances(
         for g in groups:
             if all(
                 not _tracks_conflict(obs[i], obs[j], sigs[i], sigs[j],
-                                     min_cell_dist=min_cell_dist)
+                                     min_cell_dist=min_cell_dist,
+                                     world_a=worlds[i], world_b=worlds[j])
                 for j in g
             ):
                 g.append(i)

@@ -174,6 +174,17 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         anchorMap[label]?.1
     }
 
+    /// Genesis-frame world position for ONE tracked object, raycast through its own box
+    /// centre. The per-label `anchorMap` structurally caps coordinates at one-per-label
+    /// (measured 2026-07-04: 3 nutella jars under 2 COCO labels → the third jar never got a
+    /// coordinate, and the 0.5 m dedup made the survivors jump between jars). Per-track
+    /// raycast gives every confirmed track its own point, which is what the Mac binder
+    /// individuates on. Returns nil rather than the camera-forward fallback — a missing
+    /// coordinate is honest, a fabricated one poisons individuation.
+    func trackWorldPosition(boxCenter point: CGPoint, in frame: ARFrame) -> simd_float3? {
+        featurePointWorldPosition(at: point, in: frame)
+    }
+
     /// Mirror of CameraController.attach — ContentView feeds from ARKit frames instead of AVCaptureSession.
     func attach(continuation: AsyncStream<CMSampleBuffer>.Continuation) {
         framesContinuation = continuation

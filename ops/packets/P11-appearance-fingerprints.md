@@ -62,4 +62,43 @@ emission:
 3. Emits `fingerprint` (top-level) + `track_id`; the Mac side above already consumes it.
 
 ## Measured ROC
-- (device-gated — the walk writes real same/different pairs here and sets the threshold)
+First device walk 2026-07-04 (founder's room, live stream — no recording needed). Vision
+featureprint dim = **768** on this device (iPhone18,3), well under the 4096 cap. 4 fingerprints:
+2× laptop tracks, 2× bed tracks (same-label ≈ same-instance in a single room).
+- SAME-object cosine: 0.806 (laptop), 0.847 (bed) — min 0.806, mean 0.827
+- DIFF-object cosine (laptop vs bed): 0.520–0.697, mean 0.609
+- **SEPARATION +0.109** (worst same 0.806 > best diff 0.697) → featureprint DISCRIMINATES,
+  GREEN branch confirmed (no distilled model needed).
+- **Synthetic default 0.82 was too HIGH** (would split the same laptop at 0.806). Measured cut
+  ≈ 0.75. PROVISIONAL: n=6 pairs, cross-CATEGORY only (laptop vs bed). The hard test — two
+  DIFFERENT same-category objects (two cups) — is NOT yet captured; same-category diff-pairs
+  score higher, so the final threshold needs that pass before it's set in code.
+- Perception NOT taxed: all 4 channels produced rows this walk (detector/vlm/ocr/asr all up),
+  frame-conversion at the designed ~10fps throttle. The cheap ANE featureprint coexists.
+
+## Measured ROC, round 2 — THE HARD TEST (3 identical nutella jars, 2026-07-04)
+The founder pointed at three identical jars — same kind, different places. This is the pass
+the round-1 optimism was missing, and it KILLS the fixed-threshold story:
+- same-KIND-different-jar cosines: **0.28–0.68** — OVERLAPS cross-kind (0.13–0.52); the worst
+  same-kind pair (0.279) scores BELOW the best cross-kind pair (0.516).
+- **NO cosine threshold splits same-jar from different-jar. The "cut ≈0.75" above is DEAD.**
+  `FINGERPRINT_MATCH_THRESHOLD` stays a flagged lie; nothing may make merge/split decisions
+  from cosine alone.
+- Verdict: the featureprint is a **CATEGORY signal, not an instance signal**. Its honest jobs:
+  (a) corroborate "same kind" across label flip-flop (jar read as bottle/cup by COCO),
+  (b) retrieval ranking. The INDIVIDUATOR for identical objects is P10 coordinates — the
+  three-jar walk proved genesis-frame raycasts re-measure one static object to ≲0.15 m
+  across camera poses while different jars sit ≥0.33 m apart.
+- Crop lever: best same-jar pair (0.68) << laptop self-match (0.81) ⇒ the 10% padded crop
+  fed the featureprint mostly table/background. Pad tightened 0.10→0.02 (this commit);
+  re-measure separation on the next walk.
+- Coordinate emission was ALSO broken for this case: per-LABEL `anchorMap` caps world points
+  at one-per-label (3 jars → 2 labels → third jar never got a coordinate; 0.5 m dedup made
+  anchors jump between jars). Fixed this commit: per-TRACK raycast (`trackWorldPosition`)
+  stamps `track_world` on every detector_track + fingerprint row; Mac `_tracks_conflict`
+  now splits ≥0.30 m / merges ≤0.25 m in the genesis frame (thresholds measured on this
+  walk, trusted grades only, median per track). `tests/unit/test_world_individuation.py`
+  locks: 3 far-apart identical jars → firm 3, same-spot re-sighting → 1, mid-zone asserts
+  nothing, relocalizing-grade coords never split, outlier raycast can't move the median.
+- DEVICE-PENDING: re-walk the 3 jars on this build → expect 3 `track_world` clusters → firm
+  count 3 from the binder; re-measure fingerprint ROC with the tight crop.
