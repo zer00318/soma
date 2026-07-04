@@ -14,8 +14,9 @@ real-store spot check for perception/brain packets. The Leash (§6) audits every
 | P00 | [ARKit-as-camera-owner spike](P00-spike-arkit-camera-owner.md) | judgment | Opus high / Fable | — | GREEN 2026-07-04: 85% Tracking, all 4 channels alive on ARKit frames, counters live. W1 unblocked |
 | P01 | [Repo hygiene](P01-repo-hygiene.md) | mechanical | local/Sonnet | — | MERGED (with P04 commit): strays deleted, wal/shm gitignore fences; writer was one-off Jul-1 audit tooling |
 | P02 | [Helper contract + registry](P02-helper-contract-registry.md) | judgment | Fable | — | MERGED 2026-07-04: contract.py + config/helpers.json (11 helpers) + dual-shape ingest + pillar-aware ask fence + example plugin proven live (unregistered kettle-watcher cited by /ask). 257 tests, battery held |
-| P03 | [The Leash v1](P03-leash-v1.md) | guided | Opus medium | P02 ✓ | READY — unblocked, helper_id tagging live |
-| P05 | [Speech quality: whole utterances](P05-speech-quality.md) | guided | Opus medium | — | READY (founder-reported 2026-07-04: shredded transcripts; diagnosis + design inside) |
+| P03 | [The Leash v1](P03-leash-v1.md) | guided | Opus medium | P02 ✓ | IN-PROGRESS(opus agent, worktree) |
+| P05 | [Speech quality: whole utterances](P05-speech-quality.md) | guided | Opus medium | — | IN-PROGRESS(opus agent, worktree) |
+| P06 | [Style debt: pre-push hook green](P06-style-debt.md) | mechanical | local/Sonnet | P03,P05 merge | BLOCKED — 29 files unformatted, 194 lint, 1 complexity; pushes use --no-verify until then |
 | P04 | [Ask-brain over-refusal fixes](P04-askbrain-overrefusal.md) | judgment | Opus high / Fable | — | MERGED: all 4 defects owned (temporal-qualifier 457f9f2; existence-present + channel + compound + text-token anchor-poisoning fix). Where-is resolved = harness artifact (heuristic reasoner) + missing sleep run; live hub answers 'on a gray surface and a table' @0.9 |
 
 ## W1 — Substrate & live binder (author fully when W0 numbers are in)
