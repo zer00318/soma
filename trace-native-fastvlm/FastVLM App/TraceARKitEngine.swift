@@ -41,7 +41,6 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
     private var framesConverted = 0
     private var lastConversionAt = Date.distantPast
     private static let conversionMinInterval: TimeInterval = 0.1          // ~10 fps: ceiling of the perception drain rate
-    private static let conversionMinIntervalRecording: TimeInterval = 1.0 / 30.0  // smooth forensic video while recording
 
     nonisolated private static let worldMapURL: URL = {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -335,20 +334,44 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         // VISION_FRAME_DELAY (180 ms -> ~5.5 fps), and both sit behind
         // bufferingNewest(1) streams that silently drop everything faster.
         // Converting above the drain rate buys zero extra memories and costs a
-        // full-res render each time (the measured 2026-07-03 lag). While the
-        // ground-truth recorder is rolling we pay 30 fps so the forensic video
-        // is smooth; these constants get re-derived from the frames_received/
-        // frames_converted counters once real instrumented walks accumulate.
-        let minInterval = VideoRecorder.shared.isRecording
-            ? Self.conversionMinIntervalRecording
-            : Self.conversionMinInterval
-        if now.timeIntervalSince(lastConversionAt) >= minInterval,
+        // full-res render each time (the measured 2026-07-03 lag).
+        //
+        // The RECORDER takes the RAW sensor buffer at full rate instead — a
+        // format-description wrap, no CIContext render at all; orientation is a
+        // metadata transform on the writer. The first design converted at 30fps
+        // while recording, and the 2026-07-04 recorded walk's ground-truth audit
+        // showed the crew collapsed to detector-only again (VLM 1 row, OCR 0):
+        // recording must never tax the perception path.
+        if VideoRecorder.shared.isRecordingHint,
+           let raw = Self.makeRawSampleBuffer(from: frame.capturedImage) {
+            VideoRecorder.shared.append(raw)
+        }
+        if now.timeIntervalSince(lastConversionAt) >= Self.conversionMinInterval,
            let sampleBuffer = Self.makeSampleBuffer(from: frame.capturedImage) {
             lastConversionAt = now
             framesConverted += 1
-            VideoRecorder.shared.append(sampleBuffer)
             framesContinuation?.yield(sampleBuffer)
         }
+    }
+
+    /// Wrap the raw ARKit pixel buffer (YUV, sensor-landscape) in a timed sample
+    /// buffer WITHOUT any pixel conversion — the recorder's h264 encoder eats YUV
+    /// natively and playback orientation comes from the writer transform.
+    private static func makeRawSampleBuffer(from pixelBuffer: CVPixelBuffer) -> CMSampleBuffer? {
+        var formatDescription: CMFormatDescription?
+        CMVideoFormatDescriptionCreateForImageBuffer(
+            allocator: nil, imageBuffer: pixelBuffer, formatDescriptionOut: &formatDescription)
+        guard let formatDescription else { return nil }
+        var timingInfo = CMSampleTimingInfo(
+            duration: CMTime(value: 1, timescale: 60),
+            presentationTimeStamp: CMClockGetTime(CMClockGetHostTimeClock()),
+            decodeTimeStamp: .invalid)
+        var sampleBuffer: CMSampleBuffer?
+        CMSampleBufferCreateReadyWithImageBuffer(
+            allocator: nil, imageBuffer: pixelBuffer,
+            formatDescription: formatDescription,
+            sampleTiming: &timingInfo, sampleBufferOut: &sampleBuffer)
+        return sampleBuffer
     }
 
     private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])

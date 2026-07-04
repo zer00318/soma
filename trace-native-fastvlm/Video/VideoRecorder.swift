@@ -24,6 +24,10 @@ public final class VideoRecorder {
     private var hubURL = ""
     private var recordingEnabled = false
     private var recordingID = ""
+    /// Lock-free mirror of recordingEnabled for per-frame checks from the capture
+    /// path. `isRecording` does queue.sync — calling that 60x/s from the main actor
+    /// can stall behind an in-flight encoder append. A benign-race Bool cannot.
+    public private(set) var isRecordingHint = false
 
     private static func recordingsDirectory() -> URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -51,6 +55,7 @@ public final class VideoRecorder {
     }
 
     public func startRecording(hubURL: String) {
+        isRecordingHint = true
         queue.async { [self] in
             self.hubURL = hubURL
             guard !recordingEnabled else { return }
@@ -64,6 +69,7 @@ public final class VideoRecorder {
     }
 
     public func stopRecording(upload: Bool = true, completion: @escaping (URL?, Int) -> Void) {
+        isRecordingHint = false
         queue.async { [self] in
             guard recordingEnabled || writer != nil else {
                 completion(nil, 0)
@@ -105,6 +111,11 @@ public final class VideoRecorder {
         ]
         let inp = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
         inp.expectsMediaDataInRealTime = true
+        // Raw ARKit buffers arrive in sensor-landscape orientation; rotate at
+        // PLAYBACK via metadata (free) instead of re-rendering pixels per frame.
+        if dims.width > dims.height {
+            inp.transform = CGAffineTransform(rotationAngle: .pi / 2)
+        }
         if w.canAdd(inp) { w.add(inp) }
         w.startWriting()
         writer = w
