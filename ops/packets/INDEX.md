@@ -23,10 +23,10 @@ real-store spot check for perception/brain packets. The Leash (§6) audits every
 
 | id | packet | tag | executor · effort | depends | status |
 |---|---|---|---|---|---|
-| P10 | [Coordinate anchor substrate](P10-anchor-substrate.md) | judgment | Fable / Opus high | P00 | REVIEW — CODE LANDED 2026-07-04 (chief): Mac substrate (anchors table + record_anchor + graded, monotone, cross-session relocalization; both ingest shapes pin via one owner) 288 pytest green + battery 96.7/100/0/100 held; Swift `spatialStamp()` promotes ARKit→contract fields at the POST funnel, iOS build green. DEVICE-PROOF PENDING (packet checklist: 2-min walk → ≥80% coverage + re-entered-room relocalize) → then MERGED |
-| P11 | [Appearance fingerprints](P11-appearance-fingerprints.md) | guided | Opus medium | P00 | REVIEW — CODE LANDED 2026-07-04 (chief): Mac substrate (cosine same-thing + typed storage + legacy-path flow + synthetic ROC, 8 tests) + Swift `maybeFingerprintTrackCrop` (cheap ANE featureprint, own kill switch, dedicated per-track row; cap raised 512→4096 for native featureprint) iOS build green. DEVICE-PROOF PENDING: same walk as P10 → fingerprint coverage + real ROC on ≥20 object pairs + frames don't drop (no perception tax) → MERGED |
-| P12 | [Live binder](P12-live-binder.md) | judgment | Fable | P10,P11,P02 | BLOCKED |
-| P13 | [Look-again loop](P13-look-again.md) | guided | Opus medium | P12 | BLOCKED |
+| P10 | [Coordinate anchor substrate](P10-anchor-substrate.md) | judgment | Fable / Opus high | P00 | MERGED 2026-07-04 (20c3311): device-proven BOTH checklist items — walk coverage 84% ≥ gate, grade `world` relocalization live (arkit:world:8022BFB0, after grace 10→30s fix); 3-jar identity substrate proven in choreographed AND natural regimes; per-track raycast + box extents emitted. Cross-session constellation alignment = follow-on packet |
+| P11 | [Appearance fingerprints](P11-appearance-fingerprints.md) | guided | Opus medium | P00 | MERGED 2026-07-04 with MEASURED VERDICT: featureprint is a CATEGORY signal, NOT an instance signal (3-identical-jars ROC: same-kind cosines overlap cross-kind; no split threshold exists). Role = same-kind corroborator + retrieval; individuation belongs to coordinates. No perception tax measured. Tight crop landed |
+| P12 | [Live binder](P12-live-binder.md) | judgment | Fable | P10,P11,P02 | IN-PROGRESS(chief) — Mac core MERGED (global identity graph + regime-proof natural-motion rules, 20c3311; 3 jars resolved exactly in both regimes; honest [low,high] counts). REMAINING: at-ingest live hints + instant-disjointness floor from box extents |
+| P13 | [Look-again loop](P13-look-again.md) | guided | Opus medium | P12 | BLOCKED(P12) |
 
 ## W2 — Coverage wave one (parallel once P02 lands; each is independent)
 
@@ -37,6 +37,16 @@ real-store spot check for perception/brain packets. The Leash (§6) audits every
 | P22 | [Motion/IMU channel](P22-motion-channel.md) | mechanical | Sonnet/local | P02 | BLOCKED(P02) |
 | P23 | [Ambient sound events](P23-sound-events.md) | guided | Sonnet/Opus medium | P02 | BLOCKED(P02) |
 | P24 | [Activity dispatcher v1](P24-activity-dispatcher.md) | judgment | Fable / Opus high | P02, one of P20-P23 | BLOCKED |
+
+## COURSE CORRECTION 2026-07-04 (founder: "think product as a whole; stop bandaging one fix")
+Substrate depth is FROZEN at honest-ranges quality (individuation is regime-proof; box-extent
+data accrues passively from normal use). The Leash's first live signal already said it:
+digital/motion/sound/temporal channels are STARVED while jar-counting got three sessions.
+Rebalanced order: (1) P40 phone ask surface FIRST (pulled forward from W4 — the product loop
+the founder touches; without it there is no product, only a lab), (2) P30/P31 minimal digest
+so each daily carry yields "what happened today", (3) start the 3-real-days clock immediately,
+(4) P22/P23 dispatched to the agent fleet in parallel (mechanical, starving), (5) P12-live +
+P13 fed by real usage gaps, (6) founder blind battery on the 3-day store = the number.
 
 ## W3 — Memory organs (STUBS — spec §0.4: authored in full only when W2 numbers are in)
 - P30 episode segmentation (place+motion+scene shifts → named episodes; honest gap episodes)
