@@ -100,3 +100,19 @@ between. Also fixed: `TRACK |` rows no longer poison identity labels (`_object_l
 REMAINING (→ P12): cross-label unification. Per-label buckets cannot see that cup-trk-16 =
 bottle-trk-17 (0.000 m simultaneous); the global identity graph (union-find + cannot-link
 from covis constraints) is the live binder's job — substrate now proven for it.
+
+
+## Relocalization test 1 (2026-07-04) — RED, honestly graded; watchdog was the killer
+Founder backgrounded + reopened in the same spot. ARKit DID try: ~22 s in
+"Limited: relocalizing" (grade `track`, 11 rows) — but `relocalizationGraceSeconds = 10`
+abandoned the map mid-attempt; session fell to fresh `session` grade, new session id,
+`relocalized` stayed 0. The watchdog killed a genuine relocalization, not a stale map.
+FIX: grace 10 -> 30 s (still bounds the 2026-07-03 permanent-hostage failure). RETRY needs
+~20-30 s of looking at the mapped area after reopen.
+STRATEGIC HEDGE (do NOT bet cross-session identity on Apple's opaque relocalizer on non-Pro
+hardware): we own a better primitive. Every session stores a labeled object constellation in
+a gravity-aligned frame (ARKit Y = gravity), so cross-session alignment is a 4-DOF fit
+(yaw + translation) over STATIC FURNITURE anchors (bed/desk/table — movable objects like the
+jars can't anchor alignment; they genuinely move between sessions, measured today). Sleep-time
+job on our own data; ARKit `world` grade becomes a corroborator, not the foundation. Queue as
+the cross-session packet after P12.

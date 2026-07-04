@@ -34,7 +34,12 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
     private var startedWithSavedMap = false
     private var relocalizingSince: Date?
     private var staleMapBypassed = false
-    private static let relocalizationGraceSeconds: TimeInterval = 10
+    // 10 s killed a GENUINE relocalization attempt (measured 2026-07-04: founder backgrounded,
+    // reopened in the same spot, ARKit relocalized for ~22 s — the watchdog abandoned the map
+    // at 10 and the session fell to fresh "session" grade; relocalized stayed 0). Non-Pro
+    // hardware needs 20-30 s of looking at the mapped area. 30 s still bounds the stale-map
+    // hostage failure this watchdog exists for (measured 2026-07-03: hostage was PERMANENT).
+    private static let relocalizationGraceSeconds: TimeInterval = 30
     // Frame-accounting (rides on metadataSnapshot -> every observation's metadata,
     // so context procurement is auditable from the store on the Mac).
     private var framesReceived = 0
@@ -182,7 +187,18 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
     /// individuates on. Returns nil rather than the camera-forward fallback — a missing
     /// coordinate is honest, a fabricated one poisons individuation.
     func trackWorldPosition(boxCenter point: CGPoint, in frame: ARFrame) -> simd_float3? {
-        featurePointWorldPosition(at: point, in: frame)
+        // Feature-point first (exact surface hit), estimated planes as fallback — the ray into
+        // the table/wall plane is still a measurement of where the object sits, and feature
+        // points alone left most emissions unstamped (walk 2 measured: 50 stamps across ~1100
+        // detector rows; sparse stamps -> few simultaneous pairs -> counts stay ranges longer
+        // than they need to). Camera-forward guessing remains forbidden.
+        let types: ARHitTestResult.ResultType = [
+            .featurePoint, .estimatedHorizontalPlane, .estimatedVerticalPlane,
+        ]
+        guard let transform = frame.hitTest(point, types: types).first?.worldTransform else {
+            return nil
+        }
+        return Self.position(from: transform)
     }
 
     /// Mirror of CameraController.attach — ContentView feeds from ARKit frames instead of AVCaptureSession.

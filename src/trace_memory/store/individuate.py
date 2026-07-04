@@ -25,12 +25,17 @@ from typing import Any, Iterable
 # physical instance; beyond it, distinct instances (so 5 nutella jars at 5 coords -> 5 instances).
 _INSTANCE_RADIUS_M = 0.25
 
-# Genesis-frame split distance for per-track world coordinates (P10 `track_world`, raycast
+# Genesis-frame split distances for per-track world coordinates (P10 `track_world`, raycast
 # through each track's own box centre on-device), applied to per-track MEDIANS of tracks that
 # were never co-visible. Cross-time absolute positions carry per-pose raycast noise (measured
-# 2026-07-04 walk 2: up to ~0.16 m within one static jar's track), so the never-covisible
-# split stays coarse. Below it nothing is asserted — co-visibility/attribute evidence decides.
+# 2026-07-04 walk 2: one static jar's tracks put their MEDIANS up to 0.147 m apart across
+# viewing angles), so the never-covisible split is two-tiered like the grid-cell heuristic:
+# LIBERAL splits above the measured same-object median noise (0.15), STRICT only at double
+# it (0.30). Two never-covisible tracks 0.15-0.30 m apart therefore widen the honest count
+# RANGE instead of minting a firm second object — a firm split must be WITNESSED
+# (simultaneous stamps below), never inferred from mid-zone medians.
 _WORLD_SPLIT_M = 0.30
+_WORLD_SPLIT_LIBERAL_M = 0.15
 
 # Metric co-visibility (walk 2, 3 identical jars, measured): raycasts stamped within the same
 # instant share the camera pose, so their RELATIVE distance is near-exact — the same jar
@@ -447,14 +452,17 @@ def _world_median(
 def _world_verdict(
     wobs_a: list[tuple[int, tuple[float, float, float]]],
     wobs_b: list[tuple[int, tuple[float, float, float]]],
+    *,
+    liberal: bool = False,
 ) -> bool | None:
     """P10 fusion, two regimes with measured thresholds (see the constants above):
     SIMULTANEOUS stamps (shared camera pose, relative distance near-exact) are ground truth —
     two places at one instant = two objects, one place at one instant = a duplicate box or a
-    label flip on one object. Never-simultaneous tracks fall back to the coarse median split
-    (far apart in the genesis frame = different objects, the case grid cells cannot see:
-    three identical jars visited one at a time). Anything else: None — existing
-    co-visibility/attribute evidence decides and counts stay honest ranges."""
+    label flip on one object. Never-simultaneous tracks fall back to the median split, tiered
+    liberal/strict so mid-zone separations widen the count range instead of asserting (far
+    apart in the genesis frame = different objects, the case grid cells cannot see: three
+    identical jars visited one at a time). Anything else: None — existing
+    co-visibility/attribute evidence decides."""
     if not wobs_a or not wobs_b:
         return None
     sim = [
@@ -469,7 +477,8 @@ def _world_verdict(
         if max(sim) <= _COVIS_DUP_M:
             return False
     med_a, med_b = _world_median(wobs_a), _world_median(wobs_b)
-    if med_a is not None and med_b is not None and math.dist(med_a, med_b) >= _WORLD_SPLIT_M:
+    split_m = _WORLD_SPLIT_LIBERAL_M if liberal else _WORLD_SPLIT_M
+    if med_a is not None and med_b is not None and math.dist(med_a, med_b) >= split_m:
         return True
     return None
 
@@ -490,7 +499,7 @@ def _tracks_conflict(
         return True
     if _colours_conflict(cols_a, cols_b):
         return True
-    world = _world_verdict(world_a or [], world_b or [])
+    world = _world_verdict(world_a or [], world_b or [], liberal=min_cell_dist == 1)
     if world is not None:
         return world
     for ta, ca in obs_a:
@@ -534,6 +543,77 @@ def _resolve_instances(
     return groups
 
 
+def _union_groups(n: int, linked: Any) -> list[list[int]]:
+    """Union-find over range(n) with `linked(i, j) -> bool`; returns groups in first-seen order."""
+    parent = list(range(n))
+
+    def find(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            if find(i) != find(j) and linked(i, j):
+                parent[find(j)] = find(i)
+    groups: dict[int, list[int]] = {}
+    for i in range(n):
+        groups.setdefault(find(i), []).append(i)
+    return list(groups.values())
+
+
+def _mustlink_components(
+    per_track: list[tuple[str, str, str, list[Any]]],
+) -> list[tuple[list[str], set[str], str, list[Any]]]:
+    """P12 (Mac core), stage 1 — MUST-LINK union ACROSS labels. Two tracks whose world stamps
+    coincide at the same instant are ONE object twice: a duplicate detector box or a COCO
+    label flip (measured walk 2: cup-trk-16 = bottle-trk-17 at 0.000 m — per-label buckets
+    could never see it). Union only when every simultaneous pair agrees (max ≤ dup); mixed
+    evidence never links. No track_world anywhere → every track is its own component and the
+    pre-P10 behaviour follows exactly. Returns (tids, det_labels, identity label, fused
+    members) per physical component; identity from the largest track's label (deterministic;
+    VLM-priority already applied per track)."""
+    wobs = [_track_world_obs(members) for _, _, _, members in per_track]
+
+    def linked(i: int, j: int) -> bool:
+        if not wobs[i] or not wobs[j]:
+            return False
+        sim = [
+            math.dist(wa, wb)
+            for ta, wa in wobs[i]
+            for tb, wb in wobs[j]
+            if abs(ta - tb) <= _COVIS_WINDOW_MS
+        ]
+        return bool(sim) and max(sim) <= _COVIS_DUP_M
+
+    components = []
+    for idxs in _union_groups(len(per_track), linked):
+        biggest = max(idxs, key=lambda k: len(per_track[k][3]))
+        components.append((
+            [per_track[k][0] for k in idxs],
+            {per_track[k][1] for k in idxs},
+            per_track[biggest][2],
+            [n for k in idxs for n in per_track[k][3]],
+        ))
+    return components
+
+
+def _counting_families(
+    components: list[tuple[list[str], set[str], str, list[Any]]],
+) -> list[list[int]]:
+    """Stage 2 — counting FAMILIES: components compare for same-vs-distinct when they are the
+    same KIND. Same identity label (the pre-P10 bucket rule) OR overlapping detector-label
+    sets (a label-flipped component spans several COCO words; sharing any one means the
+    detector called both by the same name at least once). Coordinate-free stores have
+    singleton det-label sets and unchanged identity labels → families == today's buckets."""
+    return _union_groups(
+        len(components),
+        lambda i, j: components[i][2] == components[j][2]
+        or bool(components[i][1] & components[j][1]),
+    )
+
+
 def _track_first_clusters(tracked: list[Any], *, min_label_len: int) -> list[ObjectCluster]:
     """PRIMARY individuation for coordinate-free (live phone) data: fuse EVERY helper aspect of
     one tracked object per track, then RE-ID MERGE same-label tracks into physical instances via
@@ -553,30 +633,26 @@ def _track_first_clusters(tracked: list[Any], *, min_label_len: int) -> list[Obj
         if key not in by_track:
             order.append(key)
         by_track[key].append(n)
-    per_track: list[tuple[str, str, list[Any]]] = []
+    per_track: list[tuple[str, str, str, list[Any]]] = []  # (tid, det_label, identity, members)
     for key in order:
         members = by_track[key]
         label = _identity_label(members)
         if len(label) >= min_label_len and _content_words(label):
-            per_track.append((key[1], label, members))
+            per_track.append((key[1], key[0], label, members))
 
-    by_label: dict[str, list[tuple[str, list[Any]]]] = defaultdict(list)
-    label_order: list[str] = []
-    for tid, label, members in per_track:
-        if label not in by_label:
-            label_order.append(label)
-        by_label[label].append((tid, members))
+    components = _mustlink_components(per_track)
 
     clusters: list[ObjectCluster] = []
-    for label in label_order:
-        tracks = by_label[label]
-        member_lists = [m for _, m in tracks]
+    for fam in _counting_families(components):
+        comps = [components[k] for k in fam]
+        member_lists = [m for _, _, _, m in comps]
+        label = max(comps, key=lambda c: len(c[3]))[2]
         liberal = _resolve_instances(member_lists, min_cell_dist=1)
         strict = _resolve_instances(member_lists, min_cell_dist=2)
         low, high = min(len(strict), len(liberal)), len(liberal)
         for idx, group in enumerate(liberal, start=1):
-            members = [n for t_idx in group for n in member_lists[t_idx]]
-            anchor = "+".join(tracks[t_idx][0] for t_idx in group)
+            members = [n for c_idx in group for n in member_lists[c_idx]]
+            anchor = "+".join(t for c_idx in group for t in comps[c_idx][0])
             clusters.append(ObjectCluster(
                 label=label, kind="entity",
                 member_ids=[n.id for n in members], members=members,

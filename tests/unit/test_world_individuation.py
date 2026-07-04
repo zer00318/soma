@@ -60,14 +60,44 @@ def test_same_spot_resightings_stay_one_object(tmp_path):
     assert clusters[0].instance_count == 1
 
 
-def test_mid_zone_asserts_nothing_and_sequential_tracks_still_merge(tmp_path):
+def test_mid_zone_widens_the_range_instead_of_asserting(tmp_path):
     store = TraceMemoryStore(tmp_path / "s.sqlite3")
-    # 0.27 m apart: between _INSTANCE_RADIUS_M and _WORLD_SPLIT_M. No co-visibility, no
-    # attribute conflict -> existing evidence decides -> merge (a track is a sighting).
+    # 0.27 m apart, never co-visible: above the liberal split (0.15, measured same-object
+    # median noise tops at 0.147) but below the strict one (0.30). Neither a firm merge nor
+    # a firm second object — an honest [1,2] range. A firm split must be WITNESSED
+    # (simultaneous stamps), never inferred from mid-zone medians.
     _write(store, "trk-1", T0 + 0, world=(0.0, 0.0, 0.0))
     _write(store, "trk-2", T0 + 5000, world=(0.27, 0.0, 0.0))
     clusters = _clusters(store)
-    assert len(clusters) == 1
+    assert len(clusters) == 2  # one cluster per liberal instance
+    assert all(c.count_low == 1 and c.instance_count == 2 for c in clusters)
+
+
+def test_label_flip_on_one_object_unifies_across_labels(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # Walk 2 measured case: COCO flip-flopped ONE jar as cup-trk-16 / bottle-trk-17, world
+    # stamps 0.000 m apart at the same instant. Per-label buckets could never see this; the
+    # must-link graph unifies them into one object in one counting family.
+    _write(store, "trk-16", T0 + 0, world=(0.610, -0.055, -0.569), label="cup")
+    _write(store, "trk-17", T0 + 22, world=(0.610, -0.055, -0.569), label="bottle")
+    all_clusters = [c for c in individuate(list(store.nodes(node_types=("observation",))))
+                    if c.kind == "entity"]
+    assert len(all_clusters) == 1
+    assert all_clusters[0].instance_count == 1
+
+
+def test_witnessed_pairs_and_unwitnessed_pair_give_two_to_three(tmp_path):
+    store = TraceMemoryStore(tmp_path / "s.sqlite3")
+    # Walk 2's exact evidence shape: A≠B and B≠C witnessed (simultaneous, ≥0.10 m apart);
+    # A vs C never witnessed together, medians 0.27 m apart (mid-zone). Honest count: the
+    # witnessed splits hold in BOTH passes, A-vs-C only in the liberal one -> [2,3].
+    _write(store, "trk-1", T0 + 0, world=(0.42, -0.25, -0.61))     # A
+    _write(store, "trk-2", T0 + 30, world=(0.45, -0.12, -0.60))    # B, simultaneous with A
+    _write(store, "trk-2", T0 + 5000, world=(0.45, -0.12, -0.60))  # B again
+    _write(store, "trk-3", T0 + 5030, world=(0.61, -0.06, -0.57))  # C, simultaneous with B
+    clusters = _clusters(store)
+    assert len(clusters) == 3
+    assert all(c.count_low == 2 and c.instance_count == 3 for c in clusters)
 
 
 def test_untrusted_grade_coordinates_never_split(tmp_path):

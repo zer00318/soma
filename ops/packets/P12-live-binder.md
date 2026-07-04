@@ -46,3 +46,17 @@ hypotheses, not authored memories.
 Live capture of the founder's desk yields bound rows (OCR text attached to the right
 object's anchor, VLM description attached to the same instance); M2 regression holds;
 pytest + battery hold; INDEX flipped with before/after desk numbers.
+
+
+## Mac core LANDED 2026-07-04 (commit pending gates) — global identity graph in individuate.py
+Stage 1 `_mustlink_components`: union tracks ACROSS labels on simultaneous same-place stamps
+(all simultaneous pairs <= _COVIS_DUP_M). Stage 2 `_counting_families`: components count
+together when same identity label OR overlapping detector-label sets. Never-covisible median
+splits are tiered (liberal 0.15 / strict 0.30, measured) so mid-zone separations widen the
+honest RANGE instead of asserting. LIVE RESULT on walk 2's jar burst: 8 fragmented tracks
+(4 COCO labels) -> EXACTLY the 3 ground-truth jars ({trk-11,14} | {trk-13,15,22,23} |
+{trk-16,17}), count [2,3] — hedged only on the one never-witnessed pair (A vs C). Firm 3
+arrives when one frame witnesses all three simultaneously; Swift raycast now falls back to
+estimated planes (stamp density was 50/~1100 rows) to make that likely on the next pan.
+REMAINING for this packet: live (at-ingest or on-phone) binding + instance hints; the sleep
+binder consumes the same graph.
