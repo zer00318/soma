@@ -48,3 +48,34 @@ A founder narration lands as sentence-shaped rows (or is healed at sleep); old w
 fragments stitch into readable utterances; "what did I say about the washing machine"
 through live /ask returns a coherent sentence; pytest + battery hold. INDEX flipped with
 the engine-spike numbers.
+
+## Executed (2026-07-04, Opus)
+1. **Utterance-boundary commits — SHIPPED.** `commitIfUseful`'s fixed 5s cadence is gone.
+   `handleRecognition` now routes each SFSpeech result: `isFinal` commits the whole utterance
+   as one row; volatile partials feed `onPartial`, which (re)arms a `pauseCommitTask` that
+   commits after `pausePartialSeconds = 1.2` of no new partial (a detected pause), with a
+   `hardCeilingSeconds = 20` fallback so a monologue still commits progressively. The M5
+   cumulative-delta baseline (`cumulativeCommitted`) is preserved — the boundary logic only
+   changes WHEN we commit, not the dedup of what. Tail is flushed on error teardown so words
+   aren't lost. `stop()` cancels the pause task.
+2. **Engine spike — SHIPPED BEHIND FLAG** (`static let useSpeechAnalyzerEngine = false`).
+   `startAnalyzerEngine()` (`@available(iOS 26.0, *)`) wires the iOS 26 long-form on-device
+   engine: `SpeechTranscriber(locale:preset:.progressiveTranscription)` + `SpeechAnalyzer`,
+   mic buffers streamed via `AsyncStream<AnalyzerInput>`, results routed through the SAME
+   utterance-boundary commit path (final vs volatile). SFSpeech stays the fallback (flag off).
+   Compiles against the iOS 26.2 SDK (verified BUILD SUCCEEDED in the main checkout — the
+   isolated worktree has a clean-derived-data `FastVLM` module-scan flake that also fails the
+   UNMODIFIED baseline, so it is not caused by this change). **WER / fragment-count numbers are
+   DEVICE-PENDING** — they require the founder to flip the flag, read the ~10-sentence script on
+   the iPhone 17, and compare against SFSpeech. Numbers go here when measured (founder-session
+   gate). No AVAudioSession or M5 logic was disturbed.
+3. **Sleep-side stitcher — SHIPPED** (`SleepConsolidator._stitch_speech`, `src/trace_memory/
+   store/sleep.py`). Adjacent raw speech rows (helper in {asr, apple_speech, native_speech,
+   speech} or text 'EVENT | nearby speech'), same session, gap < 3s, join into ONE authored
+   `event_memory` (`EVENT | speech utterance | transcript: "..."`) citing every fragment via
+   `supports_memory`. Verbatim only concatenated in time order (L2), never rewritten; raw rows
+   never touched (L3); authored under builder=sleep so `reconsider_derived` heals idempotently.
+4. **Tests — GREEN.** `tests/unit/test_speech_stitcher.py` (7 cases): adjacent fragments →
+   one utterance, wide-gap → separate, citations intact + raw untouched + still immutable,
+   single fragment not authored, reconsolidation idempotent, different sessions don't merge.
+   Full suite: 263 passed + 7 new = 270 green.

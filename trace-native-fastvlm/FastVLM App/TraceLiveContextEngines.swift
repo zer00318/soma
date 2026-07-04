@@ -19,6 +19,26 @@ final class TraceAudioContextEngine: NSObject, ObservableObject {
     private var lastCommittedNormalized = ""
     private var cumulativeCommitted = ""  // raw text already emitted this recognition segment
     private var shouldKeepRunning = false
+
+    // P05 utterance-boundary commits. The old cadence committed a DELTA every fixed 5s of
+    // continuous speech, so a spoken sentence was sliced mid-phrase into several memory rows
+    // ("Everything I" / "do I do it just for you"). Instead we commit on a NATURAL endpoint:
+    // result.isFinal, OR a ~1.2s pause with no new partial (utterance boundary), whichever
+    // comes first. A hard ceiling keeps a long monologue committing progressively.
+    private static let pausePartialSeconds: TimeInterval = 1.2
+    private static let hardCeilingSeconds: TimeInterval = 20
+    private var pauseCommitTask: Task<Void, Never>?
+    private var segmentStartAt = Date.distantPast  // when the current uncommitted span began
+    private var pendingPartial = ""                 // latest partial awaiting a boundary
+
+    // Engine-upgrade spike (P05): iOS 26 SpeechAnalyzer/SpeechTranscriber behind a flag.
+    // SFSpeechRecognizer stays the shipped fallback; flip to try the long-form engine.
+    static let useSpeechAnalyzerEngine = false
+    // Stored untyped so the class needn't be gated to iOS 26; cast inside @available methods.
+    private var analyzerBox: AnyObject?          // SpeechAnalyzer
+    private var analyzerAppend: ((AVAudioPCMBuffer) -> Void)?  // feeds the analyzer input stream
+    private var analyzerFinish: (() -> Void)?    // closes the input stream on teardown
+    private var analyzerResultsTask: Task<Void, Never>?
     #if os(macOS)
     private var whisperProcess: Process?
     private var whisperOutputPipe: Pipe?
@@ -47,6 +67,13 @@ final class TraceAudioContextEngine: NSObject, ObservableObject {
 
     func stop() {
         shouldKeepRunning = false
+        pauseCommitTask?.cancel()
+        pauseCommitTask = nil
+        pendingPartial = ""
+        segmentStartAt = Date.distantPast
+        if analyzerBox != nil {
+            stopAnalyzerEngine()
+        }
         #if os(macOS)
         stopWhisperStream(nextStatus: "Speech stopped")
         #endif
@@ -252,6 +279,18 @@ final class TraceAudioContextEngine: NSObject, ObservableObject {
         }
         #endif
 
+        // P05 ENGINE SPIKE: prefer the iOS 26 long-form on-device engine when the flag is set and
+        // the OS supports it. SFSpeechRecognizer below stays the fallback. Audio session is already
+        // active (both engines need it); the analyzer owns the mic tap on its own.
+        if Self.useSpeechAnalyzerEngine {
+            if #available(iOS 26.0, *) {
+                startAnalyzerEngine()
+                return
+            } else {
+                status = "SpeechAnalyzer requires iOS 26; using SFSpeech fallback"
+            }
+        }
+
         recognitionTask?.cancel()
         recognitionTask = nil
 
@@ -285,22 +324,130 @@ final class TraceAudioContextEngine: NSObject, ObservableObject {
         }
     }
 
+    // P05 ENGINE SPIKE — iOS 26 SpeechAnalyzer/SpeechTranscriber long-form on-device path.
+    // Behind `useSpeechAnalyzerEngine`; SFSpeech stays the fallback. Streams mic buffers into a
+    // SpeechTranscriber configured for progressive (volatile + final) results, and routes each
+    // result through the SAME utterance-boundary commit path as SFSpeech: a finalized segment
+    // commits as one row, volatile partials feed the pause/ceiling timer. This keeps L1/L2
+    // intact — on-device, verbatim only.
+    @available(iOS 26.0, *)
+    private func startAnalyzerEngine() {
+        let transcriber = SpeechTranscriber(locale: Locale(identifier: "en-US"),
+                                            preset: .progressiveTranscription)
+        let analyzer = SpeechAnalyzer(modules: [transcriber])
+        analyzerBox = analyzer
+
+        // Input stream the mic tap writes into.
+        let (stream, continuation) = AsyncStream.makeStream(of: AnalyzerInput.self)
+        analyzerAppend = { buffer in continuation.yield(AnalyzerInput(buffer: buffer)) }
+        analyzerFinish = { continuation.finish() }
+
+        // Consume results: route volatile vs final through the boundary commit path.
+        analyzerResultsTask = Task { @MainActor [weak self] in
+            do {
+                for try await result in transcriber.results {
+                    guard let self else { return }
+                    let text = String(result.text.characters)
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    self.liveTranscript = text
+                    if result.isFinal {
+                        self.pauseCommitTask?.cancel()
+                        self.pauseCommitTask = nil
+                        self.commitIfUseful(text, isFinal: true)
+                        self.pendingPartial = ""
+                        self.segmentStartAt = Date.distantPast
+                        self.cumulativeCommitted = ""  // fresh diff baseline per finalized segment
+                    } else {
+                        self.onPartial(text)
+                    }
+                }
+            } catch {
+                self?.status = "SpeechAnalyzer stopped: \(error.localizedDescription)"
+                self?.stopAudioSession()
+                self?.restartSoon()
+            }
+        }
+
+        // Ensure the on-device model is present, then start analysis and pump mic buffers in.
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                if let reserved = try? await AssetInventory.reserve(locale: Locale(identifier: "en-US")),
+                   reserved == false {
+                    self.status = "SpeechAnalyzer model unavailable for locale; SFSpeech recommended"
+                }
+                try await analyzer.start(inputSequence: stream)
+            } catch {
+                self.status = "SpeechAnalyzer start failed: \(error.localizedDescription)"
+                self.stopAnalyzerEngine()
+                return
+            }
+
+            let inputNode = self.audioEngine.inputNode
+            let format = inputNode.outputFormat(forBus: 0)
+            inputNode.removeTap(onBus: 0)
+            inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
+                Task { @MainActor in self?.analyzerAppend?(buffer) }
+            }
+            self.audioEngine.prepare()
+            do {
+                try self.audioEngine.start()
+            } catch {
+                self.status = "Microphone start failed: \(error.localizedDescription)"
+                self.stopAnalyzerEngine()
+                return
+            }
+            self.isRunning = true
+            self.status = "Listening locally (iOS 26 SpeechAnalyzer); audio is not saved"
+        }
+    }
+
+    private func stopAnalyzerEngine() {
+        analyzerResultsTask?.cancel()
+        analyzerResultsTask = nil
+        analyzerFinish?()
+        analyzerFinish = nil
+        analyzerAppend = nil
+        analyzerBox = nil
+        audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
+        isRunning = false
+    }
+
     private func handleRecognition(result: SFSpeechRecognitionResult?, error: Error?) {
         if let result {
             let text = result.bestTranscription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines)
             liveTranscript = text
-            commitIfUseful(text, isFinal: result.isFinal)
+
             if result.isFinal {
+                // A natural sentence end: commit the whole utterance as ONE row, then reset.
+                pauseCommitTask?.cancel()
+                pauseCommitTask = nil
+                commitIfUseful(text, isFinal: true)
+                pendingPartial = ""
+                segmentStartAt = Date.distantPast
                 status = "Speech segment complete; restarting"
                 cumulativeCommitted = ""  // next segment's partials start a fresh diff baseline
                 stopAudioSession()
                 restartSoon()
+            } else {
+                onPartial(text)
             }
         }
 
         if let error {
             let message = error.localizedDescription
             status = "Speech recognition stopped: \(message)"
+            // Flush any words captured but not yet past a boundary so the tail isn't lost when
+            // the segment tears down (the pause timer would fire after teardown otherwise).
+            pauseCommitTask?.cancel()
+            pauseCommitTask = nil
+            if !pendingPartial.isEmpty {
+                commitIfUseful(pendingPartial, isFinal: true)
+            }
+            pendingPartial = ""
+            segmentStartAt = Date.distantPast
+            cumulativeCommitted = ""
             stopAudioSession()
             if message.localizedCaseInsensitiveContains("Siri and Dictation are disabled") {
                 shouldKeepRunning = false
@@ -320,6 +467,39 @@ final class TraceAudioContextEngine: NSObject, ObservableObject {
         }
     }
 
+    /// Each new partial: publish it, arm the hard ceiling, and (re)arm a pause timer. As long as
+    /// new partials keep arriving the pause timer keeps resetting; when speech stops for
+    /// `pausePartialSeconds` the timer fires and commits the span at that natural boundary. If the
+    /// span runs past `hardCeilingSeconds` (a long monologue), commit immediately so it lands
+    /// progressively instead of one giant row.
+    private func onPartial(_ text: String) {
+        guard !text.isEmpty else { return }
+        if segmentStartAt == Date.distantPast {
+            segmentStartAt = Date()
+        }
+        pendingPartial = text
+
+        if Date().timeIntervalSince(segmentStartAt) >= Self.hardCeilingSeconds {
+            pauseCommitTask?.cancel()
+            pauseCommitTask = nil
+            commitIfUseful(text, isFinal: false)
+            // Keep listening; the next words start a fresh span for the ceiling clock.
+            segmentStartAt = Date()
+            return
+        }
+
+        pauseCommitTask?.cancel()
+        pauseCommitTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(Self.pausePartialSeconds))
+            guard let self, !Task.isCancelled else { return }
+            let pending = self.pendingPartial
+            guard !pending.isEmpty else { return }
+            // Boundary reached: no new partial for the pause window -> commit this utterance.
+            self.commitIfUseful(pending, isFinal: false)
+            self.segmentStartAt = Date()
+        }
+    }
+
     private func commitIfUseful(_ text: String, isFinal: Bool) {
         let normalized = text
             .lowercased()
@@ -328,8 +508,8 @@ final class TraceAudioContextEngine: NSObject, ObservableObject {
         guard normalized.count >= 12 else { return }
         guard normalized != lastCommittedNormalized else { return }
 
-        let now = Date()
-        guard isFinal || now.timeIntervalSince(lastCommitAt) >= 5 else { return }
+        // P05: timing is now decided by the caller (isFinal or a detected pause / ceiling), so
+        // there is no fixed-interval gate here. A continuous sentence lands as ONE row.
 
         // M5: emit only the NEW words. SFSpeech partials are CUMULATIVE for the segment, so
         // publishing the whole transcript each commit stored the same speech repeatedly
@@ -342,7 +522,7 @@ final class TraceAudioContextEngine: NSObject, ObservableObject {
         }
         guard emit.count >= 4 else { return }  // nothing new worth a record
 
-        lastCommitAt = now
+        lastCommitAt = Date()
         lastCommittedNormalized = normalized
         cumulativeCommitted = text
         lastCommittedTranscript = emit

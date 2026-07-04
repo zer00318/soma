@@ -58,6 +58,52 @@ def _landmark_context(verbatim: str, *, model: str, host: str, timeout: int = 60
         return None
     return raw.splitlines()[0].strip()[:220]
 
+# SPEECH STITCHER (P05) — the ASR channel commits sentence FRAGMENTS ("Everything I", then
+# "do I do it just for you"...). Each lands as its own raw observation, so retrieval surfaces
+# one shred without its sentence. At sleep time we JOIN adjacent fragments of the same session
+# into ONE readable utterance memory, cited to every fragment. L2/L3: fragments are NEVER
+# rewritten or deleted — we only concatenate their verbatim transcripts in time order, and the
+# raw rows stay immutable. The verbatim used matches how the live brain reads these rows.
+_SPEECH_HELPERS = {"asr", "apple_speech", "native_speech", "speech"}
+# Transcript payload sits inside 'EVENT | nearby speech | transcript: "<verbatim>"'. Same regex
+# the brain uses so what we stitch is exactly what a speech question would otherwise surface.
+_STITCH_TRANSCRIPT_RE = re.compile(r'transcript:\s*"([^"]+)"')
+# Two speech fragments < this gap apart, same session, are one continuous utterance. Wider gaps
+# are a real pause between separate remarks and stay separate memories.
+_STITCH_GAP_MS = 3000
+
+
+def _is_speech_node(node: Any) -> bool:
+    """A raw speech/ASR observation, by the same signal the brain's ranker uses."""
+    md = getattr(node, "metadata", None) or {}
+    helper = str(md.get("helper") or md.get("helper_prompt") or "").lower()
+    if helper in _SPEECH_HELPERS:
+        return True
+    return str(getattr(node, "text", "") or "").lower().startswith("event | nearby speech")
+
+
+def _speech_verbatim(node: Any) -> str:
+    """The verbatim words in a speech row: the quoted transcript if present, else the raw text.
+    Never cleaned or rewritten (L2) — only extracted."""
+    text = str(getattr(node, "text", "") or "")
+    match = _STITCH_TRANSCRIPT_RE.search(text)
+    if match:
+        return match.group(1).strip()
+    return text.strip()
+
+
+def _speech_session(node: Any) -> str:
+    """Session key for grouping. Explicit session_id wins; else fall back to the row's source so
+    fragments from one capture stream group together and don't cross unrelated captures."""
+    md = getattr(node, "metadata", None) or {}
+    session = md.get("session_id") or md.get("session")
+    if session:
+        return str(session)
+    if getattr(node, "coordinate_frame", None) is not None:
+        return f"cf:{node.coordinate_frame.session_id}"
+    return f"src:{getattr(node, 'source', 'unknown')}"
+
+
 # Author at most this many clusters with the (GPU-serial) local LLM; the rest get the cheap
 # deterministic record. Clusters are ranked by evidence size so the richest objects get the LLM.
 _MAX_LLM_CLUSTERS = 60
@@ -417,6 +463,15 @@ class SleepConsolidator:
                             existing_links.add(link_key)
                             created_links += 1
 
+        # SPEECH STITCHING (P05): heal shredded ASR capture into readable utterances. Uses the
+        # SAME raw pool the binder skipped (speech rows carry no track anchor, so they were never
+        # clustered above). Retroactive — old walks' fragments become one sentence, and future
+        # captures stitch too. Reconsiderable: authored under builder=sleep, so reconsider_derived
+        # wipes them next run and they re-derive from immutable raw.
+        stitched, stitch_links = self._stitch_speech(existing_links)
+        authored_count += stitched
+        created_links += stitch_links
+
         return SleepRunSummary(
             grouped_observation_count=len(grouped_ids),
             abstraction_count=authored_count,
@@ -424,3 +479,93 @@ class SleepConsolidator:
             link_count=created_links,
             retrieval_mode=self._store.retrieval_mode,
         )
+
+    def _stitch_speech(self, existing_links: set[tuple[str, str, str]]) -> tuple[int, int]:
+        """Join adjacent same-session speech fragments (gap < _STITCH_GAP_MS) into one authored
+        utterance memory citing every fragment. Raw fragments are never modified or deleted (L3);
+        verbatim transcripts are only concatenated in time order, never rewritten (L2)."""
+        speech_nodes = [
+            node
+            for node in self._store.nodes(node_types=("observation", "entity"))
+            if not node.derived and _is_speech_node(node)
+        ]
+        if len(speech_nodes) < 2:
+            return 0, 0
+
+        # Group by session, ordered in time; within a session, break runs at gaps >= threshold.
+        by_session: dict[str, list[Any]] = defaultdict(list)
+        for node in speech_nodes:
+            by_session[_speech_session(node)].append(node)
+
+        authored = 0
+        created_links = 0
+        for session, nodes in by_session.items():
+            nodes.sort(key=lambda n: (n.t_ms, n.id))
+            run: list[Any] = []
+
+            def flush(run_nodes: list[Any]) -> None:
+                nonlocal authored, created_links
+                if len(run_nodes) < 2:
+                    return
+                fragments = [(_speech_verbatim(n), n) for n in run_nodes]
+                fragments = [(v, n) for v, n in fragments if v]
+                if len(fragments) < 2:
+                    return
+                # JOIN verbatim in time order with a single space. No cleaning, no dedup of words —
+                # the fragments' own words, concatenated. (Live capture already dedups cumulative
+                # partials via the Swift delta baseline, so these are non-overlapping deltas.)
+                utterance = " ".join(v for v, _ in fragments)
+                support_ids = [n.id for _, n in fragments]
+                first = fragments[0][1]
+                last = fragments[-1][1]
+                member_signature = "|".join(sorted(support_ids))
+                node_id = _stable_id("utterance", session, member_signature)
+                if self._store.read_observation(node_id) is not None:
+                    return
+                text = f'EVENT | speech utterance | transcript: "{utterance}"'
+                metadata = {
+                    "helper": "speech_stitcher",
+                    "memory_kind": "event_memory",
+                    "subject_hint": "speech",
+                    "support_ids": support_ids,
+                    "session": session,
+                    "fragment_count": len(support_ids),
+                    "t_ms_start": first.t_ms,
+                    "t_ms_end": last.t_ms,
+                    "authored_by": "speech_stitcher",
+                    "stitched_verbatim": True,
+                }
+                mem = self._store.write_observation(
+                    text=text,
+                    t_ms=first.t_ms,
+                    source=first.source,
+                    time_range=first.time_range.to_dict() if first.time_range else None,
+                    source_support={"support_ids": support_ids},
+                    place=first.place,
+                    provenance={"builder": "sleep", "authored_by": "speech_stitcher"},
+                    metadata=metadata,
+                    node_type="event_memory",
+                    derived=True,
+                    immutable_raw=False,
+                    node_id=node_id,
+                )
+                authored += 1
+                for support_id in support_ids:
+                    link_key = (support_id, mem.id, "supports_memory")
+                    if link_key in existing_links:
+                        continue
+                    self._store.link(
+                        support_id, mem.id, "supports_memory",
+                        metadata={"builder": "sleep"},
+                        link_id=_stable_id("lnk-utterance", support_id, mem.id))
+                    existing_links.add(link_key)
+                    created_links += 1
+
+            for node in nodes:
+                if run and node.t_ms - run[-1].t_ms >= _STITCH_GAP_MS:
+                    flush(run)
+                    run = []
+                run.append(node)
+            flush(run)
+
+        return authored, created_links
