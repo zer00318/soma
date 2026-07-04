@@ -57,11 +57,14 @@ def test_adjacent_fragments_stitch_into_one_utterance(tmp_path) -> None:
 def test_wide_gap_fragments_stay_separate(tmp_path) -> None:
     store = TraceMemoryStore(tmp_path / "s.sqlite3", embedder=StubEmbedder())
     try:
-        # Two fragments 1s apart (merge), then a 5s gap, then two more (merge) -> two utterances.
+        # Two fragments 1s apart (merge), then a 20s gap — a real pause between remarks,
+        # measured on the founder's walks at 22s/47s/63s — then two more (merge) -> two
+        # utterances. Gaps of 5-7s must MERGE: the old commit cadence sliced continuous
+        # narration at exactly that spacing (0 of 71 real fragments joined at 3s).
         _speech_row(store, "You have your towels you", 1000)
         _speech_row(store, "can observe yourself", 2000)
-        _speech_row(store, "You have a washing machine", 8000)
-        _speech_row(store, "I guess it's 1 to 8 kilograms", 9200)
+        _speech_row(store, "You have a washing machine", 22000)
+        _speech_row(store, "I guess it's 1 to 8 kilograms", 23200)
         _run(store)
 
         stitched = sorted(

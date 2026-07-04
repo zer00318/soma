@@ -70,7 +70,11 @@ _SPEECH_HELPERS = {"asr", "apple_speech", "native_speech", "speech"}
 _STITCH_TRANSCRIPT_RE = re.compile(r'transcript:\s*"([^"]+)"')
 # Two speech fragments < this gap apart, same session, are one continuous utterance. Wider gaps
 # are a real pause between separate remarks and stay separate memories.
-_STITCH_GAP_MS = 3000
+# MEASURED on the founder's real walks (2026-07-04): the OLD fixed-cadence commit path sliced
+# continuous narration every 5-7s, so 3000ms never joined a single real fragment (0 utterances
+# authored from 71 speech rows). Real pauses between remarks measured 22s/47s/63s. 8s joins
+# every sliced narration and breaks at every real pause in the data.
+_STITCH_GAP_MS = 8000
 
 
 def _is_speech_node(node: Any) -> bool:
