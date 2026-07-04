@@ -203,6 +203,46 @@ class MemoryNode:
 
 
 @dataclass(frozen=True)
+class AnchorRecord:
+    """P10: a place-anchor's life across sessions. Coordinates pin the world; this row is
+    the world's memory of a single pinned spot — when it was first pinned, when last seen,
+    how many distinct sessions have re-localized against it, and the best fidelity it ever
+    earned. Movable things pin to identities instead (P11 fingerprints)."""
+
+    anchor_id: str
+    grade: str
+    room: str | None
+    first_session: str | None
+    last_session: str | None
+    first_seen_ms: int
+    last_seen_ms: int
+    session_count: int
+    sightings: int
+    pose: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def relocalized(self) -> bool:
+        """True once this anchor has been re-entered in more than one session — the signal
+        that the world map, not just a per-session track, is carrying its identity."""
+        return self.session_count > 1
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "anchor_id": self.anchor_id,
+            "grade": self.grade,
+            "room": self.room,
+            "first_session": self.first_session,
+            "last_session": self.last_session,
+            "first_seen_ms": int(self.first_seen_ms),
+            "last_seen_ms": int(self.last_seen_ms),
+            "session_count": int(self.session_count),
+            "sightings": int(self.sightings),
+            "relocalized": self.relocalized,
+            "pose": dict(self.pose),
+        }
+
+
+@dataclass(frozen=True)
 class LinkRecord:
     id: str
     from_id: str

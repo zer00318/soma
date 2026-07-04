@@ -29,7 +29,7 @@
       "q": "How many unicorns are on the workbench?",
       "gold_kind": "absent",
       "gold": "",
-      "answer": "There are no unicorns on the workbench.",
+      "answer": "The evidence does not mention any unicorns.",
       "confidence": 0.7,
       "refused": false,
       "verdict": "correct",

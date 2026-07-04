@@ -23,7 +23,7 @@ real-store spot check for perception/brain packets. The Leash (§6) audits every
 
 | id | packet | tag | executor · effort | depends | status |
 |---|---|---|---|---|---|
-| P10 | [Coordinate anchor substrate](P10-anchor-substrate.md) | judgment | Fable / Opus high | P00 | READY (P00 GREEN; ARKit branch; incl. per-instance anchor keying + moving-object exclusion) |
+| P10 | [Coordinate anchor substrate](P10-anchor-substrate.md) | judgment | Fable / Opus high | P00 | REVIEW — CODE LANDED 2026-07-04 (chief): Mac substrate (anchors table + record_anchor + graded, monotone, cross-session relocalization; both ingest shapes pin via one owner) 288 pytest green + battery 96.7/100/0/100 held; Swift `spatialStamp()` promotes ARKit→contract fields at the POST funnel, iOS build green. DEVICE-PROOF PENDING (packet checklist: 2-min walk → ≥80% coverage + re-entered-room relocalize) → then MERGED |
 | P11 | [Appearance fingerprints](P11-appearance-fingerprints.md) | guided | Opus medium | P00 | READY (P00 GREEN) |
 | P12 | [Live binder](P12-live-binder.md) | judgment | Fable | P10,P11,P02 | BLOCKED |
 | P13 | [Look-again loop](P13-look-again.md) | guided | Opus medium | P12 | BLOCKED |

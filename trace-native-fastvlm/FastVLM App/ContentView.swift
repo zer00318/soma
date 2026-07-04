@@ -3167,6 +3167,14 @@ struct ContentView: View {
         meta["battery_pct"] = PoseStamper.batteryPercent
         meta["build"] = BuildStamp.sha
         payload["metadata"] = meta
+        // P10: pin every emitted observation to its place. The stamp promotes ARKit's state
+        // into the hub's contract spatial fields (anchor_id / pose / grade / room / session_id)
+        // at TOP LEVEL, where the hub records the cross-session anchor. Absent/"none" grade →
+        // no anchor claim (honest). One funnel, so every helper's rows pin identically.
+        let spatial = TraceARKitEngine.shared.spatialStamp()
+        for (key, value) in spatial where payload[key] == nil {
+            payload[key] = value
+        }
         guard JSONSerialization.isValidJSONObject(payload),
               let body = try? JSONSerialization.data(withJSONObject: payload) else {
             return

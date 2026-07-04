@@ -13,6 +13,7 @@ from trace_memory.store.ingest import (
 )
 from trace_memory.store.models import (
     AbstractionRecord,
+    AnchorRecord,
     CoordinateFrame,
     GraphLink,
     LinkRecord,
@@ -42,6 +43,7 @@ from trace_memory.store.world import (
 
 __all__ = [
     "AbstractionRecord",
+    "AnchorRecord",
     "CoordinateFrame",
     "GraphLink",
     "KfIngestResult",

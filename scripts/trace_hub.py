@@ -33,6 +33,7 @@ from trace_memory.contract import (  # noqa: E402
     PILLAR_SOURCES,
     helper_id_from_legacy,
     load_registry,
+    normalize_grade,
     validate_observation,
 )
 
@@ -72,11 +73,44 @@ class Hub:
         self.registry = load_registry()
         self.reject_counts: dict[str, int] = {}
         self.unregistered_seen: set[str] = set()
+        self.relocalizations = 0  # P10: count of cross-session anchor re-localizations seen
 
     def _reader(self) -> TraceMemoryStore:
         if self._answer_store is None:
             self._answer_store = TraceMemoryStore(self.store_path)
         return self._answer_store
+
+    def _record_spatial(self, *, anchor_id, pose, grade, room, session_id, t_ms) -> None:
+        """P10: record one place-anchor sighting (cross-session, graded) and count a
+        re-localization. Shape-agnostic — the contract path and the legacy phone shape both
+        reach the substrate through here, so a row is pinned identically whichever way it
+        arrives. Must run under the write lock (the caller holds it)."""
+        if not anchor_id:
+            return
+        rec = self.store.record_anchor(
+            str(anchor_id), t_ms=t_ms, session_id=session_id,
+            room=room, grade=grade or "none", pose=pose,
+        )
+        if rec.relocalized:
+            self.relocalizations += 1
+
+    @staticmethod
+    def _spatial_fields(packet: dict, meta: dict) -> dict:
+        """Pull P10 spatial fields from a packet, preferring top-level over metadata, and
+        normalize their types so a malformed pose/grade never poisons the row."""
+        def pick(key):
+            value = packet.get(key)
+            return value if value is not None else meta.get(key)
+        pose = pick("pose")
+        room = pick("room")
+        session_id = pick("session_id")
+        return {
+            "anchor_id": (str(pick("anchor_id")) if pick("anchor_id") else None),
+            "pose": pose if isinstance(pose, dict) else None,
+            "grade": normalize_grade(pick("grade")),
+            "room": (room.strip() if isinstance(room, str) and room.strip() else None),
+            "session_id": (str(session_id) if session_id else None),
+        }
 
     def ingest(self, packet: dict) -> dict:
         # P02: two accepted shapes through ONE seam. Contract packets (helper_id/text/
@@ -98,15 +132,24 @@ class Hub:
             "active_entity_labels": packet.get("active_entity_labels"),
             "section_kind": "physical_object",
         })
+        # P10: the phone streams the legacy shape, so anchor fields ride here too. Absent →
+        # nothing changes (exactly today's behavior); present → the row pins like a contract row.
+        spatial = self._spatial_fields(packet, meta)
+        for key in ("anchor_id", "grade", "room"):
+            if spatial[key] and spatial[key] != "none":
+                meta.setdefault(key, spatial[key])
+        t_ms = _t_ms(str(packet.get("timestamp") or ""))
         # Live phone rows carry no coordinate_frame, so the canonical helper_type COLUMN would
         # trip validation — the helper identity lives in metadata['helper'].
         self.store.write_observation(
-            text=text, t_ms=_t_ms(str(packet.get("timestamp") or "")),
+            text=text, t_ms=t_ms,
             source="phone_camera",
             provenance={"source": source, "source_type": packet.get("source_type"),
                         "location_hint": packet.get("location_hint")},
-            metadata=meta,
+            metadata=meta, pose=spatial["pose"], place=spatial["room"],
         )
+        self._record_spatial(t_ms=t_ms, **{k: spatial[k] for k in
+                                           ("anchor_id", "pose", "grade", "room", "session_id")})
         self.counts[helper] = self.counts.get(helper, 0) + 1
         return {"ok": True, "helper": helper, "total": sum(self.counts.values())}
 
@@ -129,15 +172,24 @@ class Hub:
             "contract": 1,
             "registered": entry is not None,
         })
-        for key in ("confidence", "anchor_id", "fingerprint", "session_id"):
+        for key in ("confidence", "anchor_id", "grade", "room", "fingerprint", "session_id"):
             if norm[key] is not None:
                 meta[key] = norm[key]
         provenance = dict(norm["provenance"])
         provenance.setdefault("helper_id", helper_id)
         provenance.setdefault("pillar", pillar)
+        # P10: pin the row to its place. pose becomes a first-class column (not buried in
+        # metadata); room, when the phone relocalized one, becomes the row's `place` so the
+        # existing place index serves room-scoped retrieval for free.
         self.store.write_observation(
             text=norm["text"], t_ms=norm["t_ms"], source=source,
             provenance=provenance, metadata=meta,
+            pose=norm["pose"], place=norm["room"],
+        )
+        # P10: the world's memory of the pinned spot itself (cross-session, graded).
+        self._record_spatial(
+            anchor_id=norm["anchor_id"], pose=norm["pose"], grade=norm["grade"],
+            room=norm["room"], session_id=norm["session_id"], t_ms=norm["t_ms"],
         )
         self.counts[helper_id] = self.counts.get(helper_id, 0) + 1
         return {"ok": True, "helper": helper_id, "registered": entry is not None,
@@ -279,11 +331,18 @@ class Handler(BaseHTTPRequestHandler):
             with self.hub.write_lock:
                 per_helper = dict(self.hub.store_helper_counts())
                 nodes = self.hub.store.node_count()
+                coverage = self.hub.store.anchor_coverage()
             return self._send(200, {
                 "ok": True, "nodes": nodes, "by_helper": per_helper,
                 "registry": sorted(self.hub.registry),
                 "unregistered_seen": sorted(self.hub.unregistered_seen),
                 "contract_rejects": self.hub.reject_counts,
+                "anchors": {
+                    "total": coverage["anchors_total"],
+                    "relocalized": coverage["anchors_relocalized"],
+                    "row_coverage": round(coverage["fraction"], 3),
+                    "by_grade": coverage["by_grade"],
+                },
             })
         if parsed.path == "/ask":
             q = (parse_qs(parsed.query).get("q") or [""])[0]

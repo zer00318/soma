@@ -47,6 +47,23 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         return docs.appendingPathComponent("trace_arkit_worldmap.arworldmap")
     }()
 
+    // P10: identity of the mapped space, persisted across sessions ALONGSIDE the saved world
+    // map. When ARKit relocalizes against that map, this same id returns, so the Mac substrate
+    // sees a genuine cross-session re-localization. A fresh map (forceFreshStart → new save)
+    // mints a new space id — a different room is honestly a different anchor.
+    private static let worldSpaceIdKey = "trace_arkit_world_space_id"
+    private var sessionId = UUID().uuidString
+
+    /// The persistent id of the currently-mapped space, minting one if the map has none yet.
+    private func worldSpaceId() -> String {
+        if let existing = UserDefaults.standard.string(forKey: Self.worldSpaceIdKey) {
+            return existing
+        }
+        let minted = UUID().uuidString
+        UserDefaults.standard.set(minted, forKey: Self.worldSpaceIdKey)
+        return minted
+    }
+
     @Published var isTracking = false
     @Published var trackingStatus = "ARKit idle"
 
@@ -80,6 +97,7 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         startedWithSavedMap = savedMap != nil
         relocalizingSince = nil
         staleMapBypassed = false
+        sessionId = UUID().uuidString  // P10: a new walk is a new session for re-localization
         session.run(config, options: savedMap != nil ? [] : [.resetTracking])
         isTracking = true
         trackingStatus = "ARKit starting"
@@ -100,6 +118,10 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
         loggedTenFrameAnchorCount = false
         startedWithSavedMap = false
         relocalizingSince = nil
+        sessionId = UUID().uuidString
+        // P10: abandoning the map begins a new space — drop its id so the next save mints a
+        // fresh one and the Mac doesn't fuse two different rooms under one anchor.
+        UserDefaults.standard.removeObject(forKey: Self.worldSpaceIdKey)
         session.run(config, options: [.resetTracking, .removeExistingAnchors])
         isTracking = true
         trackingStatus = "ARKit starting"
@@ -120,6 +142,7 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
             do {
                 let data = try NSKeyedArchiver.archivedData(withRootObject: map, requiringSecureCoding: true)
                 try data.write(to: worldMapURL, options: .atomic)
+                _ = self.worldSpaceId()  // P10: bind a stable space id to the map we just saved
                 print("[TraceARKitEngine] saved world map to \(worldMapURL.path)")
             } catch {
                 print("[TraceARKitEngine] failed to save world map: \(error.localizedDescription)")
@@ -205,6 +228,48 @@ final class TraceARKitEngine: NSObject, ObservableObject, ARSessionDelegate {
             "frames_received": framesReceived,
             "frames_converted": framesConverted,
         ]
+    }
+
+    /// P10: promote the ARKit state into the hub contract's spatial fields (spec §2). Every
+    /// observation pins to a place the moment it's perceived; the GRADE says how firmly, so a
+    /// degraded fix is never dressed up as a world-locked one:
+    ///   world   = relocalized against the saved world map → cross-session identity
+    ///   session = normal tracking, fresh session → world coords valid this walk only
+    ///   track   = tracking limited → pose unreliable, no stable anchor
+    ///   none    = no fix (idle / starting / unavailable) → no spatial claim at all
+    /// anchor_id is stable ACROSS sessions only at grade "world"; session-scoped otherwise.
+    func spatialStamp() -> [String: Any] {
+        var stamp: [String: Any] = ["session_id": sessionId]
+        let grade: String
+        if trackingStatus.hasPrefix("Tracking") {
+            grade = startedWithSavedMap ? "world" : "session"
+        } else if trackingStatus.hasPrefix("Limited") {
+            grade = "track"
+        } else {
+            grade = "none"
+        }
+        stamp["grade"] = grade
+
+        if let frame = session.currentFrame {
+            let t = frame.camera.transform
+            let p = t.columns.3
+            stamp["pose"] = [
+                "position": [p.x, p.y, p.z],
+                "transform": [
+                    [t.columns.0.x, t.columns.0.y, t.columns.0.z, t.columns.0.w],
+                    [t.columns.1.x, t.columns.1.y, t.columns.1.z, t.columns.1.w],
+                    [t.columns.2.x, t.columns.2.y, t.columns.2.z, t.columns.2.w],
+                    [t.columns.3.x, t.columns.3.y, t.columns.3.z, t.columns.3.w],
+                ],
+            ]
+        }
+
+        switch grade {
+        case "world":   stamp["anchor_id"] = "arkit:world:\(worldSpaceId())"
+        case "session": stamp["anchor_id"] = "arkit:session:\(sessionId)"
+        default:        break  // track/none carry no anchor — honest absence
+        }
+        return stamp
     }
 
     /// Full-resolution still from the running ARSession, upright. The OCR
@@ -539,6 +604,9 @@ final class TraceARKitEngine: ObservableObject {
             "arkit_anchors": [],
         ]
     }
+
+    // P10: no ARKit → no spatial fix. Honest "none" grade, no anchor (mirrors the iOS path).
+    func spatialStamp() -> [String: Any] { ["grade": "none"] }
 
     func depthGridSnapshot(cols: Int = 8, rows: Int = 6) -> [String: Any]? { nil }
 }

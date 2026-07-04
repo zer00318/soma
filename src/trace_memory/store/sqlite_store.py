@@ -8,9 +8,11 @@ from typing import Any, Iterable
 
 import numpy as np
 
+from trace_memory.contract import best_grade, normalize_grade
 from trace_memory.store.embeddings import TextEmbedder, build_default_embedder
 from trace_memory.store.models import (
     AbstractionRecord,
+    AnchorRecord,
     CoordinateFrame,
     LinkRecord,
     MemoryNode,
@@ -56,6 +58,23 @@ CREATE TABLE IF NOT EXISTS memory_links (
 )
 """
 
+# P10: the coordinate anchor substrate. One row per pinned spot; additive and idempotent so
+# a store full of pre-P10 rows keeps working (those rows simply have no anchor).
+_ANCHOR_SCHEMA = """
+CREATE TABLE IF NOT EXISTS anchors (
+    anchor_id       TEXT PRIMARY KEY,
+    room            TEXT,
+    first_session   TEXT,
+    last_session    TEXT,
+    first_seen_ms   INTEGER NOT NULL,
+    last_seen_ms    INTEGER NOT NULL,
+    grade           TEXT NOT NULL DEFAULT 'none',
+    session_count   INTEGER NOT NULL DEFAULT 1,
+    sightings       INTEGER NOT NULL DEFAULT 1,
+    pose_json       TEXT NOT NULL DEFAULT '{}'
+)
+"""
+
 _INDEXES = (
     "CREATE INDEX IF NOT EXISTS idx_memory_nodes_type_t ON memory_nodes(node_type, t_ms)",
     "CREATE INDEX IF NOT EXISTS idx_memory_nodes_place ON memory_nodes(place)",
@@ -63,6 +82,8 @@ _INDEXES = (
     "CREATE INDEX IF NOT EXISTS idx_memory_links_from ON memory_links(from_id)",
     "CREATE INDEX IF NOT EXISTS idx_memory_links_to ON memory_links(to_id)",
     "CREATE INDEX IF NOT EXISTS idx_memory_links_type ON memory_links(link_type)",
+    "CREATE INDEX IF NOT EXISTS idx_anchors_room ON anchors(room)",
+    "CREATE INDEX IF NOT EXISTS idx_anchors_grade ON anchors(grade)",
 )
 
 _MIGRATION_COLUMNS = {
@@ -156,6 +177,7 @@ class TraceMemoryStore:
             pass
         self._conn.execute(_NODE_SCHEMA)
         self._conn.execute(_LINK_SCHEMA)
+        self._conn.execute(_ANCHOR_SCHEMA)
         self._migrate_schema()
         for statement in _INDEXES:
             self._conn.execute(statement)
@@ -322,6 +344,129 @@ class TraceMemoryStore:
         )
         self._conn.commit()
         return record
+
+    # ---- P10: coordinate anchor substrate -------------------------------------------------
+    def _row_to_anchor(self, row: sqlite3.Row) -> AnchorRecord:
+        return AnchorRecord(
+            anchor_id=row["anchor_id"],
+            grade=row["grade"],
+            room=row["room"],
+            first_session=row["first_session"],
+            last_session=row["last_session"],
+            first_seen_ms=int(row["first_seen_ms"]),
+            last_seen_ms=int(row["last_seen_ms"]),
+            session_count=int(row["session_count"]),
+            sightings=int(row["sightings"]),
+            pose=json.loads(row["pose_json"]) if row["pose_json"] else {},
+        )
+
+    def record_anchor(
+        self,
+        anchor_id: str,
+        *,
+        t_ms: int,
+        session_id: str | None = None,
+        room: str | None = None,
+        grade: str = "none",
+        pose: dict[str, Any] | None = None,
+    ) -> AnchorRecord:
+        """Upsert a place-anchor sighting. First sight inserts; a later sight extends the
+        seen-window, keeps the BEST grade (monotone — see contract.best_grade), and counts a
+        re-localization when the anchor turns up in a session it wasn't last seen in. Callers
+        must serialize this behind the same lock as writes (the hub does)."""
+        anchor_id = str(anchor_id or "").strip()
+        if not anchor_id:
+            raise ValueError("anchor_id must not be empty")
+        grade = normalize_grade(grade)
+        existing = self._conn.execute(
+            "SELECT * FROM anchors WHERE anchor_id = ?", (anchor_id,)
+        ).fetchone()
+        if existing is None:
+            self._conn.execute(
+                """
+                INSERT INTO anchors
+                (anchor_id, room, first_session, last_session, first_seen_ms, last_seen_ms,
+                 grade, session_count, sightings, pose_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, ?)
+                """,
+                (anchor_id, room, session_id, session_id, int(t_ms), int(t_ms), grade,
+                 _json_dump(pose or {})),
+            )
+        else:
+            prev = self._row_to_anchor(existing)
+            merged_grade = best_grade(prev.grade, grade)
+            # A new session touching this anchor = a re-localization event.
+            relocalized = bool(session_id) and session_id != prev.last_session
+            session_count = prev.session_count + (1 if relocalized else 0)
+            # Keep the pose from the firmest fix we have; only overwrite when this sighting is
+            # at least as good and actually carries one.
+            keep_pose = prev.pose
+            if pose and best_grade(grade, prev.grade) == grade and grade != "none":
+                keep_pose = pose
+            self._conn.execute(
+                """
+                UPDATE anchors SET
+                    room = COALESCE(?, room),
+                    last_session = COALESCE(?, last_session),
+                    first_seen_ms = MIN(first_seen_ms, ?),
+                    last_seen_ms = MAX(last_seen_ms, ?),
+                    grade = ?,
+                    session_count = ?,
+                    sightings = sightings + 1,
+                    pose_json = ?
+                WHERE anchor_id = ?
+                """,
+                (room, session_id, int(t_ms), int(t_ms), merged_grade, session_count,
+                 _json_dump(keep_pose), anchor_id),
+            )
+        self._conn.commit()
+        return self.anchor(anchor_id)  # type: ignore[return-value]
+
+    def anchor(self, anchor_id: str) -> AnchorRecord | None:
+        row = self._conn.execute(
+            "SELECT * FROM anchors WHERE anchor_id = ?", (str(anchor_id),)
+        ).fetchone()
+        return self._row_to_anchor(row) if row is not None else None
+
+    def anchors(self, *, room: str | None = None) -> tuple[AnchorRecord, ...]:
+        if room is None:
+            rows = self._conn.execute(
+                "SELECT * FROM anchors ORDER BY first_seen_ms ASC"
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT * FROM anchors WHERE room = ? ORDER BY first_seen_ms ASC", (room,)
+            ).fetchall()
+        return tuple(self._row_to_anchor(row) for row in rows)
+
+    def anchor_coverage(self, *, session_id: str | None = None) -> dict[str, Any]:
+        """P10 Done-when instrument: of the live phone observation rows (optionally one
+        session), how many carry an anchor_id, and at what grades. The confirmed-track
+        denominator is refined by the capture-analysis script; this is the store-level truth
+        the hub can report cheaply. Honest by construction — an empty store reads 0.0, never
+        a flattering fraction."""
+        total = 0
+        with_anchor = 0
+        by_grade: dict[str, int] = {}
+        for node in self.nodes(node_types=("observation",)):
+            meta = node.metadata or {}
+            if session_id is not None and meta.get("session_id") != session_id:
+                continue
+            total += 1
+            aid = meta.get("anchor_id")
+            if aid:
+                with_anchor += 1
+                grade = normalize_grade(meta.get("grade"))
+                by_grade[grade] = by_grade.get(grade, 0) + 1
+        anchors = self.anchors()
+        return {
+            "rows_total": total,
+            "rows_with_anchor": with_anchor,
+            "fraction": (with_anchor / total) if total else 0.0,
+            "by_grade": by_grade,
+            "anchors_total": len(anchors),
+            "anchors_relocalized": sum(1 for a in anchors if a.relocalized),
+        }
 
     def reconsider_derived(self, builder: str) -> int:
         """Sleep reconsolidation: remove DERIVED nodes previously authored by `builder` (and

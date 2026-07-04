@@ -13,6 +13,9 @@ Contract observation (versioned; the hub also still accepts the legacy app shape
       "t_ms": 1783000000000,                   # required — when (epoch ms)
       "confidence": 0.9,                       # optional [0,1]
       "anchor_id": "arkit:...",                # optional — where (place-anchor hierarchy)
+      "pose": {"yaw": .., "world_transform": [..]},  # optional — camera/world pose (P10)
+      "grade": "world|session|track|none",     # optional — spatial fidelity self-report (P10)
+      "room": "kitchen",                       # optional — ARWorldMap space label (P10)
       "fingerprint": [0.1, ...],               # optional — non-reversible, ≤512 floats (L1)
       "session_id": "walk-20260704-0826",      # optional
       "provenance": {...},                     # optional dict
@@ -27,6 +30,30 @@ from typing import Any
 
 CONTRACT_VERSION = 1
 FINGERPRINT_MAX_FLOATS = 512
+
+# P10: spatial-fidelity grades, honestly self-reported by the emitter, ordered worst→best.
+# The observation SAYS which grade it carries, so a degraded fix is never dressed up as a
+# world-locked one (spec §2: everything is pinned, but the memory admits how firmly).
+#   world   = relocalized against a persistent ARWorldMap → cross-session identity
+#   session = valid world coordinates within the current ARKit session only
+#   track   = tracking .limited → degraded to a per-track anchor, pose unreliable
+#   none    = no spatial fix at all
+ANCHOR_GRADE_ORDER = ("none", "track", "session", "world")
+ANCHOR_GRADES = frozenset(ANCHOR_GRADE_ORDER)
+
+
+def normalize_grade(value: Any) -> str:
+    """Clamp any emitter-supplied grade to the closed vocab. Unknown/blank → 'none': we
+    keep the observation (dropping perception over a grade typo lies about coverage) but
+    never invent a fidelity we can't stand behind."""
+    token = str(value or "").strip().lower()
+    return token if token in ANCHOR_GRADES else "none"
+
+
+def best_grade(*grades: Any) -> str:
+    """The highest fidelity ever observed for an anchor (monotone: an anchor never loses a
+    grade it once earned — a later .limited frame doesn't downgrade a world-locked pin)."""
+    return max((normalize_grade(g) for g in grades), key=ANCHOR_GRADE_ORDER.index, default="none")
 
 # Pillar -> the store `source` column value. hub.ask fences retrieval to these, so a new
 # pillar becomes queryable by REGISTRY edit, not code edit.
@@ -90,6 +117,16 @@ def validate_observation(packet: dict) -> tuple[dict[str, Any] | None, str | Non
                 or not all(isinstance(v, (int, float)) for v in fingerprint)):
             return None, f"fingerprint must be a list of ≤{FINGERPRINT_MAX_FLOATS} numbers"
 
+    pose = packet.get("pose")
+    if pose is not None and not isinstance(pose, dict):
+        return None, "pose is not an object"
+    grade = packet.get("grade")
+    if grade is not None and not isinstance(grade, str):
+        return None, "grade is not a string"
+    room = packet.get("room")
+    if room is not None and not isinstance(room, str):
+        return None, "room is not a string"
+
     provenance = packet.get("provenance")
     if provenance is not None and not isinstance(provenance, dict):
         return None, "provenance is not an object"
@@ -103,6 +140,9 @@ def validate_observation(packet: dict) -> tuple[dict[str, Any] | None, str | Non
         "t_ms": t_ms,
         "confidence": confidence,
         "anchor_id": (str(packet["anchor_id"]) if packet.get("anchor_id") else None),
+        "pose": (dict(pose) if pose else None),
+        "grade": (normalize_grade(grade) if grade else None),
+        "room": (room.strip() if room and room.strip() else None),
         "fingerprint": fingerprint,
         "session_id": (str(packet["session_id"]) if packet.get("session_id") else None),
         "provenance": dict(provenance or {}),
