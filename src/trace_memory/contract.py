@@ -42,6 +42,24 @@ ANCHOR_GRADE_ORDER = ("none", "track", "session", "world")
 ANCHOR_GRADES = frozenset(ANCHOR_GRADE_ORDER)
 
 
+def is_valid_fingerprint(value: Any) -> bool:
+    """P11: a fingerprint is a non-reversible appearance vector (L1) — a bounded list of
+    numbers, never an image. One owner so the contract path and the legacy phone shape agree."""
+    return (
+        isinstance(value, list)
+        and 0 < len(value) <= FINGERPRINT_MAX_FLOATS
+        and all(isinstance(v, (int, float)) for v in value)
+    )
+
+
+def normalize_fingerprint(value: Any) -> list[float] | None:
+    """Coerce a valid fingerprint to a list of floats, else None (drop it — a garbage vector
+    must never poison the row, but it must never take the observation down either)."""
+    if not is_valid_fingerprint(value):
+        return None
+    return [float(v) for v in value]
+
+
 def normalize_grade(value: Any) -> str:
     """Clamp any emitter-supplied grade to the closed vocab. Unknown/blank → 'none': we
     keep the observation (dropping perception over a grade typo lies about coverage) but
@@ -111,11 +129,8 @@ def validate_observation(packet: dict) -> tuple[dict[str, Any] | None, str | Non
             return None, "confidence outside [0,1]"
 
     fingerprint = packet.get("fingerprint")
-    if fingerprint is not None:
-        if (not isinstance(fingerprint, list)
-                or len(fingerprint) > FINGERPRINT_MAX_FLOATS
-                or not all(isinstance(v, (int, float)) for v in fingerprint)):
-            return None, f"fingerprint must be a list of ≤{FINGERPRINT_MAX_FLOATS} numbers"
+    if fingerprint is not None and not is_valid_fingerprint(fingerprint):
+        return None, f"fingerprint must be a list of ≤{FINGERPRINT_MAX_FLOATS} numbers"
 
     pose = packet.get("pose")
     if pose is not None and not isinstance(pose, dict):

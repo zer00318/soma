@@ -31,5 +31,36 @@ Real capture shows fingerprints on ≥70% of confirmed tracks; same-object pairs
 closer than different-object pairs (numbers pasted below); pytest + battery hold; iOS
 build green. INDEX flipped.
 
+## Landed (Mac side) — 2026-07-04
+Fully tested (`tests/unit/test_appearance_fingerprints.py`, 8 tests; pytest + battery hold):
+- `contract.py`: `is_valid_fingerprint` / `normalize_fingerprint` — one owner for the L1
+  non-reversible-vector rule (≤512 floats), shared by the contract path AND the legacy phone
+  shape. Garbage vector → dropped, row survives.
+- `trace_hub.py`: fingerprint flows through the LEGACY ingest path too (the phone streams
+  legacy — same lesson as P10), stored typed in metadata, never in the text column.
+- `sqlite_store.py`: `fingerprint_of` / `fingerprint_similarity` (cosine, reuses `_cosine`) /
+  `same_appearance` / `fingerprint_neighbors` (linear scan — honest for prototype scale) /
+  `fingerprint_coverage` (Done-when instrument). `FINGERPRINT_MATCH_THRESHOLD = 0.82` is a
+  SYNTHETIC default, flagged in-code as a lie until the device ROC replaces it.
+- Synthetic ROC test proves the cosine substrate separates same-object from different-object
+  pairs and the threshold sits in the gap — the MACHINERY is sound; the featureprint's real
+  separation on our crops is the device unknown.
+
+## Swift side — NOT YET SHIPPED (deliberate). Plan + caution:
+Insertion point is clean: `maybeEnrichTrackCrop` (ContentView) already extracts a per-track
+crop, throttled + kill-switched + deduped. But a fingerprint pass is a NEW per-frame ANE
+compute path, and its whole value (does a Vision featureprint separate OUR crops?) is
+device-gated — shipping it blind right after the recording-taxes-perception fix repeats the
+exact scar. Do it as a focused pass:
+1. Its OWN lightweight kill switch (`ENABLE_TRACK_FINGERPRINT`), NOT gated behind the heavy
+   VLM crop enrichment; detached Task; once per confirmed track (throttle like M5). It must
+   NOT tax perception — verify frames_received/converted hold on a device run.
+2. Model choice — `VNGenerateImageFeaturePrintRequest` is the default, BUT its featureprint is
+   ~2048 floats > the 512 contract cap. MEASURE elementCount + separation on a few real crops
+   FIRST, then choose: (A) fixed-seed random projection to ≤256 (preserves cosine, stays under
+   cap), (B) raise the cap (still non-reversible; L1 "small" is a soft target), or (C) a
+   distilled ≤256 CoreML embedding (P11 RED branch if the featureprint doesn't separate).
+3. Emit `fingerprint` (top-level) + `track_id`; the Mac side above already consumes it.
+
 ## Measured ROC
-- (executor writes here)
+- (device-gated — the walk writes real same/different pairs here and sets the threshold)

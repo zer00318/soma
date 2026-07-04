@@ -33,6 +33,7 @@ from trace_memory.contract import (  # noqa: E402
     PILLAR_SOURCES,
     helper_id_from_legacy,
     load_registry,
+    normalize_fingerprint,
     normalize_grade,
     validate_observation,
 )
@@ -138,6 +139,11 @@ class Hub:
         for key in ("anchor_id", "grade", "room"):
             if spatial[key] and spatial[key] != "none":
                 meta.setdefault(key, spatial[key])
+        # P11: the appearance fingerprint rides the legacy shape too (stored typed in metadata,
+        # never in the text column), so the sleep/live binder can ask "same thing?".
+        fingerprint = normalize_fingerprint(packet.get("fingerprint") or meta.get("fingerprint"))
+        if fingerprint is not None:
+            meta["fingerprint"] = fingerprint
         t_ms = _t_ms(str(packet.get("timestamp") or ""))
         # Live phone rows carry no coordinate_frame, so the canonical helper_type COLUMN would
         # trip validation — the helper identity lives in metadata['helper'].

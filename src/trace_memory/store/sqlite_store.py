@@ -23,6 +23,12 @@ from trace_memory.store.models import (
     TimeRange,
 )
 
+# P11: the same/different cut for appearance fingerprints. This is a SYNTHETIC default — the
+# real threshold is measured from the ROC on ≥20 real object pairs during the device walk
+# (packet P11) and pasted back. Legislating it before that measurement would be a lie; this
+# value only keeps `same_appearance` callable until the walk sets it honestly.
+FINGERPRINT_MATCH_THRESHOLD = 0.82
+
 _NODE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS memory_nodes (
     seq             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -466,6 +472,73 @@ class TraceMemoryStore:
             "by_grade": by_grade,
             "anchors_total": len(anchors),
             "anchors_relocalized": sum(1 for a in anchors if a.relocalized),
+        }
+
+    # ---- P11: appearance fingerprints (things pin to identities) --------------------------
+    def fingerprint_of(self, node: MemoryNode) -> tuple[float, ...] | None:
+        """The confirmed track's on-device appearance vector, or None. Stored typed in
+        metadata (never in text) so retrieval and counting never trip over a wall of floats."""
+        fp = (node.metadata or {}).get("fingerprint")
+        if isinstance(fp, list) and fp:
+            try:
+                return tuple(float(v) for v in fp)
+            except (TypeError, ValueError):
+                return None
+        return None
+
+    def fingerprint_similarity(
+        self, left: Iterable[float], right: Iterable[float]
+    ) -> float:
+        """Cosine of two appearance vectors — the 'is this the same thing?' primitive the
+        sleep binder and future live binder ask (P12/P32 own the actual merge decision)."""
+        return _cosine(tuple(float(v) for v in left), tuple(float(v) for v in right))
+
+    def same_appearance(
+        self, left: Iterable[float], right: Iterable[float], *, threshold: float | None = None
+    ) -> bool:
+        cut = FINGERPRINT_MATCH_THRESHOLD if threshold is None else threshold
+        return self.fingerprint_similarity(left, right) >= cut
+
+    def fingerprint_neighbors(
+        self,
+        vector: Iterable[float],
+        *,
+        k: int = 5,
+        min_similarity: float = 0.0,
+        exclude_ids: Iterable[str] = (),
+    ) -> tuple[tuple[MemoryNode, float], ...]:
+        """The k observations whose fingerprints are most similar to `vector`. Linear scan —
+        honest for the prototype's store size; a vector index is a later optimization, not a
+        correctness change."""
+        vec = tuple(float(v) for v in vector)
+        excluded = set(exclude_ids)
+        scored: list[tuple[MemoryNode, float]] = []
+        for node in self.nodes(node_types=("observation",)):
+            if node.id in excluded:
+                continue
+            fp = self.fingerprint_of(node)
+            if fp is None:
+                continue
+            score = _cosine(vec, fp)
+            if score >= min_similarity:
+                scored.append((node, score))
+        scored.sort(key=lambda pair: pair[1], reverse=True)
+        return tuple(scored[:k])
+
+    def fingerprint_coverage(self) -> dict[str, Any]:
+        """P11 Done-when instrument: of the live observation rows, how many carry a fingerprint.
+        The confirmed-track denominator is refined by the capture-analysis script; the real ROC
+        needs device crops. Honest by construction — empty store reads 0.0."""
+        total = 0
+        with_fp = 0
+        for node in self.nodes(node_types=("observation",)):
+            total += 1
+            if self.fingerprint_of(node) is not None:
+                with_fp += 1
+        return {
+            "rows_total": total,
+            "rows_with_fingerprint": with_fp,
+            "fraction": (with_fp / total) if total else 0.0,
         }
 
     def reconsider_derived(self, builder: str) -> int:
