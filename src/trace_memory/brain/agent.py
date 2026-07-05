@@ -131,7 +131,9 @@ ABSTRACT_QUERY_WORDS = {
 # gate ("see" only passed because it happens to be a stopword — found by the
 # pyramid-router tests, 2026-07-05). Shared by the gate and _window_browse.
 BROWSE_VERBS = {"see", "saw", "seen", "do", "did", "done", "happen", "happened", "doing",
-                "go", "went", "gone", "notice", "noticed"}
+                "go", "went", "gone", "notice", "noticed",
+                "watch", "watching", "watched", "browse", "browsing", "browsed",
+                "reading", "listening"}
 # Closed-class temporal qualifiers (function words of WHEN, not content words of WHAT).
 # They must never be treated as part of a question's subject: "did you see a truck
 # today" asks about a *truck*, filtered by time — but the existence checker required a
@@ -911,6 +913,16 @@ class TraceMemoryAgent:
             if perm is not None:
                 return perm
 
+        # SCREEN-ACTIVITY questions ("what was I watching on youtube") — consensus
+        # extraction over screen rows. Gemma with a 12-word cap answered the founder's
+        # first real phone ask with the literal word "YouTube" @0.7 FIRM (device
+        # screenshot, 2026-07-05) while the receipts plainly held the video title.
+        # Content is extracted STRUCTURALLY: spans repeated across matching rows are
+        # the content; spans present in nearly every row are UI chrome. No lexicons.
+        activity = self._screen_activity_answer(question)
+        if activity is not None:
+            return activity
+
         if self._reasoner == "frontier":
             _emit(on_event, "thinking", engine="frontier")
             return self._frontier_answer(question, expanded)
@@ -976,6 +988,83 @@ class TraceMemoryAgent:
             confidence=0.75,
             refused=False,
             retrieval_mode="move:deterministic-latest-location",
+        )
+
+    _ACTIVITY_RE = re.compile(
+        r"\bwhat\b.{0,24}\bi\b.{0,24}\b(watch(?:ing|ed)?|brows(?:e|ing|ed)|read(?:ing)?"
+        r"|look(?:ing)? at|listen(?:ing)? to)\b", re.IGNORECASE)
+
+    def _screen_activity_answer(self, question: str) -> AgentAnswer | None:
+        """Deterministic owner for 'what was I <watching/browsing/reading> on X'.
+        Rows whose text carries all the question's grounding tokens are split into
+        OCR spans; a span present in >=60% of rows is UI chrome (Home/Gaming/...),
+        dropped structurally; the most-repeated surviving spans ARE the content.
+        Falls through (None) when no screen rows match or nothing survives chrome."""
+        if not self._ACTIVITY_RE.search(question):
+            return None
+        anchor = set(_tokens(question)) - ABSTRACT_QUERY_WORDS \
+            - TEMPORAL_QUALIFIER_WORDS - BROWSE_VERBS
+        if not anchor:
+            return None
+        rows = [
+            n for n in self._store.nodes(node_types=("observation",),
+                                         sources=self._restrict_sources)
+            if "text:" in n.text and anchor <= _text_tokens(n)
+        ]
+        if len(rows) < 2:
+            return None
+        rows.sort(key=lambda n: n.t_ms, reverse=True)
+        rows = rows[:40]
+
+        from collections import Counter
+        span_rows: Counter = Counter()      # normalized span -> rows containing it
+        display: dict[str, str] = {}
+        for n in rows:
+            ocr = n.text.split("text:", 1)[1]
+            seen_here = set()
+            for raw in ocr.split(";"):
+                span = raw.strip().rstrip("…").strip()
+                norm = " ".join(span.lower().split())
+                if len(norm) < 6 or norm in seen_here:
+                    continue
+                seen_here.add(norm)
+                span_rows[norm] += 1
+                display.setdefault(norm, span)
+        # Chrome = on ~every screen AND short (Home / Gaming / + Create). Length is
+        # the discriminator pure frequency lacks: a video watched for hours is also
+        # on every screen — but its span is long. (First cut used df alone and
+        # classified the founder's 6-capture video title as chrome.)
+        chrome_df = max(2, int(len(rows) * 0.6))
+        anchor_norms = {a.lower() for a in anchor}
+        content = [
+            (norm, cnt) for norm, cnt in span_rows.items()
+            if not (cnt >= chrome_df and len(norm) < 18)  # high-df shorts are chrome
+            and cnt >= 2                            # consensus: seen more than once
+            and not set(norm.split()) <= anchor_norms  # not just the platform name
+        ]
+        if not content:
+            return None
+        content.sort(key=lambda kv: (kv[1], len(kv[0])), reverse=True)
+        top = [display[norm] for norm, _ in content[:3]]
+        subject = " ".join(sorted(anchor))
+        picked: list[Any] = []
+        top_norm = content[0][0]
+        for n in rows:
+            if top_norm in " ".join(n.text.lower().split()):
+                picked.append(n)
+            if len(picked) >= 5:
+                break
+        evidence = tuple(
+            {"id": n.id, "type": n.node_type, "text": str(n.text)[:200], "t_ms": n.t_ms,
+             "citation_ids": []}
+            for n in (picked or rows[:3])
+        )
+        return AgentAnswer(
+            answer=f"On {subject}: " + " · ".join(top),
+            evidence_chain=evidence,
+            confidence=0.7,
+            refused=False,
+            retrieval_mode="screen-activity:consensus",
         )
 
     def _window_browse(self, question: str) -> AgentAnswer | None:

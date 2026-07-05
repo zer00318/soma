@@ -37,6 +37,7 @@ from datetime import datetime
 from pathlib import Path
 
 HUB = "http://127.0.0.1:8765/capture/perception"
+BLOCKLIST_PATH = Path(__file__).resolve().parent.parent / "config" / "privacy_blocklist.json"
 POLL_S = 2.0
 CAPTURE_S = 5.0
 IDLE_S = 120.0
@@ -47,6 +48,22 @@ EXCLUDE_TITLE_MARKERS = ("TRACE —", "TRACE -")
 
 
 # ---------------------------------------------------------------- pure logic
+
+def load_blocklist(path: Path = BLOCKLIST_PATH) -> list:
+    try:
+        return [m.lower() for m in json.loads(path.read_text())["markers"] if m.strip()]
+    except Exception:
+        return []
+
+
+def is_private(text: str, markers: list) -> bool:
+    """Privacy censor (founder order 2026-07-05): if ANY marker appears in the
+    OCR text or window title, the ENTIRE capture is dropped — no row, no focus
+    event, an honest gap. Case-insensitive substring; list lives in
+    config/privacy_blocklist.json."""
+    lowered = text.lower()
+    return any(m in lowered for m in markers)
+
 
 def normalized_tokens(text: str) -> set:
     return {t for t in "".join(
@@ -158,6 +175,8 @@ def post(text: str, helper_id: str, provenance: dict, session_id: str) -> bool:
 def main() -> int:
     session = datetime.now().strftime("mac-screen-%Y%m%d")
     tmp_dir = Path(tempfile.mkdtemp(prefix="trace-screen-"))
+    blocklist = load_blocklist()
+    print(f"[screen-daemon] privacy blocklist: {len(blocklist)} markers", flush=True)
     last_focus = None
     last_capture_t = 0.0
     last_emitted: dict = {}  # (app,title) -> last emitted OCR text
@@ -174,6 +193,8 @@ def main() -> int:
         focus_changed = (app, title) != last_focus
         if focus_changed:
             last_focus = (app, title)
+            if is_private(title, blocklist):
+                continue  # private window: no focus row either — honest gap
             post(f"SCREEN | focus | {app} — {title[:120]}", "mac_app_focus",
                  {"app": app, "window": title, "event": "focus"}, session)
         if not focus_changed and time.time() - last_capture_t < CAPTURE_S:
@@ -190,6 +211,8 @@ def main() -> int:
         empty_streak = 0
         key = (app, title)
         text = format_screen_text(app, title, lines)
+        if is_private(text, blocklist):
+            continue  # private content: drop the whole capture, store nothing
         if should_emit(last_emitted.get(key), text):
             if post(text, "mac_screen_ocr",
                     {"app": app, "window": title, "display": "main"}, session):

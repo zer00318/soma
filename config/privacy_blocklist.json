@@ -1,0 +1,9 @@
+{
+  "comment": "P43-lite privacy blocklist. The screen daemon drops the ENTIRE capture (no row, no focus event — an honest gap) when OCR text or window title matches any marker, case-insensitive substring. scripts/purge_private.py applies the same list retroactively. Owner-editable: add a line, restart the daemon.",
+  "markers": [
+    "redgifs", "pornhub", "xvideos", "xhamster", "xnxx", "onlyfans", "fansly",
+    "rule34", "e621", "nhentai", "hentai", "brazzers", "youporn", "redtube",
+    "chaturbate", "stripchat", "bongacams", "livejasmin", "cam4",
+    "porn", "xxx ", " nsfw", "live sex", "femalepo", "incognito"
+  ]
+}
