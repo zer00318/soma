@@ -32,7 +32,7 @@ real-store spot check for perception/brain packets. The Leash (§6) audits every
 
 | id | packet | tag | executor · effort | depends | status |
 |---|---|---|---|---|---|
-| P20 | [Mac screen daemon](P20-mac-screen-daemon.md) | guided | Opus medium | P02 | BLOCKED(P02) |
+| P20 | [Mac screen daemon](P20-mac-screen-daemon.md) | guided | Opus medium | P02 ✓ | LANDED 2026-07-05 (7237397, chief): screencapture→Vision OCR→png deleted (L1); focus tracking; dedupe measured-at-scale; TRACE windows excluded. LIVE: Leash digital 0→5 STARVED→THIN in 45s of real use; daemon left running. DoD remainder: 30-min session + terminal-error /ask class |
 | P21 | [Voice-identity clustering](P21-voice-identity.md) | judgment | Opus high | P02 | BLOCKED(P02) |
 | P22 | [Motion/IMU channel](P22-motion-channel.md) | mechanical | Sonnet/local | P02 | BLOCKED(P02) |
 | P23 | [Ambient sound events](P23-sound-events.md) | guided | Sonnet/Opus medium | P02 | BLOCKED(P02) |
@@ -55,7 +55,7 @@ Measured facts that forced it: old build frozen 9+ min on the real phone; Leash 
 spec's browsable product. New serial order:
 (1) **P-STAB** stability gate — see below — merge gate for ALL app-surface work,
 (2) P30/P31 minimal episodes + day digest AND P41 TIMELINE (the memory you can SEE),
-(3) ask-v2 <2s fastpaths + streamed retrieval narration,
+(3) ask-v2 <2s fastpaths + streamed retrieval narration — SERVER HALF LANDED 2026-07-05 (d2f9301: agent on_event hook + hub GET /ask/stream SSE; live: retrieval→grounding→thinking→answer on real gemma; fastpaths measured instant; iOS consumption soak-gated),
 (4) P20 Mac screen daemon (digital half, Leash-starved), then P22/P23 fleet,
 (5) 3-day clock + founder blind battery (unchanged done bar).
 
