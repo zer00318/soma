@@ -26,6 +26,7 @@ from trace_memory.store.models import (
     TimeRange,
 )
 from trace_memory.store.sqlite_store import TraceMemoryStore
+from trace_memory.store.episodes import EpisodeBuilder, EpisodeRunSummary
 from trace_memory.store.sleep import SleepConsolidator, SleepRunSummary
 from trace_memory.store.world import (
     anchor_centroid,
@@ -55,6 +56,8 @@ __all__ = [
     "SearchSlice",
     "SentenceTransformerEmbedder",
     "ShelfIngestResult",
+    "EpisodeBuilder",
+    "EpisodeRunSummary",
     "SleepConsolidator",
     "SleepRunSummary",
     "SpatialAnchor",

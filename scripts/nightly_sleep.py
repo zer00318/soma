@@ -50,16 +50,20 @@ def backup() -> Path:
 
 
 def consolidate() -> dict:
-    from trace_memory.store import TraceMemoryStore
+    from trace_memory.store import EpisodeBuilder, TraceMemoryStore
     from trace_memory.store.sleep import SleepConsolidator
 
     store = TraceMemoryStore(STORE)
     summary = SleepConsolidator(store).consolidate()
+    episodes = EpisodeBuilder(store).build()
     return {
         "grouped": summary.grouped_observation_count,
         "abstractions": summary.abstraction_count,
         "composed": summary.composed_memory_count,
         "links": summary.link_count,
+        "episodes": episodes.episode_count,
+        "gaps": episodes.gap_count,
+        "episode_days": episodes.day_count,
     }
 
 
