@@ -61,6 +61,39 @@ context model (the differentiator) barely exists; 3-day proof not started.
 **≈55%, and the remaining 45 is the hard part** — not single digits, but a
 long way, exactly as stated.
 
+## BRAINSTORM OUTCOME 2026-07-05 late (founder + chief, live chat — supersedes the
+## "Direction" sketch above where they differ)
+
+1. **One epistemology, two adapters.** Digital and physical capture are the SAME act:
+   observing a world through a semantic layer the platform maintains (Mac: AX tree —
+   the OS knows "tab" vs "heading"; phone: ARKit scene graph — planes classified
+   table/floor/wall). Adapters differ; output is identical: entities, containers,
+   states, relations, events. The worlds' real difference becomes a GRADE, not an
+   architecture: P10's world>session>track>none generalizes — AX fact = authoritative,
+   OCR span = inferred, ARKit plane = inferred-with-confidence. Answer badges inherit
+   from the grades of the facts they walked.
+2. **The re-derivability rule** (founder's "last-moment squeeze", decided): extract
+   before frame deletion everything that CANNOT be re-derived (facts: AX, boxes,
+   planes, OCR, fingerprints, opportunistic VLM crops — 24/7 under a thermal/battery
+   governor, P11 law); maintain STATES live (playing/focused/held/moving — deltas,
+   P12-live's true job); author THEORIES at sleep (relations, episodes, identity —
+   derived, reconsiderable).
+3. **Specialists are LEARNED, not written** (the "something huge" candidate): at sleep
+   time a local model induces per-container extraction grammars from repeated
+   structured snapshots ("in youtube.com, AXHeading under AXWebArea = playing title;
+   right AXList = queue") — stored as DATA in the registry, jar-rule validated
+   (consistent across days before trusted), reconsiderable, corrected by P42 review
+   cards (the owner is a helper too). "Earned by starvation" becomes the SCHEDULER
+   (WWH battery + per-container Leash pick the next container to induce). Hand-written
+   specialists = flagship overrides only.
+4. **Fable-window plan (2 days left, founder-informed):** Day 1 = AX adapter + graded
+   schema + context-slice renderer + WWH battery harness (+ P-STAB verdict fold-in).
+   Day 2 = bounded induction SPIKE on real browser captures (feasibility verdict, kill
+   or keep) + ARKit scene-semantics adapter started + P22 to fleet. Everything lands
+   as contracts + tests + batteries that outlive the model on shift.
+5. **Status: HYPOTHESIS until measured** (founder call): P34 graduates to spec law
+   only when the WWH battery shows slices beating the owner pile.
+
 ## Status
 - KEPT from tonight (general, not bandage): daemon now captures with
   geometry + window attribution + region banding + active-tab URL — structure
