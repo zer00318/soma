@@ -62,6 +62,7 @@ spec's browsable product. New serial order:
 | id | packet | tag | executor · effort | depends | status |
 |---|---|---|---|---|---|
 | P-STAB | [Stability root-cause + soak gate](PSTAB-stability-gate.md) | judgment | Fable/chief | — | IN-PROGRESS(chief) 2026-07-05: ROOT CAUSE PROVEN from device .ips (MLX `check_error` throws on Metal completion queue → SIGABRT; 41s + 5m16s lifetimes July 4; NOT jetsam). Crash black box (CrashBlackBox.mm) built+installed; soak rig scripts/soak_stability.py self-tested. REMAINING: founder unlock → launch → 4h soak PASS + what() string → causal fix |
+| P30/31/41 | [Product body: episodes + digest + timeline](P30-31-41-product-body.md) | judgment | Fable/chief | Stage C gated on P-STAB PASS | AUTHORED 2026-07-05 — Stage A (Mac episode segmentation) is next serial work; Stages A/B are NOT soak-gated |
 
 ## W3 — Memory organs (STUBS — spec §0.4: authored in full only when W2 numbers are in)
 - P30 episode segmentation (place+motion+scene shifts → named episodes; honest gap episodes)
