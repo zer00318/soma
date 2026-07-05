@@ -181,10 +181,14 @@ def main() -> int:
             deaths += 1
             event = "APP_DIED" if pid is None else "APP_PID_CHANGED"
             evidence = pull_evidence(f"{run_id}-death{deaths}")
-            if pid is None and args.relaunch and relaunch_app():
-                time.sleep(5)
-                pid = app_pid()
-                event += "+RELAUNCHED"
+        # Relaunch on EVERY dead tick, not only the death-transition tick — the
+        # first live death (2026-07-05 21:15, lifecycle reap) hit a failed launch
+        # and the old transition-only logic never tried again for the rest of
+        # the soak. A dead app that stays dead is a rig bug, not a measurement.
+        if pid is None and args.relaunch and relaunch_app():
+            time.sleep(5)
+            pid = app_pid()
+            event = (event + "+RELAUNCHED") if event else "RELAUNCHED"
         if not hub_ok:
             hub_failures += 1
 

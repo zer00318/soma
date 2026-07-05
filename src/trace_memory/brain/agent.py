@@ -125,6 +125,13 @@ ABSTRACT_QUERY_WORDS = {
     "time", "colour", "color", "brand", "name", "number", "kind", "type", "amount",
     "price", "size", "count", "flavour", "flavor", "material", "shape", "model", "make", "text",
 }
+# Verbs of experiencing — the VERB of a browse question, never a groundable object.
+# "what HAPPENED yesterday" must reach the window-browse owner; grounding on the
+# literal token "happened" (present in no observation text) refused it at the S1
+# gate ("see" only passed because it happens to be a stopword — found by the
+# pyramid-router tests, 2026-07-05). Shared by the gate and _window_browse.
+BROWSE_VERBS = {"see", "saw", "seen", "do", "did", "done", "happen", "happened", "doing",
+                "go", "went", "gone", "notice", "noticed"}
 # Closed-class temporal qualifiers (function words of WHEN, not content words of WHAT).
 # They must never be treated as part of a question's subject: "did you see a truck
 # today" asks about a *truck*, filtered by time — but the existence checker required a
@@ -782,7 +789,7 @@ class TraceMemoryAgent:
         # TEMPORAL_QUALIFIER_WORDS are WHEN, never WHAT — "what did I see yesterday" grounded on
         # the literal token "yesterday" (present in no row text) and refused with 21k rows dated
         # yesterday sitting in the store (3-day scale probe, 2026-07-04).
-        grounding = subject - ABSTRACT_QUERY_WORDS - TEMPORAL_QUALIFIER_WORDS
+        grounding = subject - ABSTRACT_QUERY_WORDS - TEMPORAL_QUALIFIER_WORDS - BROWSE_VERBS
         if grounding:
             rows = self._evidence_chain(expanded, question=question)
             grounded = any(grounding & set(_tokens(str(r.get("text", "")))) for r in rows)
@@ -998,18 +1005,49 @@ class TraceMemoryAgent:
             window = (start, midnight.replace(hour=2) + timedelta(days=0), "last night")
         if window is None:
             return None
-        browse_verbs = {"see", "saw", "do", "did", "done", "happen", "happened", "doing",
-                        "go", "went", "notice", "noticed"}
         content = [
             w for w in qn.split()
             if w not in STOPWORDS and w not in TEMPORAL_QUALIFIER_WORDS
-            and _singularize(w) not in browse_verbs
+            and _singularize(w) not in BROWSE_VERBS
         ]
         if content:
             return None
         lo = int(window[0].timestamp() * 1000)
         hi = int(window[1].timestamp() * 1000)
         label = window[2]
+
+        # PYRAMID ROUTER (P31/P33: climb-then-drill). A full-day window with a
+        # sleep-authored digest answers FROM the digest — 3-6 cited bullets in <2s
+        # instead of re-summarizing thousands of raw rows. Bullets carry episode-id
+        # receipts; the episodes are the drill-down. Digest/episode rows are the
+        # brain's OWN derived output, not a capture pillar, so they are read without
+        # the pillar source fence. No digest for the day -> raw path below, unchanged.
+        if label in ("today", "yesterday"):
+            day_iso = window[0].date().isoformat()
+            digest = next(
+                (n for n in self._store.nodes(node_types=("digest_day",))
+                 if (n.metadata or {}).get("day") == day_iso), None)
+            if digest is not None:
+                bullets = (digest.metadata or {}).get("bullets") or []
+                cited_ids = [i for b in bullets for i in (b.get("episode_ids") or [])]
+                evidence = []
+                for ep_id in dict.fromkeys(cited_ids):  # de-dup, keep order
+                    ep = self._store.read_observation(ep_id)
+                    if ep is not None:
+                        evidence.append({"id": ep.id, "type": ep.node_type,
+                                         "text": str(ep.text)[:200], "t_ms": ep.t_ms,
+                                         "citation_ids": []})
+                    if len(evidence) >= 6:
+                        break
+                summary = " • ".join(str(b.get("text", "")).strip() for b in bullets)
+                return AgentAnswer(
+                    answer=f"{label.capitalize()}: {summary}",
+                    evidence_chain=tuple(evidence),
+                    confidence=0.75,
+                    refused=False,
+                    retrieval_mode="temporal:digest-pyramid",
+                )
+
         rows = [
             n for n in self._store.nodes(node_types=("observation",),
                                          sources=self._restrict_sources)
