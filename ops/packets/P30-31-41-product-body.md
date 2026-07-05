@@ -12,10 +12,15 @@ Serial inside the packet (each stage lands + tests green before the next):
 - Input: consolidated store rows (all channels). Output: `episode` derived rows
   (reconsider-able, same discipline as binder derived rows — never destructive).
 - Boundary signals, in strength order: capture-session start/stop; ingest gaps
-  > measured threshold (start from the stitcher lesson: measure real-walk gap
-  distribution FIRST, do not spec a constant); anchor/room change (P10 grades);
-  scene-shift from track-population turnover. Thresholds scale with each
-  track's own measured noise (jar-saga standing rule).
+  > measured threshold; anchor/room change (P10 grades); scene-shift from
+  track-population turnover. Thresholds scale with measured noise (jar-saga rule).
+- **MEASURED 2026-07-05 on the real store (3736 raw obs, 10 capture days):**
+  gap distribution is bimodal — within-capture gaps are <60s in 3014/3104
+  cases; 61 gaps ≥5min (clear session boundaries, up to 81h); 29 gaps in the
+  1–5min ambiguous middle. Stage-A starting thresholds: **≥5min gap = hard
+  episode boundary; 1–5min = soft boundary** (split only if corroborated by
+  place/anchor change, else same episode). Re-measure once multi-hour natural
+  carries exist — today's data is dev-session-shaped.
 - HONEST GAPS are first-class: a gap between episodes is itself an episode row
   ("no capture, 2h 14m") — the timeline must never paper over blindness.
 - Naming: cheap deterministic label from dominant room + dominant activity
