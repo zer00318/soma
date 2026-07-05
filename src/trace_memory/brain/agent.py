@@ -289,6 +289,30 @@ ORDER_INTENT_RES = (
                re.IGNORECASE),
     re.compile(r"(?:which|what) (?:came|did (?:i|you) see) first[,:]?\s*(?:the |my )?(?P<a>.+?) or (?:the |my )?(?P<b>.+?)\s*\??\s*$",
                re.IGNORECASE),
+    # Plain single-relation form ("did I see the laptop before the bed"). Without this the
+    # phrasing fell through to the EXISTENCE owner, which read "laptop before bed" as ONE
+    # subject phrase, found no row containing all three tokens, and authored a firm wrong
+    # "No — I have no record of laptop before bed" @0.75 (3-day scale probe, 2026-07-04).
+    # Listed AFTER the or-form so "before or after" keeps its more specific owner.
+    re.compile(r"did (?:i|you) see (?:the |my |a )?(?P<a>.+?) (?:before|after) (?:the |my |a )?(?P<b>.+?)\s*\??\s*$",
+               re.IGNORECASE),
+)
+
+# Relational tokens that mark a phrase as a COMPARISON between two subjects, never a single
+# existence subject. Grammar, not content (I5-safe): if one of these survives inside an
+# existence subject phrase, the question wasn't an existence question — fall through rather
+# than author a firm "No" from a multi-object phrase.
+_ORDER_RELATION_TOKENS = {"before", "after"}
+
+# "Is the X still on/at the P" — a MOVE question: the answer hinges on the LATEST sighting,
+# not on whether X was ever at P. Left to the LLM it flipped between correct and confident-
+# wrong run to run (battery TP03; the nightly gate caught it live 2026-07-04: "The thermos
+# was on the desk at 12:00" @0.7 — stale sightings narrated as the present). Grammar-only (I5-safe):
+# subject and place both come from the question.
+STILL_AT_RE = re.compile(
+    r"(?:is|are|was|were) (?:the |my |a |an )?(?P<subject>.+?) (?:still|currently) "
+    r"(?:on|at|in|inside|under|near|by) (?:the |my |a |an )?(?P<place>.+?)\s*\??\s*$",
+    re.IGNORECASE,
 )
 
 # Words that end the counted noun phrase in a "how many X ..." question: the verb/preposition
@@ -738,7 +762,10 @@ class TraceMemoryAgent:
         # object, refuse — a weak reasoner otherwise answers from token-adjacent junk ("time" matched
         # a laptop-screen read of "~15 seconds -> 2.0" and it invented a clock reading @0.70).
         # ABSTRACT_QUERY_WORDS are the attributes being asked ABOUT, never the grounding object.
-        grounding = subject - ABSTRACT_QUERY_WORDS
+        # TEMPORAL_QUALIFIER_WORDS are WHEN, never WHAT — "what did I see yesterday" grounded on
+        # the literal token "yesterday" (present in no row text) and refused with 21k rows dated
+        # yesterday sitting in the store (3-day scale probe, 2026-07-04).
+        grounding = subject - ABSTRACT_QUERY_WORDS - TEMPORAL_QUALIFIER_WORDS
         if grounding:
             rows = self._evidence_chain(expanded, question=question)
             if not any(grounding & set(_tokens(str(r.get("text", "")))) for r in rows):
@@ -749,6 +776,19 @@ class TraceMemoryAgent:
                     refused=True,
                     retrieval_mode=expanded.retrieval_mode,
                 )
+
+        # SUBJECTLESS window browses ("what did I see yesterday") — resolved to a time range
+        # and summarized; must run before existence/order which need a subject.
+        browse = self._window_browse(question)
+        if browse is not None:
+            return browse
+
+        # MOVE questions ("is X still at P") — latest-location-wins, deterministic. Must run
+        # before existence: presence-of-X is true even after X moved, which is exactly the
+        # stale answer this owner exists to prevent.
+        still = self._still_at_answer(question)
+        if still is not None:
+            return still
 
         # TEMPORAL-ORDER questions first — their phrasing ("did I see X before or after Y")
         # also matches the broader existence patterns, and the more specific intent owns it.
@@ -769,6 +809,12 @@ class TraceMemoryAgent:
             if not m:
                 continue
             subject_phrase = m.group("subject")
+            # A phrase carrying an order relation ("laptop BEFORE the bed") is a comparison
+            # between two subjects, not one existence subject — authoring "no record of
+            # laptop before bed" from it was a firm WRONG (scale probe 2026-07-04). Not ours;
+            # fall through to the reasoner with evidence.
+            if _ORDER_RELATION_TOKENS & set(_normalize(subject_phrase).split()):
+                break
             phrase_tokens: list[str] = []
             for word in _normalize(subject_phrase).split():
                 if word in _COUNT_SUBJECT_BREAK:
@@ -848,6 +894,156 @@ class TraceMemoryAgent:
             confidence=0.15,
             refused=True,
             retrieval_mode=expanded.retrieval_mode,
+        )
+
+    def _still_at_answer(self, question: str) -> AgentAnswer | None:
+        """Deterministic owner for 'is X still at P' — latest-location-wins. Rows matching
+        the subject are sorted newest-first; the LATEST sighting either contains the asked
+        place tokens (yes, cited) or it doesn't but an older one does (moved — no, cite the
+        latest location). Falls through when the subject or the place was never witnessed,
+        so absence keeps its honest owners."""
+        m = STILL_AT_RE.search(question)
+        if m is None:
+            return None
+        subj_tokens = [_singularize(w) for w in _normalize(m.group("subject")).split()
+                       if w not in STOPWORDS and w not in TEMPORAL_QUALIFIER_WORDS]
+        place_tokens = [_singularize(w) for w in _normalize(m.group("place")).split()
+                        if w not in STOPWORDS and w not in TEMPORAL_QUALIFIER_WORDS]
+        if not subj_tokens or not place_tokens:
+            return None
+        rows = [
+            n for n in self._store.nodes(node_types=("observation",),
+                                         sources=self._restrict_sources)
+            if all(t in _text_tokens(n) for t in subj_tokens)
+        ]
+        if not rows:
+            return None  # subject never seen — existence machinery owns the refusal
+        rows.sort(key=lambda n: n.t_ms, reverse=True)
+        latest = rows[0]
+        latest_has_place = all(t in _text_tokens(latest) for t in place_tokens)
+        ever_at_place = any(all(t in _text_tokens(n) for t in place_tokens) for n in rows)
+        if not ever_at_place:
+            return None  # never witnessed there — don't invent a move story
+        from datetime import datetime
+        when = datetime.fromtimestamp(latest.t_ms / 1000).strftime("%H:%M:%S")
+        evidence = tuple(
+            {"id": n.id, "type": n.node_type, "text": str(n.text)[:200], "t_ms": n.t_ms,
+             "citation_ids": []}
+            for n in rows[:3]
+        )
+        subject = " ".join(subj_tokens)
+        place = " ".join(place_tokens)
+        if latest_has_place:
+            return AgentAnswer(
+                answer=f"Yes — the {subject} was still at the {place} when last seen ({when}).",
+                evidence_chain=evidence,
+                confidence=0.75,
+                refused=False,
+                retrieval_mode="move:deterministic-latest-location",
+            )
+        return AgentAnswer(
+            answer=f"No — the latest sighting ({when}) puts the {subject} elsewhere: "
+                   f"{str(latest.text)[:120]}",
+            evidence_chain=evidence,
+            confidence=0.75,
+            refused=False,
+            retrieval_mode="move:deterministic-latest-location",
+        )
+
+    def _window_browse(self, question: str) -> AgentAnswer | None:
+        """Deterministic owner for SUBJECTLESS time-window browses — 'what did I see
+        yesterday / today / this morning'. The 3-day scale probe (2026-07-04) showed the gap:
+        temporal words were STRIPPED (P04 grammar fix) but never RESOLVED, so 'what did I see
+        yesterday' became the subject-less 'what did I see' and hit the structural refusal —
+        with 21k rows sitting dated yesterday. This owner resolves the window and summarizes
+        what's inside it (the digest seed, P31). Subject-ful questions ('did I see a truck
+        yesterday') keep their existing owners: any surviving content token → fall through."""
+        from collections import Counter
+        from datetime import datetime, timedelta
+
+        qn = _normalize(question)
+        words = set(qn.split())
+        now = datetime.now()
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        window: tuple[datetime, datetime, str] | None = None
+        if "yesterday" in words:
+            window = (midnight - timedelta(days=1), midnight, "yesterday")
+        elif "today" in words:
+            window = (midnight, now + timedelta(minutes=1), "today")
+        elif "morning" in words:
+            window = (midnight.replace(hour=5), midnight.replace(hour=12), "this morning")
+        elif "tonight" in words or ("night" in words and "last" in words):
+            start = (midnight - timedelta(days=1)).replace(hour=18)
+            window = (start, midnight.replace(hour=2) + timedelta(days=0), "last night")
+        if window is None:
+            return None
+        browse_verbs = {"see", "saw", "do", "did", "done", "happen", "happened", "doing",
+                        "go", "went", "notice", "noticed"}
+        content = [
+            w for w in qn.split()
+            if w not in STOPWORDS and w not in TEMPORAL_QUALIFIER_WORDS
+            and _singularize(w) not in browse_verbs
+        ]
+        if content:
+            return None
+        lo = int(window[0].timestamp() * 1000)
+        hi = int(window[1].timestamp() * 1000)
+        label = window[2]
+        rows = [
+            n for n in self._store.nodes(node_types=("observation",),
+                                         sources=self._restrict_sources)
+            if lo <= n.t_ms < hi
+        ]
+        if not rows:
+            return AgentAnswer(
+                answer=f"I have no memories from {label}.",
+                evidence_chain=(),
+                confidence=0.75,
+                refused=True,
+                retrieval_mode="temporal:window-browse-empty",
+            )
+        rows.sort(key=lambda n: n.t_ms)
+        seen = Counter()
+        said = 0
+        for n in rows:
+            meta = getattr(n, "metadata", {}) or {}
+            helper = _helper_of(n)
+            if helper in ("asr", "whisper", "speech", "audio"):
+                said += 1
+            lab = str(meta.get("detector_label") or "").strip().lower()
+            if lab:
+                seen[lab] += 1
+        t0 = datetime.fromtimestamp(rows[0].t_ms / 1000).strftime("%H:%M")
+        t1 = datetime.fromtimestamp(rows[-1].t_ms / 1000).strftime("%H:%M")
+        top = ", ".join(f"{k} (×{v})" for k, v in seen.most_common(6))
+        parts = [f"{label.capitalize()}: {len(rows)} observations between {t0} and {t1}."]
+        if top:
+            parts.append(f"Most seen: {top}.")
+        if said:
+            parts.append(f"{said} spoken notes captured.")
+        # Representative receipts: latest row per distinct label, capped.
+        picked: list[Any] = []
+        used: set[str] = set()
+        for n in reversed(rows):
+            meta = getattr(n, "metadata", {}) or {}
+            lab = str(meta.get("detector_label") or _helper_of(n))
+            if lab in used:
+                continue
+            used.add(lab)
+            picked.append(n)
+            if len(picked) >= 6:
+                break
+        evidence = tuple(
+            {"id": n.id, "type": n.node_type, "text": str(n.text)[:200], "t_ms": n.t_ms,
+             "citation_ids": []}
+            for n in picked
+        )
+        return AgentAnswer(
+            answer=" ".join(parts),
+            evidence_chain=evidence,
+            confidence=0.7,
+            refused=False,
+            retrieval_mode="temporal:window-browse",
         )
 
     def _order_answer(self, phrase_a: str, phrase_b: str, question: str) -> AgentAnswer | None:

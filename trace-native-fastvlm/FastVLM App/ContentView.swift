@@ -808,6 +808,10 @@ struct ContentView: View {
         Task {
             let ok = await BrainClient.isHealthy(base: base)
             await MainActor.run { brainReachable = ok }
+            // 3-day carry: the moment the brain is reachable, ship whatever the offline
+            // spool accumulated (a workday away from the Mac). The 8s health loop makes
+            // this self-healing — each pass drains a bounded chunk, the next continues.
+            if ok { SpoolDrainer.drainIfIdle(base: base) }
         }
     }
 
@@ -3519,6 +3523,91 @@ struct TraceHubSetupView: View {
 
 #Preview {
     ContentView()
+}
+
+// ── Perception spool drainer (3-day-carry blocker #1) ────────────────────── //
+// Packets captured while the hub was unreachable land in perception_spool.ndjson.
+// Before this drainer NOTHING ever delivered them — the Mac-side replay script the old
+// comment referenced does not exist — so a workday away from the Mac silently lost the
+// whole day. Now: when the brain becomes reachable, rotate the spool aside (writers keep
+// appending to a fresh spool), POST each stored packet, drop delivered lines, and let the
+// 8-second health loop re-invoke until empty. Each packet body carries its own capture
+// `timestamp` and the hub stores t_ms from it, so late delivery lands at the TRUE capture
+// time — temporal answers stay honest after a drain.
+enum SpoolDrainer {
+    private static var isDraining = false          // touched only on the spool queue
+    private static let maxLinesPerPass = 2000      // bounds memory; health loop continues
+
+    private static var spoolDir: URL {
+        let fm = FileManager.default
+        let base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? fm.temporaryDirectory
+        return base.appendingPathComponent("Trace", isDirectory: true)
+    }
+    private static var spoolURL: URL { spoolDir.appendingPathComponent("perception_spool.ndjson") }
+    private static var drainingURL: URL { spoolDir.appendingPathComponent("perception_spool.draining.ndjson") }
+
+    static func drainIfIdle(base: String) {
+        ContentView.spoolQueue.async {
+            guard !isDraining else { return }
+            let fm = FileManager.default
+            // Crash-safe two-file scheme: finish a previous half-drained file first;
+            // otherwise rotate the live spool aside so writers never race the drain.
+            if !fm.fileExists(atPath: drainingURL.path) {
+                guard fm.fileExists(atPath: spoolURL.path),
+                      (try? fm.attributesOfItem(atPath: spoolURL.path)[.size] as? Int ?? 0) ?? 0 > 0
+                else { return }
+                try? fm.moveItem(at: spoolURL, to: drainingURL)
+            }
+            guard let data = try? Data(contentsOf: drainingURL), !data.isEmpty else {
+                try? fm.removeItem(at: drainingURL)
+                return
+            }
+            isDraining = true
+            let lines = data.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: true)
+            let batch = Array(lines.prefix(maxLinesPerPass))
+            Task.detached(priority: .utility) {
+                var sent = 0
+                for line in batch {
+                    if await post(Data(line), base: base) { sent += 1 } else { break }
+                }
+                let delivered = sent
+                ContentView.spoolQueue.async {
+                    // Drop the delivered prefix; keep survivors for the next pass.
+                    let remaining = lines.dropFirst(delivered)
+                    if remaining.isEmpty {
+                        try? FileManager.default.removeItem(at: drainingURL)
+                    } else {
+                        let payload = remaining.map { Data($0) + Data("\n".utf8) }
+                            .reduce(Data(), +)
+                        try? payload.write(to: drainingURL, options: .atomic)
+                    }
+                    print("[SpoolDrainer] delivered \(delivered), \(remaining.count) remaining")
+                    isDraining = false
+                }
+            }
+        }
+    }
+
+    /// One packet to the hub. NEVER re-spools on failure — the line already persists in
+    /// the draining file, so a false failure would duplicate it.
+    private static func post(_ body: Data, base: String) async -> Bool {
+        let trimmed = base.hasSuffix("/") ? String(base.dropLast()) : base
+        guard let url = URL(string: trimmed + "/capture/perception") else { return false }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("dev-token", forHTTPHeaderField: "X-TRACE-Token")
+        req.timeoutInterval = 10
+        req.httpBody = body
+        do {
+            let (_, response) = try await URLSession.shared.data(for: req)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            return (200..<300).contains(status)
+        } catch {
+            return false
+        }
+    }
 }
 
 // ── Ask conversation model (P40) ─────────────────────────────────────────── //

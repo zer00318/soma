@@ -60,8 +60,11 @@ P13 fed by real usage gaps, (6) founder blind battery on the 3-day store = the n
 | P40 | [Phone ask surface](P40-chat-ask-surface.md) | judgment | Fable/chief | P02, hub /ask | REVIEW — LANDED 2026-07-04: phone ask is now a CHAT thread (AskTurn/AskReceipt/AskTurnView) with calibrated badge + confidence + expandable receipts; hub POST /ask enriched with when/helper/text; verified live ("how many bottles" → "between 2 and 3" hedged 0.5 + receipt). iOS build green. DEVICE-RENDER PENDING (phone→hub round-trip on next carry) → MERGED |
 - P41 timeline w/ gap honesty · P42 review cards (3 channels) · P43 hide-then-purge delete
 
-## W5 — Finish line (STUBS)
-- P50 3-day capture ops runbook · P51 blind-battery protocol + scoring · P52 demo choreography
+## W5 — Finish line
+| id | packet | tag | executor · effort | depends | status |
+|---|---|---|---|---|---|
+| P50 | 3-day capture ops runbook → [ops/RUNBOOK_3DAY.md](../RUNBOOK_3DAY.md) | judgment | Fable/chief | — | LANDED 2026-07-04 from the readiness audit. Four blockers found+fixed: (1) offline spool NEVER drained + replay script didn't exist → phone auto-drains on hub-healthy (8s loop, bounded chunks, capture-time preserved); (2) sleep binder never ran automatically → scripts/nightly_sleep.py (backup→consolidate→battery→log) + cron line; (3) brain unproven at multi-day scale → evaluation/scale_probe_3day.py (23k rows): latency OK (~37s worst, gemma-bound), found+fixed "yesterday" window-browse owner, S1 temporal-grounding refusal, plain-form before/after firm-wrong; (4) hub died with Mac sleep → scripts/run_hub_keepalive.sh (restart loop + caffeinate) + mDNS hub URL |
+- P51 blind-battery protocol + scoring · P52 demo choreography (STUBS)
 
 ## Leash audit log
 - (appended every 5 merges: date · packets · did any domain number move · verdict)
