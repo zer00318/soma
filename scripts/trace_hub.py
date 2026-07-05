@@ -69,6 +69,11 @@ class Hub:
         self.write_lock = threading.Lock()
         self.answer_lock = threading.Lock()
         self._answer_store = None  # lazily opened reader connection
+        # P41: the timeline gets its OWN reader + lock — /episodes and /digest are the
+        # open-the-app surface and must answer in <300ms even while a 30s /ask holds
+        # answer_lock. They serve derived rows only; no brain, no gemma.
+        self.timeline_lock = threading.Lock()
+        self._timeline_store = None
         # P02: the helper registry is DATA (config/helpers.json). Unknown helper_ids
         # still ingest — they surface as "unregistered" in /status, never as a crash.
         self.registry = load_registry()
@@ -80,6 +85,38 @@ class Hub:
         if self._answer_store is None:
             self._answer_store = TraceMemoryStore(self.store_path)
         return self._answer_store
+
+    def _timeline_reader(self) -> TraceMemoryStore:
+        if self._timeline_store is None:
+            self._timeline_store = TraceMemoryStore(self.store_path)
+        return self._timeline_store
+
+    def timeline(self, *, kind: str, day: str | None) -> dict:
+        """Episode/digest rows for the app's timeline (P41). Derived rows only —
+        the memory you can SEE without asking a question. Caller holds timeline_lock."""
+        node_type = "digest_day" if kind == "digest" else "episode"
+        rows = []
+        for n in self._timeline_reader().nodes(node_types=(node_type,)):
+            meta = n.metadata or {}
+            if day and meta.get("day") != day:
+                continue
+            row = {
+                "id": n.id, "day": meta.get("day"), "text": n.text,
+                "start_ms": n.time_range.start_ms if n.time_range else n.t_ms,
+                "end_ms": n.time_range.end_ms if n.time_range else n.t_ms,
+            }
+            if kind == "digest":
+                row.update(bullets=meta.get("bullets") or [],
+                           thin_day=bool(meta.get("thin_day")),
+                           episode_count=meta.get("episode_count"))
+            else:
+                row.update(kind=meta.get("kind"), label=meta.get("label"),
+                           place=meta.get("place"),
+                           observation_count=meta.get("observation_count"),
+                           channels=meta.get("channels") or {})
+            rows.append(row)
+        rows.sort(key=lambda r: r["start_ms"], reverse=True)
+        return {"ok": True, "kind": kind, "day": day, "count": len(rows), "rows": rows}
 
     def _record_spatial(self, *, anchor_id, pose, grade, room, session_id, t_ms) -> None:
         """P10: record one place-anchor sighting (cross-session, graded) and count a
@@ -357,6 +394,11 @@ class Handler(BaseHTTPRequestHandler):
                     "by_grade": coverage["by_grade"],
                 },
             })
+        if parsed.path in ("/episodes", "/digest"):
+            day = (parse_qs(parsed.query).get("day") or [None])[0]
+            kind = "digest" if parsed.path == "/digest" else "episodes"
+            with self.hub.timeline_lock:
+                return self._send(200, self.hub.timeline(kind=kind, day=day))
         if parsed.path == "/ask":
             q = (parse_qs(parsed.query).get("q") or [""])[0]
             if not q:
