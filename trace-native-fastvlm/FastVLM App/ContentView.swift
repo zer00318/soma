@@ -7,6 +7,7 @@ import AVFoundation
 import CoreImage
 import Foundation
 import MLXLMCommon
+import Network
 import SwiftUI
 import Video
 import Vision
@@ -54,9 +55,42 @@ let CONTEXT_ACTIVE_SECONDS: TimeInterval = 90
 let CONTEXT_STALE_SECONDS: TimeInterval = 1_800
 
 enum TraceDefaults {
-    /// Default Mac brain hub address on the LAN. Prefilled so a first-time
-    /// user can Ask without hand-typing an IP; still editable in Hub Setup.
-    static let hubURL = "http://172.20.10.6:8765"
+    /// No hard-coded address: the hub advertises itself over Bonjour and the app adopts
+    /// the discovered URL (TraceHubFinder). Empty means "not found yet"; manual entry in
+    /// the engine room remains as the fallback for exotic networks.
+    static let hubURL = ""
+}
+
+/// Zero-config brain discovery. The Mac hub advertises `_trace-hub._tcp` with a TXT
+/// record carrying its ready-to-use URL (mDNS hostname — valid on any network the phone
+/// shares with the Mac, home wifi or hotspot alike). Nobody types an IP into a phone.
+final class TraceHubFinder {
+    static let shared = TraceHubFinder()
+    private var browser: NWBrowser?
+    private(set) var lastFound: String = ""
+
+    func start(onFound: @escaping (String) -> Void) {
+        guard browser == nil else { return }
+        let params = NWParameters()
+        params.includePeerToPeer = true
+        let browser = NWBrowser(
+            for: .bonjourWithTXTRecord(type: "_trace-hub._tcp", domain: nil),
+            using: params)
+        browser.browseResultsChangedHandler = { [weak self] results, _ in
+            for result in results {
+                if case .bonjour(let txt) = result.metadata,
+                   let url = txt.dictionary["url"], !url.isEmpty {
+                    DispatchQueue.main.async {
+                        self?.lastFound = url
+                        onFound(url)
+                    }
+                    return
+                }
+            }
+        }
+        browser.start(queue: .global(qos: .utility))
+        self.browser = browser
+    }
 }
 
 struct TraceContextFact: Identifiable {
@@ -113,16 +147,24 @@ enum TraceBrand {
 }
 
 /// The ember "remembering" pulse — a soft breathing dot that signals live memory-making.
+/// Static halo + animated opacity/scale ONLY: animating a shadow radius forces a GPU blur
+/// re-render every frame on top of the live camera (perf, not polish).
 struct EmberPulse: View {
     @State private var on = false
     var body: some View {
-        Circle()
-            .fill(TraceBrand.ember)
-            .frame(width: 8, height: 8)
-            .shadow(color: TraceBrand.ember.opacity(on ? 0.9 : 0.2), radius: on ? 6 : 2)
-            .scaleEffect(on ? 1.0 : 0.82)
-            .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: on)
-            .onAppear { on = true }
+        ZStack {
+            Circle()
+                .fill(TraceBrand.ember.opacity(0.35))
+                .frame(width: 14, height: 14)
+                .blur(radius: 3)
+                .opacity(on ? 1.0 : 0.25)
+            Circle()
+                .fill(TraceBrand.ember)
+                .frame(width: 8, height: 8)
+                .scaleEffect(on ? 1.0 : 0.82)
+        }
+        .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: on)
+        .onAppear { on = true }
     }
 }
 
@@ -399,17 +441,22 @@ struct ContentView: View {
 
     /// Honest audit: count raw media anywhere in the app container. The badge
     /// reflects THIS live scan — never a hardcoded value. (P0 honesty sprint.)
+    /// Runs on a background queue and ONLY while the engine room is open — the old
+    /// version walked the whole container every 2 s on the main thread, over multi-GB
+    /// recordings (part of the founder-measured 2.9 s hang).
     private func refreshRawMediaCount() {
-        let fm = FileManager.default
-        let exts: Set<String> = ["mov", "mp4", "m4v", "heic", "heif", "jpg", "jpeg", "png", "wav", "m4a", "aac", "caf"]
-        var count = 0
-        let roots: [URL?] = [fm.urls(for: .documentDirectory, in: .userDomainMask).first,
-                             URL(fileURLWithPath: NSTemporaryDirectory())]
-        for case let root? in roots {
-            guard let en = fm.enumerator(at: root, includingPropertiesForKeys: nil) else { continue }
-            for case let u as URL in en where exts.contains(u.pathExtension.lowercased()) { count += 1 }
+        DispatchQueue.global(qos: .utility).async {
+            let fm = FileManager.default
+            let exts: Set<String> = ["mov", "mp4", "m4v", "heic", "heif", "jpg", "jpeg", "png", "wav", "m4a", "aac", "caf"]
+            var count = 0
+            let roots: [URL?] = [fm.urls(for: .documentDirectory, in: .userDomainMask).first,
+                                 URL(fileURLWithPath: NSTemporaryDirectory())]
+            for case let root? in roots {
+                guard let en = fm.enumerator(at: root, includingPropertiesForKeys: nil) else { continue }
+                for case let u as URL in en where exts.contains(u.pathExtension.lowercased()) { count += 1 }
+            }
+            DispatchQueue.main.async { rawMediaCount = count }
         }
-        rawMediaCount = count
     }
 
     @State private var showEngineRoom = false
@@ -512,10 +559,12 @@ struct ContentView: View {
         .padding(.vertical, 10).padding(.horizontal, 14)
         .background(TraceBrand.glass(RoundedRectangle(cornerRadius: 18)))
         .padding(.top, 6)
-        .task {
+        .task(id: showEngineRoom) {
+            // Scan only while the engine room is actually visible.
+            guard showEngineRoom else { return }
             refreshRawMediaCount()
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            while !Task.isCancelled && showEngineRoom {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
                 refreshRawMediaCount()
             }
         }
@@ -525,12 +574,12 @@ struct ContentView: View {
     /// Quiet when connected (a soft ember dot); only speaks up when something's wrong.
     @ViewBuilder var brainStatusPill: some View {
         let connected = brainReachable == true
-        let unknown = brainReachable == nil
+        let unknown = brainReachable == nil || traceHubURL.isEmpty
         HStack(spacing: 6) {
             Circle()
                 .fill(unknown ? TraceBrand.neutral : (connected ? TraceBrand.emberLight : Color.orange))
                 .frame(width: 6, height: 6)
-            Text(unknown ? "finding memory…" : (connected ? "memory connected" : "memory offline — keeping notes"))
+            Text(unknown ? "finding your Mac…" : (connected ? "memory connected" : "memory offline — keeping notes"))
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(TraceBrand.lab.opacity(0.75))
         }
@@ -637,9 +686,12 @@ struct ContentView: View {
                 TraceBrand.ink.ignoresSafeArea()
                 VStack(spacing: 0) {
                     if traceHubURL.isEmpty {
-                        Text("Set the memory address first (engine room → Brain setup) — e.g. http://<mac-name>.local:8765")
-                            .font(.footnote).foregroundStyle(.orange)
-                            .frame(maxWidth: .infinity, alignment: .leading).padding()
+                        HStack(spacing: 8) {
+                            ProgressView().tint(TraceBrand.neutral)
+                            Text("Looking for your Mac's memory on this network…")
+                                .font(.footnote).foregroundStyle(TraceBrand.neutral)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading).padding()
                     }
                     ScrollViewReader { proxy in
                         ScrollView {
@@ -739,6 +791,10 @@ struct ContentView: View {
                   let card = makeMemoryCard(line: line, timeStamp: timeStamp, index: offset) else {
                 continue
             }
+            // OCR-junk gate: fragments like "Sign: 9• 90- / a•O" are real capture (stored
+            // and searchable) but not a memory a person would recount — the feed shows
+            // only readable text (founder device 2026-07-05: raw junk read as prototype).
+            guard cardIsHumanReadable(card) else { continue }
             // Avoid back-to-back duplicate-looking cards in the user view.
             let dedupKey = card.icon + card.title
             if seenTitles.contains(dedupKey) { continue }
@@ -747,6 +803,19 @@ struct ContentView: View {
             if cards.count >= limit { break }
         }
         return cards
+    }
+
+    /// Text-bearing cards must read like language, not like OCR noise. A "proper word"
+    /// is all-lowercase or Capitalized letters, length ≥3 ("option", "Lost") — caps-mush
+    /// ("IlllVJ", "JJF") and symbol runs ("9• 90-") don't qualify. Two proper words pass.
+    private func cardIsHumanReadable(_ card: MemoryCard) -> Bool {
+        guard card.title.hasPrefix("Sign:") || card.title.hasPrefix("Screen:") else { return true }
+        let words = card.title.dropFirst(card.title.hasPrefix("Sign:") ? 5 : 7)
+            .split { !$0.isLetter }
+        let proper = words.filter { w in
+            w.count >= 3 && w.dropFirst().allSatisfy(\.isLowercase)
+        }
+        return proper.count >= 2
     }
 
     /// Prefer the first OBJECT/EVENT line; fall back to the first non-empty line.
@@ -954,9 +1023,21 @@ struct ContentView: View {
     }
 
     func monitorBrainStatus() async {
+        // Zero-config: adopt the Bonjour-discovered hub whenever we have nothing better —
+        // first launch (empty), or the saved address stopped answering (network changed).
+        // A manually-entered URL that IS answering is never overridden.
+        TraceHubFinder.shared.start { url in
+            if traceHubURL.isEmpty || brainReachable == false {
+                traceHubURL = url
+            }
+        }
         refreshBrainStatus()
         while !Task.isCancelled {
             try? await Task.sleep(nanoseconds: 8_000_000_000)
+            if brainReachable == false, !TraceHubFinder.shared.lastFound.isEmpty,
+               TraceHubFinder.shared.lastFound != traceHubURL {
+                traceHubURL = TraceHubFinder.shared.lastFound
+            }
             refreshBrainStatus()
         }
     }
@@ -3294,28 +3375,35 @@ struct ContentView: View {
         ]
     }
 
+    /// Serial background writer with a KEPT-OPEN handle. The old path opened, sought,
+    /// wrote and closed a FileHandle per line ON THE MAIN ACTOR at perception cadence —
+    /// iOS's hang detector clocked the app at 2893 ms (founder device, 2026-07-05). The
+    /// main thread never touches the disk again.
+    private static let nativeLogQueue = DispatchQueue(label: "de.zer00.trace.native-log", qos: .utility)
+    private static var nativeLogHandle: FileHandle?
+
     func appendNativePayload(_ payload: [String: Any]) {
-        let fileManager = FileManager.default
         let logURL = nativeLogURL()
-        let directoryURL = logURL.deletingLastPathComponent()
-
-        do {
-            try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
-            let data = try JSONSerialization.data(withJSONObject: payload)
-            guard var line = String(data: data, encoding: .utf8) else { return }
-            line.append("\n")
-            let lineData = Data(line.utf8)
-
-            if !fileManager.fileExists(atPath: logURL.path) {
-                fileManager.createFile(atPath: logURL.path, contents: nil)
+        Self.nativeLogQueue.async {
+            do {
+                if Self.nativeLogHandle == nil {
+                    let fm = FileManager.default
+                    try fm.createDirectory(at: logURL.deletingLastPathComponent(),
+                                           withIntermediateDirectories: true)
+                    if !fm.fileExists(atPath: logURL.path) {
+                        fm.createFile(atPath: logURL.path, contents: nil)
+                    }
+                    let handle = try FileHandle(forWritingTo: logURL)
+                    try handle.seekToEnd()
+                    Self.nativeLogHandle = handle
+                }
+                let data = try JSONSerialization.data(withJSONObject: payload)
+                Self.nativeLogHandle?.write(data)
+                Self.nativeLogHandle?.write(Data("\n".utf8))
+            } catch {
+                // Text logging is diagnostic only; live perception continues if it fails.
+                Self.nativeLogHandle = nil
             }
-
-            let handle = try FileHandle(forWritingTo: logURL)
-            try handle.seekToEnd()
-            try handle.write(contentsOf: lineData)
-            try handle.close()
-        } catch {
-            // Text logging is diagnostic only; live perception should continue if it fails.
         }
     }
 

@@ -18,12 +18,13 @@ each has a line here.
    (exit-1 on any confident-wrong) → one JSON line in `evaluation/nightly_log.jsonl`.
    Live feeds: `tail -f /tmp/trace_hub.log` and `/tmp/trace_nightly.log`.
 
-2. **Phone hub address — use the mDNS name, not a LAN IP** (walk 1's connection failure
-   was a hotspot-vs-wifi IP mismatch). In the app (brain icon):
-   ```
-   http://MacBook-Pro-3.local:8765
-   ```
-   Resolves on any network the Mac and phone share; off-network the phone spools.
+2. **Phone hub address — automatic.** The hub advertises itself over Bonjour
+   (`_trace-hub._tcp`, needs `zeroconf` in the venv — installed 2026-07-05) and the app
+   adopts the discovered URL on its own: first launch, and again whenever the saved
+   address stops answering (network change). Nobody types an IP. Manual entry survives
+   in the engine room (chevron → Brain setup) as a fallback for exotic networks; the
+   mDNS form is `http://MacBook-Pro-3.local:8765`. Off-network the phone spools and
+   auto-drains on return.
 
 ## The carry protocol (phone)
 

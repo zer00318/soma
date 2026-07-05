@@ -369,6 +369,48 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(404, {"ok": False})
 
 
+def advertise_bonjour(port: int):
+    """Zero-config: advertise this hub as _trace-hub._tcp so the app finds the Mac by
+    itself — no one should ever type an IP into a phone (founder, 2026-07-05). The TXT
+    record carries the ready-to-use URL (mDNS hostname, valid on any shared network).
+    Best-effort: if zeroconf is missing or mDNS is blocked, the hub still serves and the
+    app's manual entry (engine room) still works."""
+    try:
+        import socket
+        from zeroconf import ServiceInfo, Zeroconf
+
+        host = socket.gethostname().split(".")[0]
+        url = f"http://{host}.local:{port}"
+        info = ServiceInfo(
+            "_trace-hub._tcp.local.",
+            f"TRACE on {host}._trace-hub._tcp.local.",
+            port=port,
+            properties={"url": url},
+            server=f"{host}.local.",
+            addresses=[socket.inet_aton(a) for a in _lan_addresses()],
+        )
+        zc = Zeroconf()
+        zc.register_service(info)
+        print(f"  Bonjour: advertising {url} as _trace-hub._tcp (app connects itself)")
+        return zc
+    except Exception as exc:  # noqa: BLE001
+        print(f"  Bonjour advertise unavailable ({exc}) — manual hub entry still works")
+        return None
+
+
+def _lan_addresses() -> list:
+    import socket
+    addrs = set()
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        addrs.add(s.getsockname()[0])
+        s.close()
+    except Exception:  # noqa: BLE001
+        pass
+    return list(addrs) or ["127.0.0.1"]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--store", default="data/trace_store.sqlite3")
@@ -380,11 +422,17 @@ def main() -> int:
     print("  GET  /                    (demo page: ask -> answer + evidence + honesty badge)")
     print("  POST /capture/perception  (app streams helper text here)")
     print("  GET  /ask?q=...           (grounded answer JSON with evidence)")
-    print("  set the app's hub (brain icon) to  http://<this-mac-ip>:%d" % args.port)
+    zc = advertise_bonjour(args.port)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nshutting down")
+    finally:
+        if zc is not None:
+            try:
+                zc.close()
+            except Exception:  # noqa: BLE001
+                pass
     return 0
 
 
