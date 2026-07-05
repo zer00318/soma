@@ -180,6 +180,16 @@ class AgentAnswer:
         }
 
 
+def _emit(on_event, stage: str, **info) -> None:
+    """Fire-and-forget ask-v2 narration — a broken listener never breaks an answer."""
+    if on_event is None:
+        return
+    try:
+        on_event(stage, info)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _normalize(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
 
@@ -728,7 +738,12 @@ class TraceMemoryAgent:
         # never-delete store (dev screenshots, other sessions) can't drown the answer.
         self._restrict_sources = tuple(restrict_sources) if restrict_sources else None
 
-    def answer(self, question: str) -> AgentAnswer:
+    def answer(self, question: str, *, on_event=None) -> AgentAnswer:
+        # on_event(stage, info): ask-v2 retrieval narration. The deterministic owners
+        # answer in <2s and need no narration; the events exist so the SLOW path (local
+        # gemma, ~30s) reads as work instead of a hang. Stages, in order:
+        #   retrieval -> grounding -> thinking (only when falling through to the LLM).
+        # A broken listener must never break an answer — emits are fire-and-forget.
         # A question with NO content tokens ("??????", "a", "how many") has nothing to ground
         # on, which previously SKIPPED the grounding gate entirely and let the reasoner narrate
         # whatever retrieval coughed up at 0.7 (measured in the M7 hammer). No subject -> ask
@@ -749,6 +764,8 @@ class TraceMemoryAgent:
             return channel
 
         expanded = _search_context(self._store, question, max_hops=2, sources=self._restrict_sources)
+        _emit(on_event, "retrieval", mode=expanded.retrieval_mode,
+              store_nodes=self._store.node_count())
 
         # (S1 replaced the old coverage-RATIO gate. That gate divided covered-tokens by ALL question
         # tokens, so filler words ("how MUCH nutella in the ROOM") dragged coverage below 0.5 and
@@ -768,7 +785,10 @@ class TraceMemoryAgent:
         grounding = subject - ABSTRACT_QUERY_WORDS - TEMPORAL_QUALIFIER_WORDS
         if grounding:
             rows = self._evidence_chain(expanded, question=question)
-            if not any(grounding & set(_tokens(str(r.get("text", "")))) for r in rows):
+            grounded = any(grounding & set(_tokens(str(r.get("text", "")))) for r in rows)
+            _emit(on_event, "grounding", grounded=grounded, evidence_rows=len(rows),
+                  subject=" ".join(sorted(grounding)))
+            if not grounded:
                 return AgentAnswer(
                     answer="I didn't capture that clearly enough to answer.",
                     evidence_chain=rows,
@@ -885,9 +905,10 @@ class TraceMemoryAgent:
                 return perm
 
         if self._reasoner == "frontier":
+            _emit(on_event, "thinking", engine="frontier")
             return self._frontier_answer(question, expanded)
         if self._reasoner == "local-ollama":
-            return self._ollama_answer(question, expanded)
+            return self._ollama_answer(question, expanded, on_event=on_event)
         return AgentAnswer(
             answer="I don't know",
             evidence_chain=self._evidence_chain(expanded, question=question),
@@ -1356,8 +1377,10 @@ class TraceMemoryAgent:
             retrieval_mode=search.retrieval_mode,
         )
 
-    def _ollama_answer(self, question: str, search: SearchSlice) -> AgentAnswer:
+    def _ollama_answer(self, question: str, search: SearchSlice, *, on_event=None) -> AgentAnswer:
         rows = self._evidence_chain(search, question=question)
+        _emit(on_event, "thinking", engine="local-gemma", evidence_rows=len(rows),
+              model=self._ollama_model)
         prompt = self._contract_prompt(question, rows)
         body = {
             "model": self._ollama_model,

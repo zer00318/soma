@@ -66,3 +66,28 @@ def test_timeline_serves_episodes_and_digest(tmp_path):
     assert dig["rows"][0]["bullets"] and dig["rows"][0]["thin_day"] is False
     # wrong day filters to empty, honestly
     assert hub.timeline(kind="digest", day="2026-07-02")["count"] == 0
+
+
+def test_ask_narration_events_stream_in_order(tmp_path):
+    hub = Hub(str(tmp_path / "hub4.sqlite3"))
+    hub.ingest({
+        "memory_text": "OBJECT | laptop | on the desk",
+        "source": "detector_track",
+        "timestamp": "2026-07-01T10:00:00.000Z",
+        "metadata": {},
+    })
+    events = []
+    # subject absent from the store -> S1 refuses BEFORE gemma: retrieval + grounding
+    # events fire, no "thinking" (deterministic paths need no narration).
+    result = hub.ask("did you see a zeppelin", on_event=lambda s, i: events.append((s, i)))
+    stages = [s for s, _ in events]
+    assert stages[:2] == ["retrieval", "grounding"]
+    assert "thinking" not in stages
+    assert events[1][1]["grounded"] is False
+    assert result["refused"] is True
+
+    # broken listener must never break the answer
+    def boom(stage, info):
+        raise RuntimeError("listener died")
+    result2 = hub.ask("did you see a zeppelin", on_event=boom)
+    assert result2["refused"] is True

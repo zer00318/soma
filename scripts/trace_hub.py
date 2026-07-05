@@ -245,15 +245,16 @@ class Hub:
             counts[h] = counts.get(h, 0) + 1
         return counts
 
-    def ask(self, question: str) -> dict:
+    def ask(self, question: str, *, on_event=None) -> dict:
         """Grounded answer + evidence, never an exception (a crash mid-demo is worse than an
         honest error line). The store lock is held through retrieval AND the local-LLM call —
-        coarse but correct; asks queue one at a time, /health stays lock-free."""
+        coarse but correct; asks queue one at a time, /health stays lock-free.
+        on_event(stage, info): ask-v2 retrieval narration passthrough (see /ask/stream)."""
         from trace_memory.brain import TraceMemoryAgent
         try:
             agent = TraceMemoryAgent(self._reader(), reasoner="local-ollama",
                                      restrict_sources=tuple(PILLAR_SOURCES.values()))
-            a = agent.answer(question)
+            a = agent.answer(question, on_event=on_event)
             evidence = [
                 {"when": r.get("when"), "helper": r.get("helper_prompt") or r.get("helper_type"),
                  "type": r.get("type"), "text": str(r.get("text", ""))[:220]}
@@ -408,6 +409,30 @@ class Handler(BaseHTTPRequestHandler):
             with self.hub.answer_lock:
                 result = self.hub.ask(q)
             return self._send(200, result)
+        if parsed.path == "/ask/stream":
+            # Ask-v2: Server-Sent Events. The ~30s local-gemma think must read as WORK,
+            # not a hang — retrieval/grounding/thinking events stream as they happen,
+            # then one final "answer" event with the same payload /ask returns.
+            q = (parse_qs(parsed.query).get("q") or [""])[0]
+            if not q:
+                return self._send(400, {"ok": False, "reason": "missing q"})
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+
+            def push(stage: str, info: dict) -> None:
+                try:
+                    payload = json.dumps({"stage": stage, **info})
+                    self.wfile.write(f"data: {payload}\n\n".encode())
+                    self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError):
+                    pass  # phone walked away mid-think; the answer still completes
+
+            with self.hub.answer_lock:
+                result = self.hub.ask(q, on_event=push)
+            push("answer", result)
+            return None
         return self._send(404, {"ok": False})
 
 
