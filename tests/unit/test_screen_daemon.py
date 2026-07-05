@@ -37,3 +37,26 @@ def test_screen_text_is_bounded_and_tagged():
     assert "Build Succeeded ; 0 warnings" in text
     long = format_screen_text("A", "B", ["x" * 500, "y" * 500])
     assert len(long) < 1000 and long.endswith("…")
+
+
+def test_region_banding_separates_play_from_chrome():
+    from scripts.mac_screen_daemon import region_of
+    assert region_of(0.5, 0.05) == "top-chrome"    # tab strip: another site's title
+    assert region_of(0.5, 0.5) == "main"           # the thing actually playing
+    assert region_of(0.9, 0.5) == "right-rail"     # recommendations / queue
+    assert region_of(0.1, 0.5) == "left-rail"
+    assert region_of(0.5, 0.97) == "bottom-chrome"
+
+
+def test_spans_attribute_to_topmost_containing_window():
+    from scripts.mac_screen_daemon import attribute_spans
+    windows = [
+        {"x": 0, "y": 0, "w": 800, "h": 600, "front": True},    # front window
+        {"x": 0, "y": 0, "w": 1600, "h": 1000, "front": False}, # behind, larger
+    ]
+    spans = [("video title", 400, 300), ("background text", 1200, 500),
+             ("floating", 5000, 5000)]
+    out = attribute_spans(spans, windows)
+    assert out[0] == ("video title", 0, "main")       # front window wins z-order
+    assert out[1][1] == 1                             # back window catches its own
+    assert out[2] == ("floating", None, "desktop")    # nowhere = honest desktop

@@ -59,6 +59,13 @@ spec's browsable product. New serial order:
 (4) P20 Mac screen daemon (digital half, Leash-starved), then P22/P23 fleet,
 (5) 3-day clock + founder blind battery (unchanged done bar).
 
+**RE-REFOUNDED 2026-07-05 late (founder step-back on first real phone use: "the brain is
+DUMB — relations, not text bags; calibrate properly"): [P34 context model](P34-context-model.md)
+is now the spine of all brain work.** Readiness recalibrated 75%→**55%** (plumbing was
+counted as product). Order: P-STAB verdict → P34 Stage A (screen-channel context slices +
+founder WWH battery) → Stage B (physical channel) → Stage C (owner retirement) → P41 iOS
+timeline rides alongside → 3-day + blind battery unchanged.
+
 | id | packet | tag | executor · effort | depends | status |
 |---|---|---|---|---|---|
 | P-STAB | [Stability root-cause + soak gate](PSTAB-stability-gate.md) | judgment | Fable/chief | — | IN-PROGRESS(chief) 2026-07-05: ROOT CAUSE PROVEN from device .ips (MLX `check_error` throws on Metal completion queue → SIGABRT; 41s + 5m16s lifetimes July 4; NOT jetsam). Crash black box (CrashBlackBox.mm) built+installed; soak rig scripts/soak_stability.py self-tested. 2026-07-05 18:40: install stall ROOT-CAUSED (wedged user-level CoreDeviceService XPC — kill+respawn cured it; ~60s install on wired after 3 stalls) → black-box build INSTALLED + LAUNCHED (pid 40526, ingest flowing) → **4h soak RUNNING** (nohup, /tmp/trace_soak.log, auto-relaunch + evidence pull armed). REMAINING: soak verdict + what() string → causal fix |
