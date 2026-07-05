@@ -48,6 +48,21 @@ so each daily carry yields "what happened today", (3) start the 3-real-days cloc
 (4) P22/P23 dispatched to the agent fleet in parallel (mechanical, starving), (5) P12-live +
 P13 fed by real usage gaps, (6) founder blind battery on the 3-day store = the number.
 
+## REFOUNDED ORDER 2026-07-05 (founder-ordered brutal step-back; eyes-on-device + Leash)
+Measured facts that forced it: old build frozen 9+ min on the real phone; Leash run
+2026-07-05 = physical 2756 FED vs digital/motion/sound/temporal ZERO (tunnel measured,
+4 packets since last domain move — yank arms at 5); app is a pipeline console, not the
+spec's browsable product. New serial order:
+(1) **P-STAB** stability gate — see below — merge gate for ALL app-surface work,
+(2) P30/P31 minimal episodes + day digest AND P41 TIMELINE (the memory you can SEE),
+(3) ask-v2 <2s fastpaths + streamed retrieval narration,
+(4) P20 Mac screen daemon (digital half, Leash-starved), then P22/P23 fleet,
+(5) 3-day clock + founder blind battery (unchanged done bar).
+
+| id | packet | tag | executor · effort | depends | status |
+|---|---|---|---|---|---|
+| P-STAB | [Stability root-cause + soak gate](PSTAB-stability-gate.md) | judgment | Fable/chief | — | IN-PROGRESS(chief) 2026-07-05: ROOT CAUSE PROVEN from device .ips (MLX `check_error` throws on Metal completion queue → SIGABRT; 41s + 5m16s lifetimes July 4; NOT jetsam). Crash black box (CrashBlackBox.mm) built+installed; soak rig scripts/soak_stability.py self-tested. REMAINING: founder unlock → launch → 4h soak PASS + what() string → causal fix |
+
 ## W3 — Memory organs (STUBS — spec §0.4: authored in full only when W2 numbers are in)
 - P30 episode segmentation (place+motion+scene shifts → named episodes; honest gap episodes)
 - P31 digest pyramid + pyramid router in ask brain (episode→day→week; climb-then-drill)
