@@ -1,0 +1,3 @@
+{"ts": "2026-07-05T14:27:01+00:00", "run": "soak-20260705-162655", "tick": 1, "pid": null, "hub_ok": true, "hub_latency_s": 0.008, "rows": 3816, "ingest_gap_s": 5, "event": null, "evidence": []}
+{"ts": "2026-07-05T14:27:07+00:00", "run": "soak-20260705-162655", "tick": 2, "pid": null, "hub_ok": true, "hub_latency_s": 0.001, "rows": 3816, "ingest_gap_s": 11, "event": null, "evidence": []}
+{"ts": "2026-07-05T14:27:07+00:00", "run": "soak-20260705-162655", "summary": true, "verdict": "PASS", "ticks": 2, "deaths": 0, "hub_failures": 0, "max_ingest_gap_s": 11, "hours": 0.003}

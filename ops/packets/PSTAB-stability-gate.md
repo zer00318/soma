@@ -70,11 +70,17 @@ needs root. Hence the black box (below).
 
 ## Operational note
 
-Phone was LOCKED at packet-authoring time; install of the black-box build
-succeeded, launch requires one founder unlock. Soak start command (Mac,
-hub already on keepalive):
+Phone was LOCKED at packet-authoring time. **MEASURED: the 1.7 GB devicectl
+install STALLS against a locked phone over coredevice WiFi** (two attempts:
+77 min no completion; 15-min self-abort) — yesterday's successful deploy ran
+while the founder had the phone awake in iPhone Mirroring. So the black-box
+build is built + verified but NOT yet on the device; install is part of the
+founder-unlock step. Full sequence once the phone is unlocked (Mac, hub
+already on keepalive):
 
 ```
+xcrun devicectl device install app --device D3A506B2-8923-5313-B8A3-FF769ABBA228 \
+  "trace-native-fastvlm/build/dd/Build/Products/Debug-iphoneos/FastVLM App.app"
 xcrun devicectl device process launch --device D3A506B2-8923-5313-B8A3-FF769ABBA228 de.zer00.trace
 .venv/bin/python scripts/soak_stability.py --hours 4 --relaunch
 ```
