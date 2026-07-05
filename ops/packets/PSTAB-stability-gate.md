@@ -52,6 +52,27 @@ needs root. Hence the black box (below).
    `evaluation/soak_artifacts/` and (with `--relaunch`) restarts the app.
    Self-test PASS (2 ticks, hub alive, rows=3816 read).
 
+## Soak #1 verdict (2026-07-05 18:40→22:40, black-box build, decomposed honestly)
+
+Rig says FAIL (deaths=2, hub_failures=1); the decomposition says mostly-good:
+- **ZERO crashes in 4h of continuous capture** — the July-4 MLX SIGABRT (41s /
+  5m16s) did NOT reproduce; the black box never fired because nothing threw.
+- Death 1 (21:15) REAL but not a crash: quiet iOS lifecycle reap ~2min after
+  capture went idle (no .ips, no jetsam, no terminate; app had isIdleTimerDisabled;
+  cause branch open: thermal reap vs background transition). Product problem =
+  capture continuity, not code crash. Relaunch didn't retry (rig bug, fixed).
+- Death 2 (22:25) FALSE: devicectl probe timeout counted as death — same PID
+  alive 25min later. Rig fixed: PROBE_ERROR sentinel, probes that fail are
+  silence not absence, carried state, never a death, never a relaunch trigger.
+- hub_failure 1 = chief restarted the hub mid-soak for the pyramid router.
+  LESSON (now law for soaks): a soak's infrastructure is FROZEN for its
+  duration — no hub restarts, no daemon bounces, no deploys.
+- max_ingest_gap 458s = phone idle while founder was on the Mac; reported
+  honestly, not a failure.
+
+**Soak #2 RUNNING overnight (22:41→06:41, 8h, fixed rig, --relaunch, infra
+frozen).** Gate judgment lands with its verdict.
+
 ## The gate (Definition of Done)
 
 - [ ] 4-hour soak, app in foreground capturing, **0 deaths, 0 hub failures**:

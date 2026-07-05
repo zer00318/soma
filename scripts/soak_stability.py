@@ -67,11 +67,21 @@ def devicectl(*args: str, timeout: int = 45) -> dict | None:
         pathlib.Path(out_path).unlink(missing_ok=True)
 
 
+PROBE_ERROR = -1  # devicectl itself failed — NOT evidence of app death
+
+
 def app_pid() -> int | None:
+    """pid if the app is listed, None if the device answered and the app is
+    definitively absent, PROBE_ERROR if devicectl itself failed. Soak #1's
+    second 'death' (tick 431) was a probe timeout counted as a death — the
+    same PID was alive 25 min later. A failed probe is silence, not absence."""
     data = devicectl("device", "info", "processes")
     if not data:
-        return None
-    for proc in data.get("result", {}).get("runningProcesses", []):
+        return PROBE_ERROR
+    procs = data.get("result", {}).get("runningProcesses", [])
+    if not procs:
+        return PROBE_ERROR  # an empty list from a live phone is not credible
+    for proc in procs:
         # executable is a file:// URL — spaces arrive as %20
         exe = urllib.parse.unquote(proc.get("executable", "") or "")
         if PROC_NAME in exe:
@@ -177,7 +187,10 @@ def main() -> int:
 
         event = None
         evidence: list[str] = []
-        if last_pid is not None and pid != last_pid:
+        if pid == PROBE_ERROR:
+            event = "PROBE_ERROR"  # counted separately; never a death
+            pid = last_pid        # carry the last known state through the gap
+        elif last_pid is not None and last_pid != PROBE_ERROR and pid != last_pid:
             deaths += 1
             event = "APP_DIED" if pid is None else "APP_PID_CHANGED"
             evidence = pull_evidence(f"{run_id}-death{deaths}")
