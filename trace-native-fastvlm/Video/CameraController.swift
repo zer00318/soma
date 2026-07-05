@@ -30,7 +30,10 @@ public class CameraController: NSObject {
 
     public var devices = [AVCaptureDevice]()
 
-    public var device: AVCaptureDevice = AVCaptureDevice.default(for: .video)! {
+    // Implicitly-unwrapped: the simulator has no camera and the force-unwrap crashed the
+    // whole app at init (UI work was impossible off-device). On hardware this is always
+    // non-nil; in the simulator start() guards it and the UI renders over a black feed.
+    public var device: AVCaptureDevice! = AVCaptureDevice.default(for: .video) {
         didSet {
             stop()
             start()
@@ -95,6 +98,7 @@ public class CameraController: NSObject {
     }
 
     public func start() {
+        guard device != nil else { return }  // simulator: no camera, UI still runs
         sessionQueue.async { [self] in
             let captureSession = AVCaptureSession()
             self.captureSession = captureSession

@@ -91,6 +91,41 @@ struct TracePerceptionRecord {
     let anchorBox: CGRect?
 }
 
+// ── TRACE brand (investor-grade UI pass, 2026-07-04) ─────────────────────── //
+// One language across pitch deck, site and app: Laboratory Clean + Ember Orange.
+// Tokens lifted from pitch/site (#E8590C ember · #ff8a4d emberLight · #FAFAF7 lab ·
+// #1A1A1A ink · #8a8a86 neutral). One accent, calm dark glass over the live camera,
+// diagnostics tucked away — the product should read as a memory, not a lab rig.
+enum TraceBrand {
+    static let ember = Color(red: 0xE8 / 255.0, green: 0x59 / 255.0, blue: 0x0C / 255.0)
+    static let emberLight = Color(red: 0xFF / 255.0, green: 0x8A / 255.0, blue: 0x4D / 255.0)
+    static let lab = Color(red: 0xFA / 255.0, green: 0xFA / 255.0, blue: 0xF7 / 255.0)
+    static let ink = Color(red: 0x1A / 255.0, green: 0x1A / 255.0, blue: 0x1A / 255.0)
+    static let neutral = Color(red: 0x8A / 255.0, green: 0x8A / 255.0, blue: 0x86 / 255.0)
+    static let emberGradient = LinearGradient(
+        colors: [ember, emberLight], startPoint: .topLeading, endPoint: .bottomTrailing)
+    /// Chrome over the camera: dark glass, hairline, soft depth — used by every overlay
+    /// so the whole screen shares one material.
+    static func glass<S: InsettableShape>(_ shape: S) -> some View {
+        shape.fill(Color.black.opacity(0.42))
+            .overlay(shape.strokeBorder(Color.white.opacity(0.10), lineWidth: 0.7))
+    }
+}
+
+/// The ember "remembering" pulse — a soft breathing dot that signals live memory-making.
+struct EmberPulse: View {
+    @State private var on = false
+    var body: some View {
+        Circle()
+            .fill(TraceBrand.ember)
+            .frame(width: 8, height: 8)
+            .shadow(color: TraceBrand.ember.opacity(on ? 0.9 : 0.2), radius: on ? 6 : 2)
+            .scaleEffect(on ? 1.0 : 0.82)
+            .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: on)
+            .onAppear { on = true }
+    }
+}
+
 struct ContentView: View {
     // Spatial mode: ARKit owns the camera (world tracking + anchors). Default OFF
     // (proven AVCaptureSession path). Toggle in Hub Setup. iOS allows only one
@@ -211,16 +246,26 @@ struct ContentView: View {
             Color.black.ignoresSafeArea()
 
             if let framesToDisplay {
-                VideoFrameView(
-                    frames: framesToDisplay,
-                    cameraType: .continuous,
-                    action: { _ in }
-                )
-                .aspectRatio(4/3, contentMode: .fit)
-                .frame(maxWidth: .infinity)
+                // Full-bleed viewfinder: the camera IS the product surface. GeometryReader +
+                // fill keeps aspect (crops edges) instead of letterboxing 4:3 onto black.
+                GeometryReader { geo in
+                    VideoFrameView(
+                        frames: framesToDisplay,
+                        cameraType: .continuous,
+                        action: { _ in }
+                    )
+                    .aspectRatio(4/3, contentMode: .fill)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+                }
+                .ignoresSafeArea()
             } else {
-                ProgressView()
-                    .tint(.white)
+                VStack(spacing: 14) {
+                    EmberPulse()
+                    Text("Waking the eye…")
+                        .font(.footnote)
+                        .foregroundStyle(.white.opacity(0.6))
+                }
             }
 
             VStack(spacing: 0) {
@@ -301,19 +346,21 @@ struct ContentView: View {
 
     private var presentedLiveScreen: some View {
         observedLiveScreen
-            .navigationTitle("Trace")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { isShowingInfo.toggle() } label: {
-                        Image(systemName: "info.circle")
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { isShowingHubSetup.toggle() } label: {
-                        Image(systemName: traceHubURL.isEmpty ? "wifi.exclamationmark" : "brain.head.profile")
-                            .foregroundStyle(traceHubURL.isEmpty ? Color.orange : Color.green)
-                    }
+            // The branded liveHeader owns the top of the screen; the system bar only
+            // added a second title and stock icons (info/setup live in the engine room).
+            .toolbar(.hidden, for: .navigationBar)
+            // The chrome is designed as dark glass over live video; light mode turns it
+            // into washed gray (visible in the simulator, whose empty feed is light).
+            .preferredColorScheme(.dark)
+            .onAppear {
+                // UI-rig hook (simulator has no tap automation): launch with
+                // SIMCTL_CHILD_TRACE_UI_RIG_ASK="question" to open the ask sheet and fire
+                // a real question at the hub — lets the chat surface be verified end-to-end
+                // off-device. Inert unless the env var is set.
+                if let q = ProcessInfo.processInfo.environment["TRACE_UI_RIG_ASK"], !q.isEmpty {
+                    showAsk = true
+                    askText = q
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { performAsk() }
                 }
             }
             .sheet(isPresented: $isShowingInfo) {
@@ -365,66 +412,105 @@ struct ContentView: View {
         rawMediaCount = count
     }
 
+    @State private var showEngineRoom = false
+
     @ViewBuilder var liveHeader: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 8) {
-                Circle().fill(statusBackgroundColor).frame(width: 9, height: 9)
-                Text("Watching")
-                    .font(.caption.bold())
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                // Wordmark + the remembering pulse: the whole state story in one glance.
+                EmberPulse()
+                Text("TRACE")
+                    .font(.system(.subheadline, design: .default).weight(.bold))
+                    .kerning(3.5)
+                    .foregroundStyle(TraceBrand.lab)
+                Text("\(memoryRecords.count)")
+                    .font(.caption.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(TraceBrand.emberLight)
+                    .padding(.leading, 2)
+                // The one diagnostic that must never hide (it burned two recordings when it
+                // was invisible): if ARKit isn't tracking yet, say so — one calm word.
+                if spatialMode && arkitEngine.trackingStatus != "Tracking" {
+                    Text("settling…")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.orange.opacity(0.9))
+                }
                 Spacer()
                 Button(action: toggleVideoRecording) {
-                    HStack(spacing: 6) {
-                        Image(systemName: isVideoRecording ? "stop.fill" : "record.circle.fill")
-                            .font(.caption.bold())
-                        Text(isVideoRecording ? "Stop" : "Record")
-                            .font(.caption.bold())
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 10)
-                    .background(isVideoRecording ? Color.red : Color.white.opacity(0.18), in: Capsule())
+                    Image(systemName: isVideoRecording ? "stop.circle.fill" : "record.circle")
+                        .font(.title3)
+                        .foregroundStyle(isVideoRecording ? Color.red : TraceBrand.lab.opacity(0.85))
                 }
                 .buttonStyle(.plain)
-                Image(systemName: "sparkles")
-                    .font(.caption2)
-                Text(memoryRecords.count == 1 ? "1 memory" : "\(memoryRecords.count) memories")
-                    .font(.caption.bold())
-            }
-
-            if !recordingStatusText.isEmpty {
-                Text(recordingStatusText)
-                    .font(.caption2)
-                    .foregroundStyle(isVideoRecording ? Color.red.opacity(0.95) : Color.white.opacity(0.72))
-                    .lineLimit(2)
-            }
-
-            // VISIBLE ARKit status — was previously invisible, so two real recordings got stuck
-            // in "Limited: relocalizing" with no on-screen sign of it. Watch for this to say
-            // "Normal" (green) before recording; tap Reset if it stays Limited/idle.
-            if spatialMode {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(arkitEngine.trackingStatus == "Tracking" ? Color.green : Color.orange)
-                        .frame(width: 7, height: 7)
-                    Text("ARKit: \(arkitEngine.trackingStatus)")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.85))
-                    Button {
-                        arkitEngine.forceFreshStart()
-                    } label: {
-                        Text("Reset")
-                            .font(.caption2.bold())
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(.white.opacity(0.18), in: Capsule())
-                    }
-                    .buttonStyle(.plain)
+                Button { withAnimation(.easeOut(duration: 0.2)) { showEngineRoom.toggle() } } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(TraceBrand.lab.opacity(0.6))
+                        .rotationEffect(.degrees(showEngineRoom ? 180 : 0))
                 }
+                .buttonStyle(.plain)
+            }
+
+            // THE ENGINE ROOM — every diagnostic the daily carry needs (ARKit state + Reset,
+            // recording status, raw-media audit), one tap away instead of always on screen.
+            // Nothing was removed; it just stopped shouting.
+            if showEngineRoom {
+                VStack(alignment: .leading, spacing: 6) {
+                    if spatialMode {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(arkitEngine.trackingStatus == "Tracking" ? Color.green : Color.orange)
+                                .frame(width: 7, height: 7)
+                            Text("ARKit: \(arkitEngine.trackingStatus)")
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.85))
+                            Button {
+                                arkitEngine.forceFreshStart()
+                            } label: {
+                                Text("Reset")
+                                    .font(.caption2.bold())
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(.white.opacity(0.18), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    if !recordingStatusText.isEmpty {
+                        Text(recordingStatusText)
+                            .font(.caption2)
+                            .foregroundStyle(isVideoRecording ? Color.red.opacity(0.95) : Color.white.opacity(0.72))
+                            .lineLimit(2)
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "internaldrive")
+                            .font(.caption2)
+                        Text("\(rawMediaCount) raw media files on device")
+                            .font(.caption2)
+                        Spacer()
+                        Button { isShowingHubSetup.toggle() } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "gearshape")
+                                Text("Brain setup")
+                            }
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.85))
+                        }
+                        .buttonStyle(.plain)
+                        Button { isShowingInfo.toggle() } label: {
+                            Image(systemName: "info.circle")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .foregroundStyle(.white.opacity(0.6))
+                }
+                .transition(.opacity)
             }
         }
         .foregroundStyle(.white)
-        .padding(.vertical, 7).padding(.horizontal, 12)
-        .background(.black.opacity(0.55), in: Capsule())
+        .padding(.vertical, 10).padding(.horizontal, 14)
+        .background(TraceBrand.glass(RoundedRectangle(cornerRadius: 18)))
         .padding(.top, 6)
         .task {
             refreshRawMediaCount()
@@ -436,55 +522,59 @@ struct ContentView: View {
     }
 
     /// Plain-words connection state to the Mac brain, shown above the Ask button.
+    /// Quiet when connected (a soft ember dot); only speaks up when something's wrong.
     @ViewBuilder var brainStatusPill: some View {
         let connected = brainReachable == true
         let unknown = brainReachable == nil
         HStack(spacing: 6) {
-            Image(systemName: "brain.head.profile")
-                .font(.caption2)
-            Text(unknown ? "Checking brain…" : (connected ? "Brain connected" : "Brain not connected"))
-                .font(.caption2.weight(.semibold))
+            Circle()
+                .fill(unknown ? TraceBrand.neutral : (connected ? TraceBrand.emberLight : Color.orange))
+                .frame(width: 6, height: 6)
+            Text(unknown ? "finding memory…" : (connected ? "memory connected" : "memory offline — keeping notes"))
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(TraceBrand.lab.opacity(0.75))
         }
-        .foregroundStyle(unknown ? .white.opacity(0.7) : (connected ? .green : .orange))
-        .padding(.vertical, 5).padding(.horizontal, 10)
-        .background(.black.opacity(0.5), in: Capsule())
+        .padding(.vertical, 5).padding(.horizontal, 11)
+        .background(TraceBrand.glass(Capsule()))
     }
 
     @ViewBuilder var liveMemoryOverlay: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "sparkles")
-                    .font(.caption2)
-                Text("Remembering")
-                    .font(.caption.bold())
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 7) {
+                Text("REMEMBERING")
+                    .font(.caption2.weight(.bold))
+                    .kerning(1.8)
+                    .foregroundStyle(TraceBrand.neutral)
                 Spacer()
                 if !memoryRecords.isEmpty {
-                    Text("live")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.green)
+                    HStack(spacing: 5) {
+                        EmberPulse()
+                        Text("live")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(TraceBrand.emberLight)
+                    }
                 }
             }
-            .foregroundStyle(.white.opacity(0.85))
 
             if memoryRecords.isEmpty {
-                Text("Point your camera at the world — signs, faces, objects and what's said turn into memory here.")
+                Text("Point at the world — objects, words and places become memory here.")
                     .font(.callout)
                     .foregroundStyle(.white.opacity(0.7))
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                let cards = memoryCards(from: memoryRecords, limit: 6)
-                VStack(alignment: .leading, spacing: 7) {
+                let cards = memoryCards(from: memoryRecords, limit: 5)
+                VStack(alignment: .leading, spacing: 8) {
                     ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
                         memoryCardRow(card)
                             // Newest on top is fully opaque; older entries fade gently.
-                            .opacity(max(0.45, 1.0 - Double(index) * 0.11))
+                            .opacity(max(0.4, 1.0 - Double(index) * 0.14))
                     }
                 }
                 .animation(.easeOut(duration: 0.25), value: cards.map(\.id))
             }
         }
-        .padding(12)
-        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16))
+        .padding(14)
+        .background(TraceBrand.glass(RoundedRectangle(cornerRadius: 20)))
     }
 
     @ViewBuilder func memoryCardRow(_ card: MemoryCard) -> some View {
@@ -519,78 +609,100 @@ struct ContentView: View {
                 brainStatusPill
             }
             Button { showAsk = true } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     Image(systemName: "sparkles")
                         .font(.title3)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Ask Trace")
-                            .font(.headline)
-                        Text("about anything you saw")
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.8))
-                    }
+                    Text("Ask your memory")
+                        .font(.headline)
                     Spacer()
-                    Image(systemName: "chevron.up")
+                    Image(systemName: "arrow.up.right")
                         .font(.subheadline.bold())
+                        .opacity(0.85)
                 }
                 .foregroundStyle(.white)
-                .padding(.vertical, 14).padding(.horizontal, 18)
-                .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.3), radius: 8, y: 2)
+                .padding(.vertical, 16).padding(.horizontal, 20)
+                .background(TraceBrand.emberGradient, in: RoundedRectangle(cornerRadius: 20))
+                .overlay(RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.7))
+                .shadow(color: TraceBrand.ember.opacity(0.45), radius: 14, y: 4)
             }
+            .buttonStyle(.plain)
         }
         .padding(.vertical, 10)
     }
 
     @ViewBuilder var askSheet: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                if traceHubURL.isEmpty {
-                    Text("Set the brain address first (tap the brain icon in the toolbar) — e.g. http://<mac-ip>:8765")
-                        .font(.footnote).foregroundStyle(.orange)
-                        .frame(maxWidth: .infinity, alignment: .leading).padding()
-                }
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 16) {
-                            if askThread.isEmpty {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Text("Ask Trace anything it might have seen. It answers with a confidence badge, shows its evidence, and refuses what it didn't see.")
-                                        .font(.callout).foregroundStyle(.secondary)
-                                    ForEach(["What did I see?", "Any people?",
-                                             "What did the text say?", "How many bottles?"], id: \.self) { q in
-                                        Button { askText = q; performAsk() } label: {
-                                            Text(q).font(.callout)
-                                        }.buttonStyle(.bordered)
-                                    }
-                                }.padding(.vertical, 8)
+            ZStack {
+                TraceBrand.ink.ignoresSafeArea()
+                VStack(spacing: 0) {
+                    if traceHubURL.isEmpty {
+                        Text("Set the memory address first (engine room → Brain setup) — e.g. http://<mac-name>.local:8765")
+                            .font(.footnote).foregroundStyle(.orange)
+                            .frame(maxWidth: .infinity, alignment: .leading).padding()
+                    }
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 18) {
+                                if askThread.isEmpty {
+                                    VStack(alignment: .leading, spacing: 14) {
+                                        Text("Ask anything it might remember.")
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(TraceBrand.lab)
+                                        Text("Every answer carries a confidence badge and its receipts. What it didn't see, it refuses — honesty is the feature.")
+                                            .font(.callout)
+                                            .foregroundStyle(TraceBrand.neutral)
+                                        FlowChips(chips: ["What did I see today?", "Any people?",
+                                                          "What did the text say?", "How many bottles?"]) { q in
+                                            askText = q; performAsk()
+                                        }
+                                    }.padding(.vertical, 10)
+                                }
+                                ForEach(askThread) { turn in
+                                    AskTurnView(turn: turn).id(turn.id)
+                                }
                             }
-                            ForEach(askThread) { turn in
-                                AskTurnView(turn: turn).id(turn.id)
+                            .padding()
+                        }
+                        .onChange(of: askThread.count) { _, _ in
+                            if let last = askThread.last {
+                                withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                             }
                         }
-                        .padding()
                     }
-                    .onChange(of: askThread.count) { _, _ in
-                        if let last = askThread.last {
-                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                    HStack(spacing: 10) {
+                        TextField("Ask your memory…", text: $askText, axis: .vertical)
+                            .textFieldStyle(.plain)
+                            .padding(.vertical, 11).padding(.horizontal, 15)
+                            .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14)
+                                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.7))
+                            .foregroundStyle(TraceBrand.lab)
+                            .onSubmit { performAsk() }
+                        Button { performAsk() } label: {
+                            Image(systemName: "arrow.up")
+                                .font(.body.weight(.bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 40, height: 40)
+                                .background(TraceBrand.emberGradient, in: Circle())
                         }
+                        .buttonStyle(.plain)
+                        .disabled(askText.trimmingCharacters(in: .whitespaces).isEmpty || isAsking)
+                        .opacity(askText.trimmingCharacters(in: .whitespaces).isEmpty || isAsking ? 0.4 : 1)
                     }
+                    .padding()
                 }
-                Divider()
-                HStack(spacing: 8) {
-                    TextField("Ask about what Trace saw…", text: $askText, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit { performAsk() }
-                    Button { performAsk() } label: {
-                        Image(systemName: "arrow.up.circle.fill").font(.title2)
-                    }.disabled(askText.trimmingCharacters(in: .whitespaces).isEmpty || isAsking)
-                }.padding()
             }
             .navigationTitle("Ask Trace")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { showAsk = false } } }
+            .toolbarBackground(TraceBrand.ink, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) {
+                Button("Done") { showAsk = false }.tint(TraceBrand.emberLight)
+            } }
         }
+        .preferredColorScheme(.dark)
     }
 
     func cleanFeedLine(_ s: String) -> String {
@@ -816,6 +928,12 @@ struct ContentView: View {
     }
 
     func startLiveRuntime() async {
+        // Simulator = UI rig only: no camera/ARKit/mic/location exists there, and the
+        // speech-permission dialog they trigger blocks every screenshot. Perception
+        // helpers are device-only by design (L1 lives on hardware).
+        #if targetEnvironment(simulator)
+        appendNativeStatusLog(status: "simulator_ui_rig_no_perception")
+        #else
         appendNativeStatusLog(status: "local_runtime_status", extra: TraceLocalRuntime.statusPayload())
         VideoRecorder.shared.configure(hubURL: traceHubURL)
         if spatialMode {
@@ -832,6 +950,7 @@ struct ContentView: View {
         } else {
             detectorBridge.status = "Detector disabled; FastVLM spatial naming active"
         }
+        #endif
     }
 
     func monitorBrainStatus() async {
@@ -3631,6 +3750,28 @@ struct AskTurn: Identifiable {
     var error: String = ""
 }
 
+/// Starter-question chips that wrap to fit — the empty-state invitation to ask.
+struct FlowChips: View {
+    let chips: [String]
+    let onTap: (String) -> Void
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), alignment: .leading)],
+                  alignment: .leading, spacing: 8) {
+            ForEach(chips, id: \.self) { q in
+                Button { onTap(q) } label: {
+                    Text(q)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(TraceBrand.lab)
+                        .padding(.vertical, 8).padding(.horizontal, 13)
+                        .background(Color.white.opacity(0.07), in: Capsule())
+                        .overlay(Capsule().strokeBorder(TraceBrand.ember.opacity(0.45), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
 /// One question→answer turn rendered as a chat bubble + calibrated verdict + tap-to-open
 /// receipts. The badge IS the product's honesty moat made visible: firm/hedged carry the
 /// confidence, refused says "not in memory" as a feature, and the receipts are the evidence.
@@ -3640,84 +3781,108 @@ struct AskTurnView: View {
 
     private var badgeColor: Color {
         switch turn.badge {
-        case "firm": return .green
-        case "hedged": return .orange
-        case "refused": return .blue
+        case "firm": return Color(red: 0.35, green: 0.78, blue: 0.45)
+        case "hedged": return TraceBrand.emberLight
+        case "refused": return Color(red: 0.45, green: 0.65, blue: 0.95)
         default: return .red
         }
     }
     private var badgeLabel: String {
         switch turn.badge {
-        case "firm": return "firm"
-        case "hedged": return "hedged"
-        case "refused": return "not in memory"
-        case "error": return "couldn't answer"
-        default: return turn.badge.isEmpty ? "—" : turn.badge
+        case "firm": return "FIRM"
+        case "hedged": return "HEDGED"
+        case "refused": return "NOT IN MEMORY"
+        case "error": return "COULDN'T ANSWER"
+        default: return turn.badge.isEmpty ? "—" : turn.badge.uppercased()
         }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Spacer(minLength: 40)
+                Spacer(minLength: 48)
                 Text(turn.question)
-                    .font(.callout)
-                    .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background(Color.accentColor.opacity(0.15),
-                                in: RoundedRectangle(cornerRadius: 14))
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14).padding(.vertical, 9)
+                    .background(TraceBrand.emberGradient,
+                                in: RoundedRectangle(cornerRadius: 16))
             }
             if turn.isLoading {
-                HStack(spacing: 8) {
-                    ProgressView()
-                    Text("Trace is thinking… (the local brain can take a moment)")
-                        .font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 10) {
+                    EmberPulse()
+                    Text("remembering…")
+                        .font(.caption).foregroundStyle(TraceBrand.neutral)
                 }
+                .padding(.leading, 4)
             } else if !turn.error.isEmpty {
                 Text(turn.error).font(.footnote).foregroundStyle(.red)
             } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 6) {
-                        Circle().fill(badgeColor).frame(width: 8, height: 8)
-                        Text(badgeLabel).font(.caption.bold()).foregroundStyle(badgeColor)
+                VStack(alignment: .leading, spacing: 11) {
+                    HStack(spacing: 7) {
+                        Text(badgeLabel)
+                            .font(.caption2.weight(.bold))
+                            .kerning(0.8)
+                            .foregroundStyle(badgeColor)
+                            .padding(.vertical, 3).padding(.horizontal, 8)
+                            .background(badgeColor.opacity(0.14), in: Capsule())
                         if turn.badge == "firm" || turn.badge == "hedged" {
-                            Text(String(format: "%.0f%% sure", turn.confidence * 100))
-                                .font(.caption2).foregroundStyle(.secondary)
+                            Text(String(format: "%.0f%%", turn.confidence * 100))
+                                .font(.caption2.weight(.semibold).monospacedDigit())
+                                .foregroundStyle(TraceBrand.neutral)
                         }
                         Spacer()
                         if !turn.receipts.isEmpty {
                             Button { withAnimation { showReceipts.toggle() } } label: {
-                                Label("\(turn.receipts.count)",
-                                      systemImage: showReceipts ? "chevron.up" : "doc.text.magnifyingglass")
-                                    .font(.caption2)
+                                HStack(spacing: 4) {
+                                    Image(systemName: "text.document")
+                                    Text("\(turn.receipts.count)")
+                                }
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(showReceipts ? TraceBrand.emberLight : TraceBrand.neutral)
                             }
+                            .buttonStyle(.plain)
                         }
                     }
-                    Text(turn.answer).font(.body).textSelection(.enabled)
+                    Text(turn.answer)
+                        .font(.body)
+                        .foregroundStyle(TraceBrand.lab)
+                        .textSelection(.enabled)
                     if showReceipts {
                         VStack(alignment: .leading, spacing: 6) {
                             ForEach(turn.receipts) { r in
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: 3) {
                                     HStack(spacing: 8) {
                                         if !r.when.isEmpty {
-                                            Text(r.when).font(.caption2).foregroundStyle(.secondary)
+                                            Text(r.when)
+                                                .font(.caption2.monospacedDigit())
+                                                .foregroundStyle(TraceBrand.neutral)
                                         }
                                         if !r.helper.isEmpty {
-                                            Text(r.helper).font(.caption2).foregroundStyle(.blue)
+                                            Text(r.helper)
+                                                .font(.caption2.weight(.semibold))
+                                                .foregroundStyle(TraceBrand.emberLight)
                                         }
                                     }
-                                    Text(r.text).font(.caption)
+                                    Text(r.text)
+                                        .font(.caption)
+                                        .foregroundStyle(TraceBrand.lab.opacity(0.8))
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(8)
-                                .background(Color.secondary.opacity(0.08),
-                                            in: RoundedRectangle(cornerRadius: 8))
+                                .padding(9)
+                                .background(Color.white.opacity(0.05),
+                                            in: RoundedRectangle(cornerRadius: 10))
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(Color.white.opacity(0.07), lineWidth: 0.6))
                             }
                         }
                     }
                 }
-                .padding(12)
+                .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+                .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 18))
+                .overlay(RoundedRectangle(cornerRadius: 18)
+                    .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.7))
             }
         }
     }

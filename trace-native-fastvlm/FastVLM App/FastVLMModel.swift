@@ -80,11 +80,20 @@ class FastVLMModel {
     }
 
     public func load() async {
+        // MLX cannot create a Metal device on the iOS simulator (Cmlx aborts in
+        // metal::Device()) — the whole app died before drawing one frame, which made
+        // UI work impossible off-device. Perception is device-only anyway; in the
+        // simulator we skip the VLM and let the interface render.
+        #if targetEnvironment(simulator)
+        self.modelInfo = "Loaded"
+        return
+        #else
         do {
             _ = try await _load()
         } catch {
             self.modelInfo = "Error loading model: \(error)"
         }
+        #endif
     }
 
     public func generate(_ userInput: UserInput) async -> Task<Void, Never> {
