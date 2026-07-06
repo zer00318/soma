@@ -18,49 +18,13 @@ along (authoritative AX vs inferred OCR), so honesty can weight them.
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+from trace_memory.store.containers import container_of, content_text, grade_of
 from datetime import datetime
 from typing import Any
 
 MAX_CONTAINERS = 10
 MAX_LINES_PER_CONTAINER = 8
-
-
-def container_of(node: Any) -> str:
-    """One container path per observation — the digital twin of the anchor
-    hierarchy. Precedence: explicit AX container_path > daemon app/url/region
-    > physical place from the location hint > unplaced."""
-    prov = getattr(node, "provenance", None) or {}
-    explicit = prov.get("container_path")
-    if explicit:
-        return str(explicit)
-    app = prov.get("app")
-    if app:
-        parts = ["display:main", f"app:{app}"]
-        if prov.get("url"):
-            parts.append(f"tab:{prov['url']}")
-        if prov.get("region"):
-            parts.append(f"region:{prov['region']}")
-        return "/".join(parts)
-    hint = str(prov.get("location_hint", "") or "")
-    if "|" in hint:
-        street = hint.split("|", 1)[1].split(",", 1)[0].strip()
-        if street:
-            return f"world/{street}"
-    place = getattr(node, "place", None)
-    return f"world/{place}" if place else "world/unplaced"
-
-
-def _content_text(node: Any) -> str:
-    """The displayable content of a row — text after the last '| text:' marker
-    if present (daemon rows), else the full row text."""
-    text = str(getattr(node, "text", ""))
-    if "| text:" in text:
-        return text.rsplit("| text:", 1)[1].strip()
-    return text.strip()
-
-
-def _grade(node: Any) -> str:
-    return str((getattr(node, "provenance", None) or {}).get("grade") or "inferred")
 
 
 def _hhmm(t_ms: int) -> str:
@@ -80,7 +44,7 @@ def build_slice(nodes: list[Any]) -> SceneSlice:
     by_container: dict[str, dict[str, dict]] = {}
     for node in nodes:
         c = container_of(node)
-        content = _content_text(node)
+        content = content_text(node)
         if not content:
             continue
         bucket = by_container.setdefault(c, {})
@@ -89,12 +53,12 @@ def build_slice(nodes: list[Any]) -> SceneSlice:
         t = int(getattr(node, "t_ms", 0))
         if entry is None:
             bucket[key] = {"text": content[:160], "count": 1, "t_lo": t,
-                           "t_hi": t, "grade": _grade(node)}
+                           "t_hi": t, "grade": grade_of(node)}
         else:
             entry["count"] += 1
             entry["t_lo"] = min(entry["t_lo"], t)
             entry["t_hi"] = max(entry["t_hi"], t)
-            if _grade(node) == "authoritative":
+            if grade_of(node) == "authoritative":
                 entry["grade"] = "authoritative"
 
     ranked_containers = sorted(

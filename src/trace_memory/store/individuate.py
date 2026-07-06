@@ -606,6 +606,18 @@ def _tracks_conflict(
                 continue
             if max(abs(ca[0] - cb[0]), abs(ca[1] - cb[1])) >= min_cell_dist:
                 return True
+    # UNKNOWN-CELL simultaneity (synthetic-day harness catch, 2026-07-06):
+    # two same-label tracks alive at the same instant cannot be
+    # pan-away-and-back re-acquisition (that is sequential) — they are either
+    # duplicate boxes on one object (same cell) or two objects (different
+    # cells). With no cell to look at, that is exactly the M2 ambiguity: the
+    # LIBERAL pass splits, the strict pass merges, and the spread authors the
+    # honest [1,2] range instead of a firm-wrong 1.
+    if min_cell_dist == 1:
+        for ta, ca in obs_a:
+            for tb, cb in obs_b:
+                if abs(ta - tb) <= _COVIS_WINDOW_MS and (ca is None or cb is None):
+                    return True
     return False
 
 

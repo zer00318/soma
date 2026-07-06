@@ -150,11 +150,22 @@ class EpisodeBuilder:
         return segments
 
     def _write_episode(self, members: list[Any]) -> None:
+        from trace_memory.store.containers import container_head
+
         start, end = members[0].t_ms, members[-1].t_ms
         channels = Counter(_channel(n) for n in members)
         streets = Counter(s for n in members if (s := _street(n)))
         place = streets.most_common(1)[0][0] if streets else None
-        label = f"{place or 'unknown place'}, {_time_of_day(start)}"
+        # P34: containers make the label read like LIFE, not telemetry. A
+        # digital episode is named by its dominant site/app ("youtube.com,
+        # evening"); physical episodes keep their place name.
+        heads = Counter(container_head(n) for n in members)
+        top_head, top_count = heads.most_common(1)[0] if heads else (None, 0)
+        digital = top_head and not top_head.startswith(("unplaced", "unknown")) \
+            and top_head != place and top_count >= len(members) * 0.5 \
+            and any((getattr(n, "provenance", None) or {}).get("app") for n in members)
+        label_head = top_head if digital else (place or "unknown place")
+        label = f"{label_head}, {_time_of_day(start)}"
         chan_text = ",".join(k for k, _ in channels.most_common(4))
         span = datetime.fromtimestamp(start / 1000).strftime("%H:%M")
         span += "-" + datetime.fromtimestamp(end / 1000).strftime("%H:%M")
@@ -175,6 +186,7 @@ class EpisodeBuilder:
                 "observation_count": len(members),
                 "channels": dict(channels),
                 "place": place,
+                "containers": dict(heads.most_common(3)),
             },
             node_type="episode",
             derived=True,

@@ -54,8 +54,9 @@ def deterministic_bullets(episodes: list[Any]) -> list[dict[str, Any]]:
         label = ep.metadata.get("label", "capture")
         count = ep.metadata.get("observation_count", 0)
         chans = ",".join(ep.metadata.get("channels", {}))
+        where = ",".join(ep.metadata.get("containers") or []) or chans
         bullets.append({
-            "text": f"{_span(ep)} at {label}: {count} observations ({chans})",
+            "text": f"{_span(ep)} at {label}: {count} observations ({where})",
             "episode_ids": [ep.id],
         })
     return bullets
@@ -108,6 +109,8 @@ class DigestBuilder:
             f'- id={ep.id} span={_span(ep)} place={ep.metadata.get("label")} '
             f'observations={ep.metadata.get("observation_count")} '
             f'channels={",".join(ep.metadata.get("channels", {}))}'
+            + (f' sites_or_places={",".join(ep.metadata["containers"])}'
+               if ep.metadata.get("containers") else "")
             for ep in episodes
         )
         prompt = (
