@@ -228,6 +228,7 @@ struct ContentView: View {
     @AppStorage(GroundTruthRecorder.toggleKey) private var gtRecordingEnabled = false
     // Ask Trace — queries the Mac brain (over the LAN) about the LIVE perception stream.
     @State private var showAsk = false
+    @State private var showTimeline = false
     @State private var askText = ""
     // P40 — the ask surface is a CONVERSATION, not a single-shot form. Each turn keeps its own
     // calibrated badge + expandable receipts so the honesty moat ("it shows its evidence, and
@@ -413,6 +414,9 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showAsk) {
                 askSheet
+            }
+            .sheet(isPresented: $showTimeline) {
+                TimelineView(hubURL: traceHubURL.isEmpty ? TraceDefaults.hubURL : traceHubURL)
             }
             .fullScreenCover(isPresented: .constant(!hasOnboarded)) {
                 OnboardingView { hasOnboarded = true }
@@ -657,25 +661,36 @@ struct ContentView: View {
                 Spacer()
                 brainStatusPill
             }
-            Button { showAsk = true } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "sparkles")
+            HStack(spacing: 10) {
+                // P41: the timeline — the memory you can SEE without asking.
+                Button { showTimeline = true } label: {
+                    Image(systemName: "calendar.day.timeline.left")
                         .font(.title3)
-                    Text("Ask your memory")
-                        .font(.headline)
-                    Spacer()
-                    Image(systemName: "arrow.up.right")
-                        .font(.subheadline.bold())
-                        .opacity(0.85)
+                        .foregroundStyle(.white)
+                        .frame(width: 54, height: 54)
+                        .background(TraceBrand.glass(RoundedRectangle(cornerRadius: 20)))
                 }
-                .foregroundStyle(.white)
-                .padding(.vertical, 16).padding(.horizontal, 20)
-                .background(TraceBrand.emberGradient, in: RoundedRectangle(cornerRadius: 20))
-                .overlay(RoundedRectangle(cornerRadius: 20)
-                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.7))
-                .shadow(color: TraceBrand.ember.opacity(0.45), radius: 14, y: 4)
+                .buttonStyle(.plain)
+                Button { showAsk = true } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "sparkles")
+                            .font(.title3)
+                        Text("Ask your memory")
+                            .font(.headline)
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.subheadline.bold())
+                            .opacity(0.85)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.vertical, 16).padding(.horizontal, 20)
+                    .background(TraceBrand.emberGradient, in: RoundedRectangle(cornerRadius: 20))
+                    .overlay(RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.7))
+                    .shadow(color: TraceBrand.ember.opacity(0.45), radius: 14, y: 4)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(.vertical, 10)
     }

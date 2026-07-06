@@ -45,6 +45,9 @@ def main() -> int:
             name = str(app.localizedName())
             url = active_tab_url(name)
             if not url or is_private(url, blocklist):
+                n += 0
+                if name.endswith("Browser") and not url:
+                    print(f"[ax-corpus] no url from {name} (Automation TCC?)", flush=True)
                 continue
             pid = int(app.processIdentifier())
             if pid not in seen_pids:
