@@ -147,7 +147,7 @@ def frontmost() -> tuple:
     name = str(app.localizedName()) if app else "?"
     pid = int(app.processIdentifier()) if app else -1
     title = ""
-    windows = []
+    windows: list = []
     info = Quartz.CGWindowListCopyWindowInfo(
         Quartz.kCGWindowListOptionOnScreenOnly
         | Quartz.kCGWindowListExcludeDesktopElements, Quartz.kCGNullWindowID) or []
@@ -165,7 +165,7 @@ def frontmost() -> tuple:
             "w": float(b.get("Width", 0)), "h": float(b.get("Height", 0)),
             "front": is_front,
         })
-    return name, title, windows
+    return name, title, windows, pid
 
 
 BROWSER_URL_SCRIPTS = {
@@ -256,6 +256,15 @@ def main() -> int:
     tmp_dir = Path(tempfile.mkdtemp(prefix="trace-screen-"))
     blocklist = load_blocklist()
     print(f"[screen-daemon] privacy blocklist: {len(blocklist)} markers", flush=True)
+    # P34 Stage A: the AX channel (semantic, grade=authoritative). Trust may be
+    # granted mid-run — recheck periodically instead of requiring a restart.
+    import ax_adapter
+    ax_ok = ax_adapter.ax_trusted()
+    ax_recheck_at = 0.0
+    ax_enabled_pids: set = set()
+    last_ax: dict = {}
+    print(f"[screen-daemon] AX channel: {'ON' if ax_ok else 'off (no Accessibility trust yet)'}",
+          flush=True)
     last_focus = None
     last_capture_t = 0.0
     last_emitted: dict = {}  # (app,title) -> last emitted OCR text
@@ -266,7 +275,7 @@ def main() -> int:
         time.sleep(POLL_S)
         if idle_seconds() > IDLE_S:
             continue
-        app, title, windows = frontmost()
+        app, title, windows, pid = frontmost()
         if excluded(app, title):
             continue
         focus_changed = (app, title) != last_focus
@@ -291,6 +300,31 @@ def main() -> int:
         url = active_tab_url(app)
         if url and is_private(url, blocklist):
             continue  # private site: drop the whole capture
+        # AX channel — the OS's own semantics, emitted alongside OCR (which
+        # remains the fallback for what AX can't see: video frames, canvases).
+        if not ax_ok and time.time() > ax_recheck_at:
+            ax_ok = ax_adapter.ax_trusted()
+            ax_recheck_at = time.time() + 60
+            if ax_ok:
+                print("[screen-daemon] AX trust granted — semantic channel ON", flush=True)
+        if ax_ok:
+            try:
+                if pid not in ax_enabled_pids:
+                    ax_adapter.enable_web_ax(pid)
+                    ax_enabled_pids.add(pid)
+                els = ax_adapter.walk_front_window(pid)
+                ax_rows = ax_adapter.elements_to_rows(app, url, els)
+                joined = " ; ".join(r["text"] for r in ax_rows)
+                if joined and not is_private(joined, blocklist) \
+                        and should_emit(last_ax.get((app, url)), joined):
+                    posted = sum(
+                        1 for r in ax_rows
+                        if post(r["text"], "mac_ax", r["provenance"], session))
+                    last_ax[(app, url)] = joined
+                    print(f"[screen-daemon] AX emitted {app}: {posted} elements"
+                          f"{' url' if url else ''}", flush=True)
+            except Exception as exc:  # noqa: BLE001 — AX flakiness never kills capture
+                print(f"[screen-daemon] AX walk failed: {exc}", flush=True)
         # Attribute every span to its window + region; emit the FRONT window's
         # spans grouped per region — the relations (playing vs tab-strip vs
         # queue) survive into the store instead of dying in a text bag.
