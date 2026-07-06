@@ -189,6 +189,10 @@ class AgentAnswer:
         }
 
 
+def _words_of(text: str) -> list[str]:
+    return re.findall(r"[a-z0-9.]+", text.lower())
+
+
 def _emit(on_event, stage: str, **info) -> None:
     """Fire-and-forget ask-v2 narration — a broken listener never breaks an answer."""
     if on_event is None:
@@ -1433,23 +1437,40 @@ class TraceMemoryAgent:
             f"EVIDENCE: {json.dumps(rows, ensure_ascii=False)}"
         )
 
-    def _scene_block(self, search: SearchSlice) -> str:
-        """P34: render retrieved nodes as a container-grouped SCENE and prepend
-        it to the reasoner's evidence. 'Which container is this text in' stops
-        being the reasoner's job. Empty when nothing carries structure."""
+    def _scene_block(self, search: SearchSlice, question: str = "") -> str:
+        """P34/N1: the brain-before-brain speaks first. KNOWN THINGS = entity
+        nodes matching the question's subject (accrued attributes, sighting
+        stats, place); then the SCENE (container-grouped observations). The
+        token-limited reasoner narrates structure it no longer has to infer."""
+        parts: list[str] = []
+        try:
+            if question:
+                subject = set(_tokens(question))
+                known: list[str] = []
+                for n in self._store.nodes(node_types=("entity_node",)):
+                    label = str((n.metadata or {}).get("label", ""))
+                    if subject & {_singularize(w) for w in _words_of(label)}:
+                        known.append(n.text[:180])
+                    if len(known) >= 6:
+                        break
+                if known:
+                    parts.append("KNOWN THINGS (persistent entities, accrued "
+                                 "across all sightings):\n" +
+                                 "\n".join(f"  {k}" for k in known))
+        except Exception:  # noqa: BLE001
+            pass
         try:
             from trace_memory.brain.slices import build_slice
             scene = build_slice([h.node for h in search.hits])
-            if not scene.rendered:
-                return ""
-            return (
-                "SCENE (observations grouped by their container — window/tab/"
-                "region for the screen, place for the world; [authoritative] "
-                "facts come from the OS, [inferred] from OCR):\n"
-                f"{scene.rendered}\n\n"
-            )
+            if scene.rendered:
+                parts.append(
+                    "SCENE (observations grouped by their container — window/tab/"
+                    "region for the screen, place for the world; [authoritative] "
+                    "facts come from the OS, [inferred] from OCR):\n"
+                    f"{scene.rendered}")
         except Exception:  # noqa: BLE001 — a slice bug must never break an answer
-            return ""
+            pass
+        return ("\n\n".join(parts) + "\n\n") if parts else ""
 
     @staticmethod
     def _planted_premise_guard(question: str, answer_text: str, refused: bool,
@@ -1526,7 +1547,7 @@ class TraceMemoryAgent:
         rows = self._evidence_chain(search, question=question)
         _emit(on_event, "thinking", engine="local-gemma", evidence_rows=len(rows),
               model=self._ollama_model)
-        prompt = self._scene_block(search) + self._contract_prompt(question, rows)
+        prompt = self._scene_block(search, question) + self._contract_prompt(question, rows)
         body = {
             "model": self._ollama_model,
             "prompt": prompt,

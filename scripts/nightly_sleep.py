@@ -54,11 +54,17 @@ def consolidate() -> dict:
     from trace_memory.store.digest import DigestBuilder
     from trace_memory.store.sleep import SleepConsolidator
 
+    from trace_memory.store.nodes import NodesBuilder
+
     store = TraceMemoryStore(STORE)
     summary = SleepConsolidator(store).consolidate()
+    nodes = NodesBuilder(store).build()
     episodes = EpisodeBuilder(store).build()
     digests = DigestBuilder(store).build()
     return {
+        "entity_nodes": nodes.object_nodes + nodes.place_nodes
+        + nodes.site_nodes + nodes.app_nodes,
+        "entity_links": nodes.links,
         "grouped": summary.grouped_observation_count,
         "abstractions": summary.abstraction_count,
         "composed": summary.composed_memory_count,

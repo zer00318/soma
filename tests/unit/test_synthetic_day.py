@@ -199,3 +199,35 @@ def test_unknown_cell_simultaneity_hedges_never_firm_wrong(tmp_path):
     assert not a.refused
     assert "1" in a.answer and "2" in a.answer  # a range spanning the ambiguity
     assert a.confidence < 0.7                   # hedged, never firm
+
+
+def test_nodes_layer_makes_entities_persistent(tmp_path):
+    """N1: after sleep, THINGS exist — one node per instance/place/site with
+    accrued attributes, open questions (the mining ledger seed), and a
+    located_at link. Rebuild is reconsidered, ids stable."""
+    from trace_memory.store.nodes import NodesBuilder
+
+    store, truth = _pipeline(tmp_path)
+    try:
+        first = NodesBuilder(store).build()
+        entity_nodes = list(store.nodes(node_types=["entity_node"]))
+        objects = [n for n in entity_nodes if n.metadata["entity_type"] == "object"]
+        places = [n for n in entity_nodes if n.metadata["entity_type"] == "place"]
+        sites = [n for n in entity_nodes if n.metadata["entity_type"] == "site"]
+        mugs = [n for n in objects if n.metadata["label"] == "mug"]
+        located = [l for l in store.links() if l.link_type == "located_at"]
+
+        second = NodesBuilder(store).build()
+        ids_after = {n.id for n in store.nodes(node_types=["entity_node"])}
+    finally:
+        store.close()
+
+    assert first.object_nodes >= 3          # laptop + 2 mugs (+ bicycle)
+    assert len(mugs) == 2                   # two THINGS, not two thousand rows
+    assert all(m.metadata["open_questions"] for m in mugs)  # N2's work queue
+    assert {p.metadata["label"] for p in places} == {"Waldstrasse", "Boltzmannstrasse"}
+    assert any(s.metadata["label"] == "docs.python.org" for s in sites)
+    assert located                          # objects know their place
+    assert second.reconsidered == first.object_nodes + first.place_nodes \
+        + first.site_nodes + first.app_nodes
+    assert {n.id for n in mugs} <= ids_after  # stable identity across rebuilds

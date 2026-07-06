@@ -400,6 +400,32 @@ class Handler(BaseHTTPRequestHandler):
             kind = "digest" if parsed.path == "/digest" else "episodes"
             with self.hub.timeline_lock:
                 return self._send(200, self.hub.timeline(kind=kind, day=day))
+        if parsed.path == "/nodes":
+            # N1: the entity layer — the companion app browses THINGS, not rows.
+            qs = parse_qs(parsed.query)
+            etype = (qs.get("type") or [None])[0]
+            q = ((qs.get("q") or [""])[0]).lower()
+            with self.hub.timeline_lock:
+                rows = []
+                for n in self.hub._timeline_reader().nodes(node_types=("entity_node",)):
+                    meta = n.metadata or {}
+                    if etype and meta.get("entity_type") != etype:
+                        continue
+                    if q and q not in str(meta.get("label", "")).lower() \
+                            and q not in n.text.lower():
+                        continue
+                    rows.append({
+                        "id": n.id, "text": n.text,
+                        "entity_type": meta.get("entity_type"),
+                        "label": meta.get("label"),
+                        "sightings": meta.get("sightings"),
+                        "attributes": meta.get("attributes") or {},
+                        "open_questions": meta.get("open_questions") or [],
+                        "first_ms": n.time_range.start_ms if n.time_range else n.t_ms,
+                        "last_ms": n.time_range.end_ms if n.time_range else n.t_ms,
+                    })
+                rows.sort(key=lambda r: r["sightings"] or 0, reverse=True)
+            return self._send(200, {"ok": True, "count": len(rows), "rows": rows[:100]})
         if parsed.path == "/ask":
             q = (parse_qs(parsed.query).get("q") or [""])[0]
             if not q:
