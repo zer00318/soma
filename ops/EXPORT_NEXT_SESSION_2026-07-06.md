@@ -48,8 +48,7 @@ Execution order (N1 LANDED same day — commit 7552597):
       KNOWN THINGS block in the reasoner prompt, GET /nodes, nightly-wired.
       LIVE: 91 objects/6 places/4 sites/54 links; exposed 30+ fragmented person
       instances (P12 global-identity work, now measurable) + audinifer.com.
-      6/6 synthetic-day contracts; battery held. NEXT OWNER: person-node merge
-      (P12), site-node attribute accrual (titles watched), nodes-first retrieval.
+      6/6 synthetic-day contracts; battery held. Fragment AGGREGATES landed (4 live: person@RB19 = 27 fragments/3955 sightings as ONE honest card, distinct-count stated unresolved). NEXT OWNER: real identity merge (P32), site-node attribute accrual (titles watched), nodes-first retrieval.
   N2. ✅ MAC HALF DONE (same day): scripts/mining_ledger.py (pure: static-tick
       counter, least-mined-tile rotation, per-scene mined-set, budget cap, novelty
       reset) + daemon depth passes (rolling 1-frame buffer -> tile crop-zoom OCR ->

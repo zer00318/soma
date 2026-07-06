@@ -58,6 +58,7 @@ class NodesRunSummary:
     site_nodes: int
     app_nodes: int
     links: int
+    aggregates: int = 0
 
 
 class NodesBuilder:
@@ -75,6 +76,8 @@ class NodesBuilder:
         place_nodes = self._build_places(raw)
         site_nodes, app_nodes = self._build_sites_and_apps(raw)
 
+        aggregates = self._build_aggregates(object_nodes)
+
         # containment links: object located_at its dominant place
         links = 0
         place_ids = {p["key"]: p["id"] for p in place_nodes}
@@ -87,8 +90,41 @@ class NodesBuilder:
         return NodesRunSummary(
             reconsidered=removed, object_nodes=len(object_nodes),
             place_nodes=len(place_nodes), site_nodes=len(site_nodes),
-            app_nodes=len(app_nodes), links=links,
+            app_nodes=len(app_nodes), links=links, aggregates=aggregates,
         )
+
+    def _build_aggregates(self, object_nodes: list[dict]) -> int:
+        """Fragment honesty (N1's first live finding: 30+ 'person' instance
+        nodes = per-session track fragmentation). Heavily fragmented
+        (label, place) groups get ONE aggregate node stating the fragment
+        count plainly — identity resolution (P32) owns actually merging them;
+        until then the surface shows one honest card, not thirty junk ones.
+        Fragment nodes get aggregate_id so consumers can collapse them."""
+        groups: dict[tuple, list[dict]] = {}
+        for on in object_nodes:
+            groups.setdefault((on["label"], on.get("dominant_place")), []).append(on)
+        made = 0
+        for (label, place), members in groups.items():
+            if len(members) <= 5:
+                continue
+            agg_id = _stable_id("aggregate", f"{label}:{place}")
+            total_sightings = sum(m.get("sightings", 0) for m in members)
+            self._store.write_observation(
+                text=(f"NODE | {label} @ {place or 'unplaced'} (aggregate) | "
+                      f"{len(members)} track-fragments, {total_sightings} sightings"
+                      f" | distinct-count unresolved (identity resolution pending)"),
+                t_ms=max(m.get("t_hi", 0) for m in members),
+                source="sleep_binder",
+                provenance={"builder": _BUILDER, "authored_by": "nodes_v1"},
+                metadata={"builder": _BUILDER, "kind": "entity",
+                          "entity_type": "aggregate", "label": label,
+                          "dominant_place": place, "fragments": len(members),
+                          "sightings": total_sightings,
+                          "fragment_ids": [m["id"] for m in members[:40]]},
+                node_type="entity_node", derived=True, node_id=agg_id,
+            )
+            made += 1
+        return made
 
     # ------------------------------------------------------------- objects
 
@@ -139,7 +175,9 @@ class NodesBuilder:
                 derived=True,
                 node_id=node_id,
             )
-            out.append({"id": node_id, "key": key, "dominant_place": dominant_place})
+            out.append({"id": node_id, "key": key, "label": cluster.label,
+                        "dominant_place": dominant_place,
+                        "sightings": len(members), "t_hi": t_hi})
         return out
 
     def _mine_attributes(self, members: list[Any]) -> dict[str, dict]:
