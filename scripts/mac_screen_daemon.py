@@ -38,6 +38,13 @@ from pathlib import Path
 
 HUB = "http://127.0.0.1:8765/capture/perception"
 BLOCKLIST_PATH = Path(__file__).resolve().parent.parent / "config" / "privacy_blocklist.json"
+# FRAME GOLD (founder order 2026-07-06: no authored batteries — they bias; the
+# frame IS the ground truth). Every SAMPLE window, ONE screenshot survives
+# deletion into evaluation/frame_gold/ with a sidecar (t, app, url, windows).
+# Eval derives questions FROM the frame, blind to the store. Local-only,
+# gitignored, privacy-blocklist rows are never sampled, purgeable anytime.
+FRAME_GOLD_DIR = Path(__file__).resolve().parent.parent / "evaluation" / "frame_gold"
+FRAME_GOLD_EVERY_S = 300.0
 POLL_S = 2.0
 CAPTURE_S = 5.0
 IDLE_S = 120.0
@@ -197,16 +204,42 @@ def idle_seconds() -> float:
         Quartz.kCGEventSourceStateHIDSystemState, Quartz.kCGAnyInputEventType))
 
 
-def capture_and_ocr(tmp_dir: Path) -> list:
+def finalize_frame_gold(candidate: Path, *, app: str, title: str,
+                        url: str | None, windows: list, ocr_joined: str,
+                        blocklist: list) -> bool:
+    """Candidate frame -> gold (or oblivion). The privacy check runs AFTER OCR,
+    so the frame is held as a candidate and only finalized when clean; private
+    candidates are unlinked, keeping L1's spirit: only chosen gold survives."""
+    probe = " ".join([title or "", url or "", ocr_joined])
+    if is_private(probe, blocklist):
+        candidate.unlink(missing_ok=True)
+        return False
+    FRAME_GOLD_DIR.mkdir(parents=True, exist_ok=True)
+    stamp = int(time.time() * 1000)
+    dest = FRAME_GOLD_DIR / f"frame-{stamp}.png"
+    candidate.rename(dest)
+    sidecar = {
+        "t_ms": stamp, "app": app, "window": title, "url": url,
+        "windows": [{k: w.get(k) for k in ("app", "title", "front")} for w in windows],
+    }
+    (FRAME_GOLD_DIR / f"frame-{stamp}.json").write_text(json.dumps(sidecar))
+    return True
+
+
+def capture_and_ocr(tmp_dir: Path, keep_copy: Path | None = None) -> list:
     """screencapture (main display) -> Vision OCR WITH GEOMETRY -> DELETE the
-    png (L1). Returns (text, cx, cy) span centers in SCREEN POINTS, top-left
-    origin — bboxes are the structure the text-bag version destroyed."""
+    png (L1). keep_copy: frame-gold candidate path — copied before deletion,
+    finalized or unlinked by the caller after the privacy check.
+    Returns (text, cx, cy) span centers in SCREEN POINTS, top-left origin."""
     png = tmp_dir / f"scr-{int(time.time()*1000)}.png"
     try:
         r = subprocess.run(["screencapture", "-x", "-m", "-t", "png", str(png)],
                            capture_output=True, timeout=15)
         if r.returncode != 0 or not png.exists():
             return []
+        if keep_copy is not None:
+            import shutil
+            shutil.copy2(png, keep_copy)
         import Quartz
         import Vision
         from Foundation import NSURL
@@ -267,6 +300,7 @@ def main() -> int:
           flush=True)
     last_focus = None
     last_capture_t = 0.0
+    last_gold_t = 0.0
     last_emitted: dict = {}  # (app,title) -> last emitted OCR text
     empty_streak = 0
     print(f"[screen-daemon] up — session={session} hub={HUB}", flush=True)
@@ -288,7 +322,10 @@ def main() -> int:
         if not focus_changed and time.time() - last_capture_t < CAPTURE_S:
             continue
         last_capture_t = time.time()
-        spans = capture_and_ocr(tmp_dir)
+        gold_candidate = None
+        if time.time() - last_gold_t >= FRAME_GOLD_EVERY_S:
+            gold_candidate = tmp_dir / "gold-candidate.png"
+        spans = capture_and_ocr(tmp_dir, keep_copy=gold_candidate)
         if not spans:
             empty_streak += 1
             if empty_streak == 5:
@@ -298,6 +335,15 @@ def main() -> int:
             continue
         empty_streak = 0
         url = active_tab_url(app)
+        if gold_candidate is not None and gold_candidate.exists():
+            ocr_joined = " ; ".join(t for t, _, _ in spans)
+            if finalize_frame_gold(gold_candidate, app=app, title=title, url=url,
+                                   windows=windows, ocr_joined=ocr_joined,
+                                   blocklist=blocklist):
+                last_gold_t = time.time()
+                print("[screen-daemon] frame-gold saved", flush=True)
+            else:
+                last_gold_t = time.time()  # private moment: skip this window
         if url and is_private(url, blocklist):
             continue  # private site: drop the whole capture
         # AX channel — the OS's own semantics, emitted alongside OCR (which

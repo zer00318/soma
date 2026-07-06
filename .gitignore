@@ -123,3 +123,4 @@ ggml-*.bin
 /tmp*.sqlite3
 *.sqlite3-wal
 *.sqlite3-shm
+evaluation/frame_gold/

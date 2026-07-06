@@ -37,10 +37,17 @@ in `brain/agent.py`. Each owner exists because:
   reasoner over a good slice replaces most bespoke owners; the deterministic
   layer shrinks to what must stay deterministic: honesty gates (S1, counts,
   refusal calibration) — the moat.
-- **Question generality is the metric**: the WWH battery — for each captured
-  scene, the questions that COULD be asked (what playing / what queued /
-  where was X relative to Y / which site / what changed) — founder-authored,
-  measured like the canonical battery. No claiming "fixed" per-question.
+- **Question generality is the metric — FRAME-ANCHORED, not authored**
+  (founder correction 2026-07-06: an authored battery biases — the author
+  knows the day, the builder tunes to the question style; "a futile exercise").
+  Protocol: during capture, one arbitrary frame per window (5min) SURVIVES
+  deletion into evaluation/frame_gold/ (+ sidecar: t/app/url/windows;
+  privacy-blocklist moments never sampled; local-only, gitignored, purgeable).
+  At eval time questions are DERIVED FROM THE FRAME (what does the frame show
+  playing/queued/where) blind to the store, posed to the brain about that
+  moment, scored frame-vs-answer. The frame arbitrates BOTH capture loss and
+  brain loss. Phone twin later via the W0 raw-buffer recorder (owner-consented
+  sampling).
 
 ## Measured path (v1 lesson: never legislate ahead of measurement)
 - **Stage A (pilot, screen channel):** ingest writes container/relation links
