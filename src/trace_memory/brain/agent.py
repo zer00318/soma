@@ -1433,6 +1433,24 @@ class TraceMemoryAgent:
             f"EVIDENCE: {json.dumps(rows, ensure_ascii=False)}"
         )
 
+    def _scene_block(self, search: SearchSlice) -> str:
+        """P34: render retrieved nodes as a container-grouped SCENE and prepend
+        it to the reasoner's evidence. 'Which container is this text in' stops
+        being the reasoner's job. Empty when nothing carries structure."""
+        try:
+            from trace_memory.brain.slices import build_slice
+            scene = build_slice([h.node for h in search.hits])
+            if not scene.rendered:
+                return ""
+            return (
+                "SCENE (observations grouped by their container — window/tab/"
+                "region for the screen, place for the world; [authoritative] "
+                "facts come from the OS, [inferred] from OCR):\n"
+                f"{scene.rendered}\n\n"
+            )
+        except Exception:  # noqa: BLE001 — a slice bug must never break an answer
+            return ""
+
     @staticmethod
     def _planted_premise_guard(question: str, answer_text: str, refused: bool,
                                confidence: float) -> tuple[str, float]:
@@ -1508,7 +1526,7 @@ class TraceMemoryAgent:
         rows = self._evidence_chain(search, question=question)
         _emit(on_event, "thinking", engine="local-gemma", evidence_rows=len(rows),
               model=self._ollama_model)
-        prompt = self._contract_prompt(question, rows)
+        prompt = self._scene_block(search) + self._contract_prompt(question, rows)
         body = {
             "model": self._ollama_model,
             "prompt": prompt,
