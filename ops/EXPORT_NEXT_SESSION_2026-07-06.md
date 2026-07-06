@@ -42,10 +42,14 @@ sensors**. The re-founded architecture, in his words distilled:
    fed by Nodes not raw episodes, review cards P42). Build it as a separate target
    (same project, new app target e.g. "Trace Companion") talking only to the hub.
 
-Execution order proposed for next session (founder may reorder):
-  N1. Nodes core (Mac): entity-node layer over the store — nodes table/model (or
-      node_type="entity_node" derived rows), updated at ingest+sleep from tracks/
-      anchors/containers; slice renderer reads NODES first. Measured by frame-gold.
+Execution order (N1 LANDED same day — commit 7552597):
+  N1. ✅ DONE: store/nodes.py NodesBuilder — entity_node rows (object/place/site/app),
+      attribute accrual + open_questions (mining-ledger seed), located_at links,
+      KNOWN THINGS block in the reasoner prompt, GET /nodes, nightly-wired.
+      LIVE: 91 objects/6 places/4 sites/54 links; exposed 30+ fragmented person
+      instances (P12 global-identity work, now measurable) + audinifer.com.
+      6/6 synthetic-day contracts; battery held. NEXT OWNER: person-node merge
+      (P12), site-node attribute accrual (titles watched), nodes-first retrieval.
   N2. Mining ledger + progressive deepening: Mac screen first (cheap iteration: depth
       passes over static screens), then phone (Swift: crop-targeted VLM prompts driven
       by the ledger; EnrichmentScheduler.swift is the seam — it already schedules
