@@ -226,10 +226,36 @@ def finalize_frame_gold(candidate: Path, *, app: str, title: str,
     return True
 
 
+def _vision_ocr(png: Path, *, min_conf: float = 0.4) -> list:
+    """Vision OCR one png -> [(text, nx, ny)] with NORMALIZED centers
+    (origin bottom-left, as Vision reports)."""
+    import Vision
+    from Foundation import NSURL
+
+    handler = Vision.VNImageRequestHandler.alloc().initWithURL_options_(
+        NSURL.fileURLWithPath_(str(png)), None)
+    req = Vision.VNRecognizeTextRequest.alloc().init()
+    req.setRecognitionLevel_(1)  # accurate — screen text is small
+    req.setUsesLanguageCorrection_(True)
+    handler.performRequests_error_([req], None)
+    out = []
+    for obs in req.results() or []:
+        cand = obs.topCandidates_(1)
+        if cand and cand[0].confidence() >= min_conf:
+            txt = str(cand[0].string()).strip()
+            if len(txt) >= 2:
+                bb = obs.boundingBox()
+                out.append((txt, bb.origin.x + bb.size.width / 2,
+                            bb.origin.y + bb.size.height / 2))
+    return out
+
+
 def capture_and_ocr(tmp_dir: Path, keep_copy: Path | None = None) -> list:
-    """screencapture (main display) -> Vision OCR WITH GEOMETRY -> DELETE the
-    png (L1). keep_copy: frame-gold candidate path — copied before deletion,
-    finalized or unlinked by the caller after the privacy check.
+    """screencapture (main display) -> Vision OCR WITH GEOMETRY. keep_copy:
+    frame-gold candidate (finalized/unlinked by caller post-privacy-check).
+    The frame also survives as tmp_dir/last.png — a ROLLING ONE-FRAME buffer
+    for N2 depth passes (overwritten every tick, dies with the tmp dir; the
+    L1 spirit holds: no frame accumulates).
     Returns (text, cx, cy) span centers in SCREEN POINTS, top-left origin."""
     png = tmp_dir / f"scr-{int(time.time()*1000)}.png"
     try:
@@ -237,34 +263,42 @@ def capture_and_ocr(tmp_dir: Path, keep_copy: Path | None = None) -> list:
                            capture_output=True, timeout=15)
         if r.returncode != 0 or not png.exists():
             return []
+        import shutil
         if keep_copy is not None:
-            import shutil
             shutil.copy2(png, keep_copy)
+        shutil.copy2(png, tmp_dir / "last.png")
         import Quartz
-        import Vision
-        from Foundation import NSURL
 
         screen = Quartz.CGDisplayBounds(Quartz.CGMainDisplayID())
         sw, sh = float(screen.size.width), float(screen.size.height)
-        handler = Vision.VNImageRequestHandler.alloc().initWithURL_options_(
-            NSURL.fileURLWithPath_(str(png)), None)
-        req = Vision.VNRecognizeTextRequest.alloc().init()
-        req.setRecognitionLevel_(1)  # accurate — screen text is small
-        req.setUsesLanguageCorrection_(True)
-        handler.performRequests_error_([req], None)
-        spans = []
-        for obs in req.results() or []:
-            cand = obs.topCandidates_(1)
-            if cand and cand[0].confidence() >= 0.4:
-                txt = str(cand[0].string()).strip()
-                if len(txt) >= 2:
-                    bb = obs.boundingBox()  # normalized, origin BOTTOM-left
-                    cx = (bb.origin.x + bb.size.width / 2) * sw
-                    cy = (1.0 - (bb.origin.y + bb.size.height / 2)) * sh
-                    spans.append((txt, cx, cy))
-        return spans
+        return [(txt, nx * sw, (1.0 - ny) * sh)
+                for txt, nx, ny in _vision_ocr(png)]
     finally:
         png.unlink(missing_ok=True)  # the pixels die HERE, every path
+
+
+def deep_mine_tile(last_png: Path, task, tmp_dir: Path) -> list:
+    """N2 depth pass: crop ONE grid tile from the rolling frame, upscale by
+    task.scale (the crop-zoom lesson: 2x recovers small text full-frame OCR
+    drops), OCR it, return raw texts. Temp crop dies immediately."""
+    from PIL import Image
+    from mining_ledger import GRID_COLS, GRID_ROWS
+
+    crop_png = tmp_dir / "deep-crop.png"
+    try:
+        with Image.open(last_png) as im:
+            w, h = im.size
+            tw, th = w // GRID_COLS, h // GRID_ROWS
+            box = (task.tile_col * tw, task.tile_row * th,
+                   (task.tile_col + 1) * tw, (task.tile_row + 1) * th)
+            tile = im.crop(box).resize((tw * task.scale, th * task.scale),
+                                       Image.LANCZOS)
+            tile.save(crop_png)
+        return [t for t, _, _ in _vision_ocr(crop_png, min_conf=0.5)]
+    except Exception:  # noqa: BLE001 — depth is opportunistic, never fatal
+        return []
+    finally:
+        crop_png.unlink(missing_ok=True)
 
 
 def post(text: str, helper_id: str, provenance: dict, session_id: str) -> bool:
@@ -292,6 +326,8 @@ def main() -> int:
     # P34 Stage A: the AX channel (semantic, grade=authoritative). Trust may be
     # granted mid-run — recheck periodically instead of requiring a restart.
     import ax_adapter
+    from mining_ledger import MiningLedger
+    ledger = MiningLedger()  # N2: the stare economy — static scenes get depth
     ax_ok = ax_adapter.ax_trusted()
     ax_recheck_at = 0.0
     ax_enabled_pids: set = set()
@@ -381,6 +417,7 @@ def main() -> int:
             if widx == front_idx and widx is not None:
                 by_region.setdefault(region, []).append(text_span)
         url_tag = f" | url={url}" if url else ""
+        emitted_any = False
         for region, lines in sorted(by_region.items()):
             body = " ; ".join(lines)
             if len(body) > MAX_TEXT:
@@ -394,8 +431,32 @@ def main() -> int:
                         {"app": app, "window": title, "url": url,
                          "region": region, "display": "main"}, session):
                     last_emitted[key] = text
+                    emitted_any = True
                     print(f"[screen-daemon] emitted {app}/{region} "
                           f"({len(lines)} spans){' url' if url else ''}", flush=True)
+
+        # N2 — PROGRESSIVE DEEPENING. Scene static (nothing new emitted) ->
+        # spend the tick's budget going DEEPER instead of skipping: crop-zoom
+        # OCR one under-mined tile of the rolling frame; emit ONLY what breadth
+        # never saw. Each static tick continues where the last stopped.
+        scene_key = (app, url or title)
+        ledger.seed_known(scene_key, [t for t, _, _ in spans])
+        task = ledger.on_capture(scene_key, changed=(focus_changed or emitted_any))
+        if task is not None:
+            mined = deep_mine_tile(tmp_dir / "last.png", task, tmp_dir)
+            fresh = ledger.novel_texts(scene_key, mined)
+            if fresh:
+                body = " ; ".join(fresh)[:MAX_TEXT]
+                text = (f"SCREEN-DEEP | app={app}{url_tag} | "
+                        f"tile={task.tile_row},{task.tile_col} depth={task.depth}"
+                        f" | text: {body}")
+                if not is_private(text, blocklist) and post(
+                        text, "mac_screen_ocr",
+                        {"app": app, "window": title, "url": url,
+                         "region": f"tile-{task.tile_row}{task.tile_col}",
+                         "mining_depth": task.depth, "display": "main"}, session):
+                    print(f"[screen-daemon] DEEP tile {task.tile_row},{task.tile_col} "
+                          f"d{task.depth}: +{len(fresh)} new texts", flush=True)
 
 
 if __name__ == "__main__":

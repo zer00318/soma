@@ -50,10 +50,15 @@ Execution order (N1 LANDED same day — commit 7552597):
       instances (P12 global-identity work, now measurable) + audinifer.com.
       6/6 synthetic-day contracts; battery held. NEXT OWNER: person-node merge
       (P12), site-node attribute accrual (titles watched), nodes-first retrieval.
-  N2. Mining ledger + progressive deepening: Mac screen first (cheap iteration: depth
-      passes over static screens), then phone (Swift: crop-targeted VLM prompts driven
-      by the ledger; EnrichmentScheduler.swift is the seam — it already schedules
-      per-track VLM crops).
+  N2. ✅ MAC HALF DONE (same day): scripts/mining_ledger.py (pure: static-tick
+      counter, least-mined-tile rotation, per-scene mined-set, budget cap, novelty
+      reset) + daemon depth passes (rolling 1-frame buffer -> tile crop-zoom OCR ->
+      ONLY novel text emits as SCREEN-DEEP rows w/ mining_depth provenance).
+      LIVE PROOF: static Claude window yielded +12 new texts across 6 passes incl.
+      small text breadth missed. REMAINING N2: the PHONE twin — EnrichmentScheduler
+      .swift drives targeted VLM crops per track from node open_questions (fetch via
+      GET /nodes; prompts like 'describe accessories of the person in this crop');
+      attribute answers post as enrichment rows; NodesBuilder accrues them nightly.
   N3. Companion app skeleton (ask chat + nodes-browser instead of the bad timeline).
   N4. Frame-gold eval loop as the only judge (never authored batteries — LAW).
 
