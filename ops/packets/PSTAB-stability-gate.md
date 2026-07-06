@@ -70,8 +70,28 @@ Rig says FAIL (deaths=2, hub_failures=1); the decomposition says mostly-good:
 - max_ingest_gap 458s = phone idle while founder was on the Mac; reported
   honestly, not a failure.
 
-**Soak #2 RUNNING overnight (22:41→06:41, 8h, fixed rig, --relaunch, infra
-frozen).** Gate judgment lands with its verdict.
+## Soak #2 verdict (22:42→06:42, 8h, fixed rig, infra frozen) → CRASH LEG CLOSED
+
+Rig FAIL (deaths=2) decomposes to zero pathology: death 1 = founder's manual
+app restart (22:45, no report); death 2 = the reproduced lock→reap lifecycle
+(22:50, capture stopped 186s prior, no report). After the rig's auto-relaunch
+the app then ran ~7.5h CONTINUOUSLY through the night. hub_failures 0/940
+ticks. max_ingest_gap 4.15h = the locked overnight stretch, honestly reported.
+Overnight crash reports on device: ZERO. Same night, the first fully
+automated nightly ran clean (backup → sleep → 67 episodes/64 gaps/11 days →
+11 digests → canonical battery rc 0).
+
+**JUDGMENT 2026-07-06: the crash leg of P-STAB is CLOSED.** Combined 12h of
+soak on the black-box build: zero crashes; the July-4 MLX SIGABRT did not
+reproduce; the black box stays armed for life so any future crash
+self-documents. The gate's death counter conflated crashes with iOS lifecycle
+reaps — REFINEMENT for the next rig pass: deaths classified by evidence
+(report/blackbox = crash, gates; neither = lifecycle, feeds continuity
+metrics). REMAINING (transferred, not blocking): capture-continuity — the
+lock→reap chain is product behavior for P41 (honest gaps + auto-resume) and
+the P50 carry protocol. The 9-min-freeze branch from 2026-07-05 was never
+reproduced on the new build across 12h — considered superseded unless it
+reappears.
 
 ## The gate (Definition of Done)
 
