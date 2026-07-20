@@ -1,5 +1,7 @@
 # SOMA: An Input-Only Wearable Memory — Architecture, Rationale, and References
 
+**This file is the SUMMARY edition.** The full thesis (17 chapters + revision 1.1's chapters 18–19, Appendix W, references [1]–[50], ~29,000 words) now lives as editable source in [`thesis_full.md`](thesis_full.md); the PDF is its rendered snapshot. Edit `thesis_full.md`, not the PDF.
+
 *A comprehensive technical exposition of the SOMA architecture: its conceptual
 foundations, formal design, implementation strategy, evaluation methodology,
 and its relationship to prior art. The companion diagram-first walkthrough is
