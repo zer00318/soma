@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SOMA — How the Memory Works</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --ink:#0B0E14; --panel:#111826; --panel2:#0E1420; --line:#1E2838;
+    --text:#E9EDF5; --muted:#8A93A8; --faint:#5A6478;
+    --fire:#FFB454; --obs:#5CC8FF; --bind:#7ED9A0; --refuse:#F26D6D;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(255,180,84,.3)}
+  a{color:var(--obs);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--fire)}
+  h1,h2,h3{font-family:var(--serif);font-weight:600;text-wrap:balance;line-height:1.15;margin:0}
+  h2{font-size:clamp(28px,4vw,40px);margin:10px 0 14px}
+  h3{font-size:20px;margin:0 0 8px}
+  p.lede{font-size:18px;color:var(--muted);max-width:62ch}
+  section{padding:88px 0;border-top:1px solid var(--line)}
+  .chapter-num{font-family:var(--mono);color:var(--faint);font-size:12px;letter-spacing:.14em}
+
+  /* ---------- hero ---------- */
+  header.hero{position:relative;min-height:92vh;display:flex;align-items:center;border:none;overflow:hidden}
+  #heroCanvas{position:absolute;inset:0;width:100%;height:100%}
+  .hero-inner{position:relative;z-index:2;padding:60px 0}
+  .hero-inner h1{font-size:clamp(40px,7vw,76px);max-width:14ch}
+  .hero-inner .sub{font-size:clamp(17px,2vw,21px);color:var(--muted);max-width:52ch;margin-top:18px}
+  .hero-kicker{font-family:var(--mono);font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--fire);margin-bottom:22px}
+  .hero-fade{position:absolute;inset:auto 0 0 0;height:180px;background:linear-gradient(transparent,var(--ink));z-index:1}
+  .scroll-hint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);color:var(--faint);font-family:var(--mono);font-size:11px;letter-spacing:.2em;z-index:2;animation:bob 2.4s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,7px)}}
+
+  /* ---------- generic panel ---------- */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+
+  /* ---------- pipeline ---------- */
+  .pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:30px}
+  @media(max-width:820px){.pipe{grid-template-columns:repeat(2,1fr)}}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;position:relative;transition:border-color .3s, box-shadow .3s}
+  .stage .t{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+  .stage h3{font-size:17px}
+  .stage p{font-size:13.5px;color:var(--muted);margin:8px 0 0}
+  .stage.lit{border-color:var(--fire);box-shadow:0 0 24px rgba(255,180,84,.12)}
+  .stage.lit .t{color:var(--fire)}
+  .napkin{font-family:var(--mono);font-size:11.5px;color:var(--obs);margin-top:10px;display:block}
+  .napkin::before{content:"napkin: ";color:var(--faint)}
+
+  /* ---------- crow player ---------- */
+  .crow-shell{background:var(--panel2);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:34px}
+  .crow-top{display:grid;grid-template-columns:1.5fr 1fr;min-height:480px}
+  @media(max-width:900px){.crow-top{grid-template-columns:1fr}}
+  #crowCanvas{width:100%;height:100%;display:block;min-height:480px;background:
+     radial-gradient(1200px 500px at 30% 10%, rgba(92,200,255,.045), transparent 60%), var(--panel2)}
+  .crow-side{border-left:1px solid var(--line);display:flex;flex-direction:column}
+  @media(max-width:900px){.crow-side{border-left:none;border-top:1px solid var(--line)}}
+  .crow-clock{font-family:var(--mono);font-size:13px;color:var(--fire);letter-spacing:.12em;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .crow-story{padding:18px 20px;flex:1}
+  .crow-story h3{font-family:var(--serif);font-size:19px}
+  .crow-story p{font-size:14px;color:var(--muted);margin:10px 0 0}
+  .obs-log{padding:0 20px 18px;font-family:var(--mono);font-size:12px;display:flex;flex-direction:column;gap:6px;max-height:190px;overflow-y:auto}
+  .obs-log .o{border-left:2px solid var(--obs);padding:6px 10px;background:rgba(92,200,255,.06);color:#BFE4FA;border-radius:0 6px 6px 0;animation:slidein .4s ease}
+  .obs-log .o.snd{border-color:var(--fire);background:rgba(255,180,84,.07);color:#FFD9A6}
+  .obs-log .o.bnd{border-color:var(--bind);background:rgba(126,217,160,.07);color:#BDEBD1}
+  .obs-log .o.ref{border-color:var(--refuse);background:rgba(242,109,109,.08);color:#F8B9B9}
+  .obs-log .o .tm{color:var(--faint);margin-right:8px}
+  @keyframes slidein{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+  .crow-bar{display:flex;align-items:center;gap:12px;padding:14px 20px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .btn{font-family:var(--mono);font-size:13px;letter-spacing:.06em;background:var(--fire);color:#1A1206;border:none;border-radius:7px;padding:10px 18px;cursor:pointer;font-weight:600}
+  .btn:hover{filter:brightness(1.08)}
+  .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--muted);filter:none}
+  .btn:disabled{opacity:.35;cursor:default}
+  .step-dots{display:flex;gap:6px;margin-left:auto}
+  .step-dots i{width:8px;height:8px;border-radius:50%;background:var(--line);transition:background .3s}
+  .step-dots i.on{background:var(--fire)}
+  .step-dots i.done{background:var(--faint)}
+
+  /* ---------- playground ---------- */
+  .play-shell{background:var(--panel2);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:30px}
+  #playCanvas{width:100%;height:520px;display:block}
+  .play-bar{display:flex;gap:10px;align-items:center;padding:14px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .play-stat{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:auto}
+  .play-stat b{color:var(--text);font-weight:600}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .hovercard{position:absolute;pointer-events:none;background:#060910;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:11.5px;color:var(--text);max-width:280px;z-index:5;display:none;line-height:1.5}
+  .hovercard .k{color:var(--faint)}
+
+  /* ---------- membrane ---------- */
+  .memb-shell{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:30px}
+  #membCanvas{width:100%;height:360px;display:block}
+  .memb-caption{padding:14px 18px;border-top:1px solid var(--line);font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  .memb-caption b{color:var(--refuse)}
+
+  /* ---------- metrics ---------- */
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
+  @media(max-width:820px){.tiles{grid-template-columns:1fr}}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+  .tile .big{font-family:var(--serif);font-size:40px;font-variant-numeric:tabular-nums;color:var(--text)}
+  .tile .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .tile p{font-size:13px;color:var(--muted);margin:8px 0 0}
+
+  footer{border-top:1px solid var(--line);padding:50px 0 70px;color:var(--muted);font-size:14px}
+  footer .cols{display:flex;gap:60px;flex-wrap:wrap}
+  code{font-family:var(--mono);font-size:.9em;color:#BFE4FA;background:rgba(92,200,255,.08);padding:1px 5px;border-radius:4px}
+  @media (prefers-reduced-motion: reduce){
+    .scroll-hint{animation:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <canvas id="heroCanvas"></canvas>
+  <div class="hero-fade"></div>
+  <div class="wrap hero-inner">
+    <div class="hero-kicker">SOMA · System Architecture</div>
+    <h1>The footage was never the point.</h1>
+    <p class="sub">SOMA turns the world into words the instant it happens — never keeping one
+    frame of video or one second of audio — binds those words into living nodes at night, and
+    answers any question about your day with citations, or an honest &ldquo;I don't know.&rdquo;</p>
+    <p class="sub" style="font-family:var(--mono);font-size:13px;color:var(--faint)">
+    The particles behind this text are observations firing. Everything on this page is live — scroll.</p>
+  </div>
+  <div class="scroll-hint">SCROLL ↓</div>
+</header>
+
+<!-- ================= 01 STANDARD MODEL ================= -->
+<section id="model">
+  <div class="wrap">
+    <div class="chapter-num">01</div>
+    <div class="eyebrow">The founding constraint</div>
+    <h2>A brain never touches the world.</h2>
+    <p class="lede">Everything a mind knows arrives through senses. For a machine, the only
+    senses we can cheaply manufacture are eyes and ears — and most of the information worth
+    having flows through them anyway. SOMA copies that shape exactly, then makes one radical
+    amendment: <em style="color:var(--text)">the brain keeps only what the senses said, never
+    what they saw.</em></p>
+    <div class="grid2" style="margin-top:30px">
+      <div class="panel">
+        <div class="eyebrow" style="color:var(--faint)">Standard model — human</div>
+        <div style="font-family:var(--mono);font-size:15px;margin-top:14px;line-height:2">
+          World&nbsp; ⟶ &nbsp;Eyes / Ears&nbsp; ⟶ &nbsp;Brain
+        </div>
+        <p style="color:var(--muted);font-size:14px">You don't remember pixels. You remember
+        <em>that a crow was on the railing</em> — a fact, located in time and place.</p>
+      </div>
+      <div class="panel" style="border-color:rgba(255,180,84,.35)">
+        <div class="eyebrow">SOMA — machine</div>
+        <div style="font-family:var(--mono);font-size:15px;margin-top:14px;line-height:2">
+          World&nbsp; ⟶ &nbsp;Camera / Mic&nbsp; ⟶ &nbsp;<span style="color:var(--obs)">Words</span>&nbsp; ⟶ &nbsp;Brain
+        </div>
+        <p style="color:var(--muted);font-size:14px">Raw pixels and audio live for
+        <em>milliseconds</em> — just long enough to become typed text. Then they're gone.
+        There is nothing to leak, subpoena, or replay. Surveillance isn't forbidden;
+        it's <em style="color:var(--fire)">structurally impossible</em>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 02 PIPELINE ================= -->
+<section id="pipeline">
+  <div class="wrap">
+    <div class="chapter-num">02</div>
+    <div class="eyebrow">The machine, end to end</div>
+    <h2>Eight black boxes, one direction.</h2>
+    <p class="lede">This is the napkin, industrialized. Each stage lights up as it would fire
+    on a real moment. Hover any stage; the napkin's own words are quoted underneath.</p>
+    <div class="pipe" id="pipe">
+      <div class="stage" data-i="0"><div class="t">Stage 1 · Live</div><h3>Senses</h3>
+        <p>Video (eyes), audio (ears), plus motion, pose and place — the cheap channels run continuously.</p>
+        <span class="napkin">"Video (Eyes), Audio (Ears)"</span></div>
+      <div class="stage" data-i="1"><div class="t">Stage 2 · Live</div><h3>Extraction</h3>
+        <p>Blurry frames discarded, signal deciphered from noise. Out: coordinates, timestamps, context.</p>
+        <span class="napkin">"Extraction Black Box"</span></div>
+      <div class="stage" data-i="2"><div class="t">Stage 3 · Gated</div><h3>Macro picture</h3>
+        <p>A small vision-language model gives the gist of what's happening — only when attention, dwell or change earns the cost.</p>
+        <span class="napkin">"A macro picture of what's happening ⇒ VLM"</span></div>
+      <div class="stage" data-i="3"><div class="t">Stage 4 · On demand</div><h3>Helpers</h3>
+        <p>Specialized eyes called per task: OCR reads text, ASR hears speech, a tagger names sounds, a detector tracks objects.</p>
+        <span class="napkin">"A specialized eye or helper for various tasks, called as needed"</span></div>
+      <div class="stage" data-i="4"><div class="t">Stage 5 · Output</div><h3>Text</h3>
+        <p>The best understanding possible of the world — every line marked by coordinates and time. This is all that survives.</p>
+        <span class="napkin">"TEXT — text from various helpers marked by coordinates"</span></div>
+      <div class="stage" data-i="5"><div class="t">Stage 6 · Nightly</div><h3>Binder</h3>
+        <p>Binds coordinates, physicality and temporality together: which hum was the fan, which blue thing was the bag.</p>
+        <span class="napkin">"Binder ⇒ binding the coordinates, physicality &amp; temporality together"</span></div>
+      <div class="stage" data-i="6"><div class="t">Stage 7 · Always on</div><h3>Node creation</h3>
+        <p>Raw material is marinated into living nodes that combine with fellow nodes to derive new things. 1+1=4, not 2. Encrypted — only your app deciphers.</p>
+        <span class="napkin">"A physical living breathing cell… always running, but better nightly"</span></div>
+      <div class="stage" data-i="7"><div class="t">Stage 8 · On ask</div><h3>Information supplier</h3>
+        <p>Assembles just enough context for the local LLM. The LLM does what LLMs do — the value is everything before it.</p>
+        <span class="napkin">"Just Enough Context ⟶ LLM does what LLM does"</span></div>
+    </div>
+    <p style="font-family:var(--mono);font-size:12.5px;color:var(--faint);margin-top:18px">
+      The discarder rule: marinated content that proves useless is dropped — <span style="color:var(--obs)">never the raw material</span>.
+      The append-only observation log is forever; everything derived from it is disposable and replayable.</p>
+  </div>
+</section>
+
+<!-- ================= 03 CROW ================= -->
+<section id="crow">
+  <div class="wrap">
+    <div class="chapter-num">03</div>
+    <div class="eyebrow">The crow example</div>
+    <h2>Watch one memory get made.</h2>
+    <p class="lede">Tuesday morning. A crow lands on the balcony railing while you take the
+    trash out. No video is kept — yet three mornings later, SOMA knows something nobody told
+    it. Step through what actually happens. Nodes that fire together, wire together.</p>
+
+    <div class="crow-shell">
+      <div class="crow-top" style="position:relative">
+        <canvas id="crowCanvas"></canvas>
+        <div class="crow-side">
+          <div class="crow-clock" id="crowClock">TUE 07:41:58</div>
+          <div class="crow-story">
+            <h3 id="crowTitle">Before it happens</h3>
+            <p id="crowText">The cheap channels are already running — detector, sound tagger,
+            pose. They cost almost nothing, so they never sleep. The expensive eye (the VLM)
+            is dark, waiting for something worth looking at.</p>
+          </div>
+          <div class="obs-log" id="crowLog"></div>
+        </div>
+      </div>
+      <div class="crow-bar">
+        <button class="btn" id="crowNext">Start ▸</button>
+        <button class="btn ghost" id="crowReset">Reset</button>
+        <div class="step-dots" id="crowDots"></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--obs)"></i> observation (typed text)</span>
+      <span><i class="dot" style="background:var(--fire)"></i> firing / attention</span>
+      <span><i class="dot" style="background:var(--bind)"></i> binding / derived node</span>
+      <span><i class="dot" style="background:var(--refuse)"></i> weak link — refused</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 04 PLAYGROUND ================= -->
+<section id="playground">
+  <div class="wrap">
+    <div class="chapter-num">04</div>
+    <div class="eyebrow">The living graph</div>
+    <h2>How the nodes sit.</h2>
+    <p class="lede">A day of memory as it actually rests in the store. Run a day to stream
+    observations in; run the night shift to watch the binder marinate them — strong
+    co-occurrences harden into green bindings, weak links flash red and are
+    <em style="color:var(--refuse)">refused, not hardened</em>. Hover any node to read the
+    words it holds. Drag nodes to feel the graph.</p>
+    <div class="play-shell" style="position:relative">
+      <canvas id="playCanvas"></canvas>
+      <div class="hovercard" id="playHover"></div>
+      <div class="play-bar">
+        <button class="btn" id="playDay">☀ Run a day</button>
+        <button class="btn ghost" id="playNight">☾ Night shift (bind)</button>
+        <button class="btn ghost" id="playAsk">? Ask the memory</button>
+        <div class="play-stat" id="playStat"><b>0</b> observations · <b>0</b> bindings · <b>0</b> refused</div>
+      </div>
+    </div>
+    <p style="font-family:var(--mono);font-size:12.5px;color:var(--faint);margin-top:16px">
+      Every node carries provenance — the event id, channel and millisecond it came from.
+      A claim without a source is a construction error, not a style violation.</p>
+  </div>
+</section>
+
+<!-- ================= 05 MEMBRANE ================= -->
+<section id="membrane">
+  <div class="wrap">
+    <div class="chapter-num">05</div>
+    <div class="eyebrow">The moat</div>
+    <h2>A one-way membrane for meaning.</h2>
+    <p class="lede">Frames arrive, words leave, pixels die at the wall. The type system is the
+    law: the only object that may cross the device boundary is <code>TextEgress</code> — typed
+    text carrying the ids of the observations it came from. Anything else raises
+    <code>PrivacyViolationError</code>. Watch the membrane work.</p>
+    <div class="memb-shell">
+      <canvas id="membCanvas"></canvas>
+      <div class="memb-caption">Left: raw frames &amp; audio (exist for milliseconds).
+        Membrane: perception + <span style="color:#BFE4FA">EgressGuard</span>.
+        Right: provenance-bearing text, AES-GCM encrypted — only your app deciphers.
+        <b>■ red bursts</b> are non-text payloads being rejected at the wall.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 06 MEASURE ================= -->
+<section id="measure">
+  <div class="wrap">
+    <div class="chapter-num">06</div>
+    <div class="eyebrow">Held to a number</div>
+    <h2>Every miss names the next thing we build.</h2>
+    <p class="lede">Nothing here is vibes. A blind adversarial question battery runs against
+    real captures; fabrication is <em>subtracted</em>, not just un-credited; and every failure
+    is mechanically diagnosed — (A) never captured, or (B) captured but the brain failed to use
+    it. Helpers are only built when a missed question demands one.</p>
+    <div class="tiles">
+      <div class="tile"><div class="lbl">RAS — recall accuracy</div><div class="big">(C − M) / T</div>
+        <p>Correct minus made-up, over total. A confident wrong answer costs what a right one
+        earns. An honest "I don't know" is a win.</p></div>
+      <div class="tile"><div class="lbl">OAG — what verbalizing lost</div><div class="big">Oracle gap</div>
+        <p>Of the questions an oracle with the raw frames can answer, the share the retained
+        text cannot. The direct price of throwing the pixels away — driven toward zero.</p></div>
+      <div class="tile"><div class="lbl">Invariant</div><div class="big">H → 0</div>
+        <p>Hallucination approaches zero across every phase. Current honest baseline: 8 of 9
+        misses were the brain, not the sensors — so that's where the work goes.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap cols">
+    <div>
+      <div class="eyebrow" style="color:var(--faint)">Go deeper</div>
+      <p style="max-width:46ch">The companion thesis — the full argument, formal domain model,
+      prior art and a complete bibliography — is <b>“SOMA: An Input-Only Wearable Memory”</b>
+      (PDF, in <code>docs/</code>). Source of truth for product decisions:
+      <code>ops/NORTH_STAR.md</code> and <code>ops/ROADMAP.md</code>.</p>
+    </div>
+    <div>
+      <div class="eyebrow" style="color:var(--faint)">Colophon</div>
+      <p style="max-width:40ch">Self-contained page, no external assets. Canvas simulations are
+      illustrative of the architecture, driven by the same rules the real binder enforces:
+      co-occurrence, confidence, refusal.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const DPR = Math.min(devicePixelRatio||1, 2);
+const C = {ink:"#0B0E14",obs:"#5CC8FF",fire:"#FFB454",bind:"#7ED9A0",refuse:"#F26D6D",
+           faint:"#5A6478",muted:"#8A93A8",line:"#1E2838"};
+
+function fit(cv){
+  const r = cv.getBoundingClientRect();
+  cv.width = Math.max(1, r.width*DPR); cv.height = Math.max(1, r.height*DPR);
+  const g = cv.getContext("2d"); g.setTransform(DPR,0,0,DPR,0,0); return g;
+}
+function hex2rgba(h,a){
+  const n=parseInt(h.slice(1),16);
+  return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
+}
+
+/* ================= HERO: ambient firing field ================= */
+(function(){
+  const cv = document.getElementById("heroCanvas");
+  let g = fit(cv), W,H, nodes=[], t=0;
+  function size(){ g=fit(cv); W=cv.width/DPR; H=cv.height/DPR; seed(); }
+  function seed(){
+    nodes=[]; const n = Math.floor(W*H/16000);
+    for(let i=0;i<n;i++) nodes.push({
+      x:Math.random()*W, y:Math.random()*H,
+      vx:(Math.random()-.5)*.14, vy:(Math.random()-.5)*.14,
+      r:1+Math.random()*1.8, fire:0, next:Math.random()*900+t
+    });
+  }
+  addEventListener("resize", size); size();
+  function frame(){
+    t++;
+    g.clearRect(0,0,W,H);
+    // links
+    for(let i=0;i<nodes.length;i++){
+      const a=nodes[i];
+      for(let j=i+1;j<nodes.length;j++){
+        const b=nodes[j], dx=a.x-b.x, dy=a.y-b.y, d2=dx*dx+dy*dy;
+        if(d2<130*130){
+          const glow=Math.max(a.fire,b.fire);
+          g.strokeStyle = glow>0.05 ? hex2rgba(C.fire, .05+glow*.35) : "rgba(90,100,120,.07)";
+          g.lineWidth = glow>0.05 ? 1 : .5;
+          g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(b.x,b.y); g.stroke();
+        }
+      }
+    }
+    for(const n of nodes){
+      n.x+=n.vx; n.y+=n.vy;
+      if(n.x<0||n.x>W)n.vx*=-1; if(n.y<0||n.y>H)n.vy*=-1;
+      if(t>n.next && !reduced){ n.fire=1; n.next=t+600+Math.random()*1200;
+        // spread to neighbours
+        for(const m of nodes){ const dx=n.x-m.x,dy=n.y-m.y;
+          if(dx*dx+dy*dy<130*130 && m.fire<0.3) m.fire=Math.max(m.fire,.55); } }
+      n.fire*=0.965;
+      const glow=n.fire;
+      g.fillStyle = glow>0.04 ? hex2rgba(C.fire,.35+glow*.6) : "rgba(120,135,160,.4)";
+      g.beginPath(); g.arc(n.x,n.y,n.r+glow*2.4,0,7); g.fill();
+      if(glow>0.3){ g.fillStyle=hex2rgba(C.fire,glow*.12);
+        g.beginPath(); g.arc(n.x,n.y,n.r+10*glow,0,7); g.fill(); }
+    }
+    requestAnimationFrame(frame);
+  }
+  if(reduced){ // static render
+    g.clearRect(0,0,W,H);
+    for(const n of nodes){ g.fillStyle="rgba(120,135,160,.4)";
+      g.beginPath(); g.arc(n.x,n.y,n.r,0,7); g.fill(); }
+  } else frame();
+})();
+
+/* ================= PIPELINE stage lighting ================= */
+(function(){
+  const stages=[...document.querySelectorAll("#pipe .stage")];
+  let i=0;
+  setInterval(()=>{
+    stages.forEach(s=>s.classList.remove("lit"));
+    stages[i%stages.length].classList.add("lit");
+    i++;
+  }, 1600);
+  stages.forEach(s=>{
+    s.addEventListener("mouseenter",()=>{stages.forEach(x=>x.classList.remove("lit"));s.classList.add("lit");});
+  });
+})();
+
+/* ================= shared graph engine ================= */
+function Graph(canvas){
+  const self={nodes:[],edges:[],pulses:[],cv:canvas,g:null,W:0,H:0};
+  self.resize=function(){ self.g=fit(canvas); self.W=canvas.width/DPR; self.H=canvas.height/DPR; };
+  self.resize(); addEventListener("resize", self.resize);
+  self.add=function(o){ o.vx=0;o.vy=0;o.r=o.r||9;o.glow=o.glow||0;o.born=performance.now();
+    self.nodes.push(o); return o; };
+  self.link=function(a,b,opts){ const e=Object.assign({a,b,w:1,kind:"bind",alpha:0,len:110},opts||{});
+    self.edges.push(e); return e; };
+  self.pulse=function(a,b,color){ self.pulses.push({a,b,p:0,color}); };
+  self.tick=function(){
+    const N=self.nodes;
+    // physics
+    for(let i=0;i<N.length;i++){
+      const a=N[i];
+      if(a.drag) continue;
+      for(let j=i+1;j<N.length;j++){
+        const b=N[j]; let dx=b.x-a.x, dy=b.y-a.y;
+        let d=Math.hypot(dx,dy)||.01;
+        const rep = 1600/(d*d);
+        dx/=d; dy/=d;
+        a.vx-=dx*rep; a.vy-=dy*rep;
+        if(!b.drag){ b.vx+=dx*rep; b.vy+=dy*rep; }
+      }
+      // gentle centering + anchor
+      const ax=(a.ax!=null?a.ax:self.W/2), ay=(a.ay!=null?a.ay:self.H/2);
+      a.vx+=(ax-a.x)*.0018; a.vy+=(ay-a.y)*.0018;
+    }
+    for(const e of self.edges){
+      const a=e.a,b=e.b; let dx=b.x-a.x, dy=b.y-a.y;
+      const d=Math.hypot(dx,dy)||.01, f=(d-e.len)*.0025*e.w;
+      dx/=d; dy/=d;
+      if(!a.drag){a.vx+=dx*f*d*.02; a.vy+=dy*f*d*.02;}
+      if(!b.drag){b.vx-=dx*f*d*.02; b.vy-=dy*f*d*.02;}
+      e.alpha += ((e.dying? 0 : 1)-e.alpha)*.06;
+    }
+    self.edges=self.edges.filter(e=>!(e.dying&&e.alpha<.02));
+    for(const a of N){
+      if(!a.drag){ a.vx*=.86; a.vy*=.86; a.x+=a.vx; a.y+=a.vy; }
+      a.x=Math.max(20,Math.min(self.W-20,a.x));
+      a.y=Math.max(20,Math.min(self.H-20,a.y));
+      a.glow*=.94;
+    }
+  };
+  self.draw=function(){
+    const g=self.g; g.clearRect(0,0,self.W,self.H);
+    for(const e of self.edges){
+      const col = e.kind==="refuse"?C.refuse : e.kind==="derive"?C.bind : e.kind==="soft"?C.faint : C.bind;
+      g.strokeStyle=hex2rgba(col, e.alpha*(e.kind==="soft"?.25:.55));
+      g.lineWidth=e.kind==="soft"?1:1.6;
+      if(e.kind==="refuse") g.setLineDash([4,4]); else g.setLineDash([]);
+      g.beginPath(); g.moveTo(e.a.x,e.a.y); g.lineTo(e.b.x,e.b.y); g.stroke();
+    }
+    g.setLineDash([]);
+    for(const p of self.pulses){
+      p.p+=.03;
+      const x=p.a.x+(p.b.x-p.a.x)*p.p, y=p.a.y+(p.b.y-p.a.y)*p.p;
+      g.fillStyle=hex2rgba(p.color||C.fire,.9);
+      g.beginPath(); g.arc(x,y,3.2,0,7); g.fill();
+      if(p.p>=1){ p.b.glow=1; }
+    }
+    self.pulses=self.pulses.filter(p=>p.p<1);
+    for(const n of self.nodes){
+      const col=n.color||C.obs;
+      if(n.glow>0.03){ g.fillStyle=hex2rgba(C.fire,n.glow*.25);
+        g.beginPath(); g.arc(n.x,n.y,n.r+14*n.glow,0,7); g.fill(); }
+      g.fillStyle=hex2rgba(col, n.dead?0.15:0.92);
+      g.beginPath(); g.arc(n.x,n.y,n.r+(n.glow*3),0,7); g.fill();
+      g.strokeStyle=hex2rgba("#FFFFFF", .12+n.glow*.5);
+      g.lineWidth=1; g.stroke();
+      if(n.label){
+        g.font="11px "+getComputedStyle(document.body).getPropertyValue("--mono");
+        g.fillStyle=hex2rgba("#E9EDF5", n.dead?.25:(.6+n.glow*.4));
+        g.textAlign="center";
+        g.fillText(n.label, n.x, n.y - n.r - 8);
+      }
+    }
+  };
+  return self;
+}
+
+/* ================= CROW PLAYER ================= */
+(function(){
+  const cv=document.getElementById("crowCanvas");
+  const G=Graph(cv);
+  const clock=document.getElementById("crowClock"),
+        title=document.getElementById("crowTitle"),
+        text=document.getElementById("crowText"),
+        log=document.getElementById("crowLog"),
+        nextBtn=document.getElementById("crowNext"),
+        resetBtn=document.getElementById("crowReset"),
+        dots=document.getElementById("crowDots");
+  let step=-1, nodes={};
+
+  function addLog(cls, tm, s){
+    const d=document.createElement("div"); d.className="o "+(cls||"");
+    d.innerHTML='<span class="tm">'+tm+'</span>'+s;
+    log.appendChild(d); log.scrollTop=log.scrollHeight;
+  }
+  function N(key,label,color,ax,ay,r){
+    const n=G.add({x:G.W*ax+(Math.random()-.5)*30, y:G.H*ay+(Math.random()-.5)*30,
+      ax:G.W*ax, ay:G.H*ay, label, color, r:r||9});
+    nodes[key]=n; n.glow=1; return n;
+  }
+
+  const steps=[
+   {clk:"TUE 07:42:03", t:"The eyes fire",
+    d:"The always-on detector — cheap, every frame — picks up a dark shape landing on the railing. It emits a typed observation: words, coordinates, a timestamp, a confidence. The frame itself is already gone.",
+    run(){ N("bird","black bird · railing",C.obs,.30,.28);
+           addLog("","07:42:03","object: black bird @ balcony_railing conf 0.71 [ev-4183, detector]"); }},
+   {clk:"TUE 07:42:04", t:"The ears fire",
+    d:"A second sense, independently: the sound tagger hears a harsh call and writes its own observation. Neither channel knows about the other yet. They are just two lines of text that happen to share a second and a place.",
+    run(){ N("caw","sound: caw",C.fire,.62,.22);
+           addLog("snd","07:42:04","sound_event: corvid call (caw) conf 0.66 [ev-4184, audio]"); }},
+   {clk:"TUE 07:42:06", t:"Attention pays for a closer look",
+    d:"The bird stays. Dwell + novelty push its salience over the line, and the scheduler spends one budget token: the expensive eye — the VLM — looks once, deeply, at just that crop.",
+    run(){ nodes.bird.glow=1.4;
+           N("vlm","«large corvid, glossy black»",C.obs,.34,.55);
+           G.pulse(nodes.vlm,nodes.bird,C.fire);
+           addLog("","07:42:06","vlm_enrich(level 1): large corvid, glossy black, perched, watching [ev-4188]"); }},
+   {clk:"TUE 07:42:06", t:"Context rides along",
+    d:"The cheap channels never stopped: pose says you're on the balcony; another track says your hands hold the trash bag. Every fact is stamped with the same when and where. That stamp is what the night will bind on.",
+    run(){ N("place","place: balcony",C.faint,.75,.55,7);
+           N("trash","carrying: trash bag",C.obs,.55,.72);
+           addLog("","07:42:06","pose/place: balcony, facing E [ev-4189, arkit]");
+           addLog("","07:42:07","object: trash bag, in hand conf 0.83 [ev-4190, detector]"); }},
+   {clk:"TUE 23:40:00", t:"Night. The binder marinates.",
+    d:"The big model wakes when you sleep. It reads the day's words and binds by co-occurrence — same seconds, same place: the black shape and the caw were one thing. A crow node is born: a living cell, with a confidence, citing every observation it grew from.",
+    run(){ const crow=N("crow","CROW",C.bind,.47,.40,13);
+           for(const k of ["bird","caw","vlm"]){ G.link(nodes[k],crow,{kind:"bind",len:90}); G.pulse(nodes[k],crow,C.bind); }
+           G.link(crow,nodes.place,{kind:"soft",len:130});
+           addLog("bnd","23:40","BIND: {black bird + caw + corvid gist} → entity crow_1 conf 0.87 (3 citations)"); }},
+   {clk:"TUE 23:40:02", t:"…and refuses what it can't prove",
+    d:"A neighbor's wind chime rang the same minute. Correlated? Yes. Proven? No. The link is scored, falls below the floor, and is refused — drawn here in red, then dropped. Weak links are refused, not hardened. This is why the memory doesn't hallucinate.",
+    run(){ const ch=N("chime","sound: wind chime",C.refuse,.80,.30,7);
+           const e=G.link(ch,nodes.crow,{kind:"refuse",len:120});
+           addLog("ref","23:40","REFUSED: chime↔crow_1 conf 0.31 < floor 0.55 — weak link dropped");
+           setTimeout(()=>{e.dying=true; ch.dead=true;}, 1800); }},
+   {clk:"WED–FRI 07:4x", t:"It happens again. And again.",
+    d:"Wednesday: trash bag, crow, caw. Friday: trash bag, crow. Each morning writes fresh observations; each night the binder finds the same shape in them. The crow node doesn't duplicate — it thickens. Nodes that fire together, wire together.",
+    run(){ N("w","wed 07:44 · crow + trash",C.obs,.25,.78,7);
+           N("f","fri 07:39 · crow + trash",C.obs,.72,.80,7);
+           G.link(nodes.w,nodes.crow,{kind:"bind",len:120}); G.link(nodes.f,nodes.crow,{kind:"bind",len:120});
+           G.link(nodes.w,nodes.trash,{kind:"soft",len:90}); G.link(nodes.f,nodes.trash,{kind:"soft",len:90});
+           G.pulse(nodes.w,nodes.crow,C.bind); G.pulse(nodes.f,nodes.crow,C.bind);
+           addLog("bnd","THU 23:41","MERGE: wed/fri corvid sightings → crow_1 (recurring), conf 0.93"); }},
+   {clk:"FRI 23:42:11", t:"1 + 1 = 4",
+    d:"Now the cell combines with its fellow nodes and derives something nobody observed: the crow comes when the trash goes out. Three mornings, one pattern — a NEW node, born from other nodes, with its own confidence and its own citations. This is the whole reason the graph is alive.",
+    run(){ const drv=N("drv","⚡ crow comes for the trash",C.bind,.50,.14,12);
+           G.link(nodes.crow,drv,{kind:"derive",len:100});
+           G.link(nodes.trash,drv,{kind:"derive",len:120});
+           G.pulse(nodes.crow,drv,C.fire); G.pulse(nodes.trash,drv,C.fire);
+           nodes.drv=drv;
+           addLog("bnd","23:42","DERIVE: pattern(crow_1 ⟂ trash-run, 3/3 mornings) → habit node conf 0.81"); }},
+   {clk:"SAT 10:15", t:"You ask. It cites — or refuses.",
+    d:"“Why is that crow always on my balcony?” The information supplier walks the graph, hands the LLM just enough context, and the answer arrives with citations to the exact seconds it was seen. Ask “what color were its eyes?” — never perceived — and the memory says: I don't know. Honestly.",
+    run(){ for(const k in nodes){ if(!nodes[k].dead) nodes[k].glow=Math.max(nodes[k].glow,.8); }
+           addLog("bnd","10:15","Q: why is the crow on my balcony? → “It shows up when you take the trash out — seen Tue/Wed/Fri ~07:42.” [cites ev-4183, ev-4188, wed, fri]");
+           addLog("ref","10:15","Q: what color were its eyes? → “I didn't perceive that.” (no fabrication)"); }}
+  ];
+
+  steps.forEach(()=>{const i=document.createElement("i");dots.appendChild(i);});
+  const dotEls=[...dots.children];
+  function setDots(){ dotEls.forEach((d,i)=>{d.className = i<step?"done":(i===step?"on":"");}); }
+
+  nextBtn.addEventListener("click",()=>{
+    if(step<steps.length-1){ step++;
+      const s=steps[step];
+      clock.textContent=s.clk; title.textContent=s.t; text.textContent=s.d; s.run();
+      nextBtn.textContent = step===steps.length-1 ? "Done ✓" : "Next ▸";
+      setDots();
+    }
+  });
+  resetBtn.addEventListener("click",()=>{
+    step=-1; G.nodes.length=0; G.edges.length=0; G.pulses.length=0; nodes={};
+    log.innerHTML=""; clock.textContent="TUE 07:41:58";
+    title.textContent="Before it happens";
+    text.textContent="The cheap channels are already running — detector, sound tagger, pose. They cost almost nothing, so they never sleep. The expensive eye (the VLM) is dark, waiting for something worth looking at.";
+    nextBtn.textContent="Start ▸"; setDots();
+  });
+  setDots();
+
+  (function loop(){ G.tick(); G.draw(); requestAnimationFrame(loop); })();
+})();
+
+/* ================= PLAYGROUND ================= */
+(function(){
+  const cv=document.getElementById("playCanvas");
+  const G=Graph(cv);
+  const hover=document.getElementById("playHover");
+  const stat=document.getElementById("playStat");
+  let obsCount=0,bindCount=0,refCount=0;
+
+  const DAY=[
+   ["ocr","sign: «Müller Bäckerei»",C.obs],
+   ["asr","“two croissants please”",C.obs],
+   ["obj","object: blue backpack",C.obs],
+   ["snd","sound: espresso machine",C.fire],
+   ["obj2","object: keys on counter",C.obs],
+   ["ocr2","screen: «Meeting 14:00»",C.obs],
+   ["pl","place: kitchen",C.faint],
+   ["snd2","sound: door latch",C.fire],
+   ["obj3","object: crow on railing",C.obs],
+   ["asr2","“don't forget the keys”",C.obs],
+   ["pose","motion: left apartment 08:31",C.faint],
+   ["obj4","object: laptop, lid open",C.obs]
+  ];
+  // bindings the night shift will attempt: [a,b,conf]
+  const NIGHT=[
+   ["ocr","asr",.88],["asr","snd",.79],       // bakery scene
+   ["obj2","pl",.91],["asr2","obj2",.84],     // keys in kitchen + reminder
+   ["snd2","pose",.86],                       // door latch = leaving
+   ["obj","pose",.72],                        // backpack left with you
+   ["ocr2","obj4",.83],                       // meeting on the laptop
+   ["snd","obj3",.28],                        // espresso ↔ crow — nonsense, refuse
+   ["obj3","pl",.33],                         // crow ↔ kitchen — weak, refuse
+   ["asr","obj2",.41]                         // croissants ↔ keys — weak, refuse
+  ];
+  const byKey={};
+  let dayTimer=null;
+
+  function spawn(i){
+    const [k,label,color]=DAY[i];
+    const n=G.add({x:Math.random()*G.W, y:-10, ax:G.W*(0.12+0.76*Math.random()),
+      ay:G.H*(0.15+0.7*Math.random()), label, color, r:8,
+      meta:{ev:"ev-"+(4200+i*7), ch:(k.startsWith("snd")?"audio":k.startsWith("asr")?"asr":k.startsWith("ocr")?"ocr":k.startsWith("pose")||k==="pl"?"sensors":"detector"),
+            tm:(8+Math.floor(i/2))+":"+String(11+i*3).padStart(2,"0")}});
+    n.glow=1; byKey[k]=n; obsCount++; refresh();
+  }
+  function refresh(){ stat.innerHTML="<b>"+obsCount+"</b> observations · <b>"+bindCount+"</b> bindings · <b>"+refCount+"</b> refused"; }
+
+  document.getElementById("playDay").addEventListener("click",()=>{
+    clearInterval(dayTimer);
+    G.nodes.length=0;G.edges.length=0;G.pulses.length=0;
+    for(const k in byKey) delete byKey[k];
+    obsCount=0;bindCount=0;refCount=0;refresh();
+    let i=0;
+    dayTimer=setInterval(()=>{ if(i<DAY.length){spawn(i++);} else clearInterval(dayTimer); }, 380);
+  });
+
+  document.getElementById("playNight").addEventListener("click",()=>{
+    let j=0;
+    const t=setInterval(()=>{
+      if(j>=NIGHT.length){clearInterval(t);return;}
+      const [a,b,conf]=NIGHT[j++];
+      const na=byKey[a], nb=byKey[b];
+      if(!na||!nb) return;
+      if(conf>=0.55){
+        G.link(na,nb,{kind:"bind",len:120,w:conf}); G.pulse(na,nb,C.bind);
+        na.glow=1;nb.glow=1; bindCount++;
+      }else{
+        const e=G.link(na,nb,{kind:"refuse",len:130}); refCount++;
+        setTimeout(()=>{e.dying=true;},1500);
+      }
+      refresh();
+    }, 520);
+  });
+
+  document.getElementById("playAsk").addEventListener("click",()=>{
+    // "where are my keys?" — fire the path: asr2 -> obj2 -> pl
+    const path=["asr2","obj2","pl"];
+    for(let i=0;i<path.length-1;i++){
+      const a=byKey[path[i]],b=byKey[path[i+1]];
+      if(a&&b){ setTimeout(()=>{G.pulse(a,b,C.fire); a.glow=1;},i*450); }
+    }
+    const last=byKey.pl; if(last) setTimeout(()=>{last.glow=1.6;},path.length*450);
+    stat.innerHTML="Q: “where are my keys?” → <b style='color:"+C.bind+"'>on the kitchen counter</b> (2 citations)";
+  });
+
+  // hover + drag
+  let dragN=null;
+  function pick(ev){
+    const r=cv.getBoundingClientRect(), x=ev.clientX-r.left, y=ev.clientY-r.top;
+    let best=null,bd=18;
+    for(const n of G.nodes){ const d=Math.hypot(n.x-x,n.y-y); if(d<bd){bd=d;best=n;} }
+    return {n:best,x,y};
+  }
+  cv.addEventListener("pointermove",ev=>{
+    if(dragN){ const r=cv.getBoundingClientRect(); dragN.x=ev.clientX-r.left; dragN.y=ev.clientY-r.top; return; }
+    const {n,x,y}=pick(ev);
+    if(n&&n.meta){
+      hover.style.display="block";
+      hover.style.left=(x+16)+"px"; hover.style.top=(y+8)+"px";
+      hover.innerHTML="<b>"+n.label+"</b><br><span class='k'>event</span> "+n.meta.ev+
+        "<br><span class='k'>channel</span> "+n.meta.ch+"<br><span class='k'>captured</span> "+n.meta.tm+
+        "<br><span class='k'>raw media</span> discarded";
+      cv.style.cursor="grab";
+    } else { hover.style.display="none"; cv.style.cursor="default"; }
+  });
+  cv.addEventListener("pointerdown",ev=>{ const {n}=pick(ev); if(n){dragN=n;n.drag=true;cv.setPointerCapture(ev.pointerId);} });
+  cv.addEventListener("pointerup",()=>{ if(dragN){dragN.drag=false;dragN=null;} });
+  cv.addEventListener("pointerleave",()=>{hover.style.display="none";});
+
+  (function loop(){ G.tick(); G.draw(); requestAnimationFrame(loop); })();
+})();
+
+/* ================= MEMBRANE ================= */
+(function(){
+  const cv=document.getElementById("membCanvas");
+  let g=fit(cv), W=cv.width/DPR, H=cv.height/DPR;
+  addEventListener("resize",()=>{g=fit(cv);W=cv.width/DPR;H=cv.height/DPR;});
+  const frames=[], words=[], bursts=[];
+  const WORDS=["black bird · railing","caw 0.66","«Müller Bäckerei»","keys on counter","door latch 08:31",
+               "crow · balcony","“two croissants”","meeting 14:00","blue backpack","balcony, facing E"];
+  let t=0;
+  function frame(){
+    t++;
+    const mx=W*0.46;
+    g.clearRect(0,0,W,H);
+    // zones
+    g.fillStyle="rgba(242,109,109,.03)"; g.fillRect(0,0,mx,H);
+    g.fillStyle="rgba(92,200,255,.03)"; g.fillRect(mx,0,W-mx,H);
+    // membrane
+    const grd=g.createLinearGradient(mx-6,0,mx+6,0);
+    grd.addColorStop(0,"rgba(255,180,84,0)");grd.addColorStop(.5,"rgba(255,180,84,.8)");grd.addColorStop(1,"rgba(255,180,84,0)");
+    g.fillStyle=grd; g.fillRect(mx-6,0,12,H);
+    g.font="10px "+getComputedStyle(document.body).getPropertyValue("--mono");
+    g.fillStyle="rgba(255,180,84,.8)"; g.textAlign="center";
+    g.save(); g.translate(mx,H/2); g.rotate(-Math.PI/2);
+    g.fillText("PERCEPTION  +  EGRESS GUARD",0,-12); g.restore();
+    g.textAlign="left";
+    g.fillStyle="rgba(242,109,109,.5)"; g.fillText("RAW — lives for milliseconds",16,22);
+    g.textAlign="right";
+    g.fillStyle="rgba(92,200,255,.6)"; g.fillText("TEXT — provenance-bearing, encrypted, forever",W-16,22);
+    g.textAlign="left";
+
+    if(!reduced && t%26===0){
+      const audio=Math.random()<.3;
+      frames.push({x:-30,y:30+Math.random()*(H-70),w:audio?26:34,h:audio?10:24,audio,
+                   word:WORDS[Math.floor(Math.random()*WORDS.length)]});
+    }
+    for(const f of frames){
+      f.x+=1.6;
+      if(f.x>mx-20&&!f.crossed){
+        f.crossed=true;
+        // becomes a word
+        words.push({x:mx+10,y:f.y,s:f.word,a:1});
+        // occasionally a raw payload tries to cross and is rejected
+        if(Math.random()<.22) bursts.push({x:mx,y:f.y,a:1});
+      }
+      if(!f.crossed){
+        g.strokeStyle=f.audio?"rgba(242,109,109,.55)":"rgba(200,120,120,.5)";
+        g.lineWidth=1;
+        if(f.audio){ // waveform blob
+          g.beginPath();
+          for(let i=0;i<f.w;i+=2){ g.moveTo(f.x+i,f.y); g.lineTo(f.x+i,f.y+Math.sin((t+i)*.5)*5); }
+          g.stroke();
+        }else{
+          g.strokeRect(f.x,f.y-f.h/2,f.w,f.h);
+          g.beginPath();g.moveTo(f.x,f.y-f.h/2);g.lineTo(f.x+f.w,f.y+f.h/2);g.stroke();
+        }
+      }
+    }
+    for(let i=frames.length-1;i>=0;i--) if(frames[i].crossed) frames.splice(i,1);
+    for(const w2 of words){
+      w2.x+=1.1; w2.a-= w2.x>W*0.9? .03:0;
+      g.fillStyle=hex2rgba(C.obs, Math.max(0,w2.a)*.85);
+      g.fillText(w2.s, w2.x, w2.y+3);
+    }
+    for(let i=words.length-1;i>=0;i--) if(words[i].a<=0||words[i].x>W) words.splice(i,1);
+    for(const b of bursts){
+      b.a-=.04;
+      g.strokeStyle=hex2rgba(C.refuse,Math.max(0,b.a));
+      g.lineWidth=2;
+      const r=(1-b.a)*22+6;
+      g.beginPath();g.arc(b.x,b.y,r,0,7);g.stroke();
+      g.fillStyle=hex2rgba(C.refuse,Math.max(0,b.a));
+      if(b.a>.5) g.fillText("PrivacyViolationError",b.x+14,b.y-10);
+    }
+    for(let i=bursts.length-1;i>=0;i--) if(bursts[i].a<=0) bursts.splice(i,1);
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+})();
+</script>
+</body>
+</html>
