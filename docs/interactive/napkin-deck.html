@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TRACE · An Actual Brain</title>
+<style>
+  :root{
+    --paper:#FBFAF5; --paper2:#F0EEE6; --ink:#141412; --ink2:#3b3a35;
+    --gray:#8b897f; --faint:#dcdad0; --ember:#D9480F; --emberlight:#F08C00;
+    --boxbg:#171714; --boxink:#F4F2EA; --boxdim:#8a887c;
+    --hand:"Bradley Hand","Marker Felt","Chalkboard SE","Segoe Print",cursive;
+    --sans:"Avenir Next","Inter","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --mono:"SF Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--paper2);overflow:hidden;font-family:var(--sans);color:var(--ink);
+    -webkit-font-smoothing:antialiased}
+  #viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  #stage{width:1280px;height:720px;position:relative;flex:none;transform-origin:center center;
+    background:var(--paper);box-shadow:0 20px 80px rgba(20,20,18,.18);overflow:hidden}
+  /* tissue-paper grain */
+  #grain{position:absolute;inset:0;pointer-events:none;opacity:.5;z-index:40;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.54 0 0 0 0 0.50 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E")}
+  /* fold creases, like the napkin */
+  #crease{position:absolute;inset:0;pointer-events:none;z-index:41;
+    background:
+      linear-gradient(to right, transparent 33.2%, rgba(20,20,18,.04) 33.35%, transparent 33.55%),
+      linear-gradient(to bottom, transparent 49.2%, rgba(20,20,18,.035) 49.4%, transparent 49.6%)}
+
+  .slide{position:absolute;inset:0;padding:60px 84px;opacity:0;visibility:hidden;
+    transition:opacity .45s ease;z-index:1;background:var(--paper)}
+  .slide.active{opacity:1;visibility:visible;z-index:2}
+
+  /* chrome */
+  #hud{position:fixed;bottom:16px;right:22px;font:12px var(--mono);color:var(--gray);letter-spacing:.1em;z-index:60}
+  #bar{position:fixed;bottom:0;left:0;height:3px;background:var(--ember);width:0;z-index:60;transition:width .45s ease}
+
+  /* type */
+  h1{font-size:50px;font-weight:700;letter-spacing:-0.015em;line-height:1.08}
+  h1 em{font-style:normal;color:var(--ember)}
+  .kicker{font:700 12.5px var(--sans);letter-spacing:.26em;color:var(--gray);text-transform:uppercase;margin-bottom:18px}
+  .kicker b{color:var(--ember)}
+  .sub{font-size:18.5px;color:var(--ink2);line-height:1.5;margin-top:16px;max-width:900px}
+  .napkin-quote{font-family:var(--hand);font-size:20px;color:var(--ink2);line-height:1.5}
+  .napkin-quote u{text-decoration-thickness:1.5px;text-underline-offset:3px}
+  .napkin-quote .src{display:block;font:600 10.5px var(--sans);letter-spacing:.22em;text-transform:uppercase;color:var(--gray);margin-top:10px}
+  .punch{font-size:21px;line-height:1.45;font-weight:600;letter-spacing:-.01em}
+  .punch b{color:var(--ember)}
+
+  /* hand-drawn ink boxes */
+  .inkbox{border:2.2px solid var(--ink);background:rgba(255,255,255,.55);padding:12px 18px;
+    border-radius:255px 15px 225px 15px / 15px 225px 15px 255px}
+  .inkbox.r2{border-radius:15px 225px 15px 255px / 255px 15px 225px 15px}
+  .inkbox.bb{background:var(--boxbg);color:var(--boxink);border-color:var(--boxbg)}
+  .inkbox.bb .bt{display:block;font:700 9.5px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--boxdim);margin-bottom:3px}
+  .tilt-l{transform:rotate(-1.1deg)} .tilt-r{transform:rotate(.9deg)}
+  .arrow-h{font-family:var(--hand);font-size:26px;color:var(--ink2);flex:none}
+
+  /* steps */
+  .step{opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease}
+  .step.on{opacity:1;transform:none}
+
+  /* layout helpers */
+  .cols{display:flex;gap:56px;margin-top:38px;align-items:flex-start}
+  .cols .main{flex:1.3}
+  .cols .side{flex:1}
+  ul.ink{list-style:none;margin-top:6px}
+  ul.ink li{font-size:18.5px;line-height:1.5;color:var(--ink2);padding-left:32px;position:relative;margin-bottom:17px}
+  ul.ink li::before{content:"→";position:absolute;left:0;top:0;font-family:var(--hand);font-size:20px;color:var(--ember)}
+  ul.ink li b{color:var(--ink)}
+  .footpunch{position:absolute;bottom:46px;left:84px;right:84px}
+
+  /* ---------- S1 title ---------- */
+  #s1{display:flex;flex-direction:column;justify-content:center}
+  #s1 h1{font-size:118px;letter-spacing:.28em;font-weight:800;line-height:1}
+  #s1 .tag{font-size:29px;margin-top:20px;font-weight:600}
+  #s1 .tag b{color:var(--ember)}
+  #s1 .origin{margin-top:52px;max-width:660px}
+  #s1foot{position:absolute;bottom:44px;left:84px;right:84px;display:flex;justify-content:space-between;
+    font:12px var(--mono);color:var(--gray);letter-spacing:.08em}
+
+  /* ---------- S2 standard model ---------- */
+  #smrow{display:flex;align-items:center;gap:26px;margin-top:54px;justify-content:center}
+  #smrow .inkbox{font:700 23px var(--sans);padding:18px 28px;text-align:center}
+  #smrow .inkbox .s{display:block;font:400 14px var(--hand);color:var(--gray);margin-top:4px}
+  #s2 .napkin-quote{margin:50px auto 0;max-width:700px;text-align:center}
+  #s2 .punch{margin:42px auto 0;max-width:1000px;text-align:center}
+
+  /* ---------- S3 anatomy ---------- */
+  #anatomy{margin-top:42px;display:flex;flex-direction:column;gap:24px}
+  .arow{display:flex;align-items:center;gap:13px;justify-content:center}
+  .arow .inkbox{font:600 15px var(--sans);text-align:center;line-height:1.3;padding:11px 15px}
+  .arow .inkbox .s{display:block;font:400 12.5px var(--hand);color:var(--gray);margin-top:2px}
+  .arow .inkbox.bb .s{color:var(--boxdim)}
+  .plain{font-family:var(--hand);font-size:16.5px;color:var(--ink2);flex:none;text-align:center;line-height:1.25}
+  #s3 .punch{margin-top:44px;text-align:center}
+
+  /* ---------- S7 crow ---------- */
+  #crowwrap{display:flex;gap:54px;margin-top:30px;align-items:center}
+  #crowsvg{flex:none}
+  #crowtext{flex:1}
+  #crowtext .stage-line{font-size:19px;line-height:1.5;color:var(--ink2);margin-bottom:19px}
+  #crowtext .stage-line b{color:var(--ink)}
+  #crowtext .stage-line .dead{color:var(--gray);text-decoration:line-through;text-decoration-thickness:1.5px}
+  #crowtext .q{font-family:var(--hand);font-size:23px;color:var(--ink)}
+  #crowtext .rises{font-size:25px;font-weight:700;color:var(--ember)}
+  .cstep{opacity:0;transition:opacity .6s ease}
+
+  /* dark slides */
+  .dark{background:var(--boxbg);color:var(--boxink)}
+  .dark h1{color:var(--boxink)}
+  .dark .sub{color:#b9b7ab}
+  .dark .kicker{color:#7d7b70}
+  .dark ul.ink li{color:#cfcdc1}
+  .dark ul.ink li b{color:var(--boxink)}
+  .dark .punch{color:var(--boxink)}
+  .dark .napkin-quote{color:#b9b7ab}
+
+  /* ---------- S12 close ---------- */
+  #s12{display:flex;flex-direction:column;justify-content:center;text-align:center}
+  #s12 .chain{font:700 32px var(--sans);letter-spacing:.06em;display:flex;gap:20px;justify-content:center;align-items:center}
+  #s12 .chain .dim{color:#6e6c62}
+  #s12 h1{font-size:60px;margin-top:44px}
+  #s12 .sub{margin:26px auto 0;text-align:center}
+  #s12 .brand{font:800 19px var(--sans);letter-spacing:.34em;margin-top:64px;color:var(--boxdim)}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+<!-- ═══════════ 1 · TITLE ═══════════ -->
+<section class="slide" id="s1">
+  <div class="kicker">An architecture drawn on a tissue paper</div>
+  <h1>TRACE</h1>
+  <div class="tag">We are building an <b>actual brain</b> — from the senses up.</div>
+  <div class="origin step">
+    <div class="napkin-quote">
+      Not an app. Not a recorder. Not a chatbot with search.<br>
+      An organism that perceives your world, thinks about it while you sleep,
+      and knows you better every single day.
+    </div>
+  </div>
+  <div id="s1foot"><span>founder architecture · 2026</span><span>→ to advance</span></div>
+</section>
+
+<!-- ═══════════ 2 · STANDARD MODEL ═══════════ -->
+<section class="slide" id="s2">
+  <div class="kicker">The premise</div>
+  <h1>Every mind ever made runs one loop.</h1>
+  <div id="smrow">
+    <div class="inkbox tilt-l step">WORLD</div>
+    <div class="arrow-h step">⟶</div>
+    <div class="inkbox r2 step">EYES · EARS<span class="s">sight &amp; sound carry almost everything</span></div>
+    <div class="arrow-h step">⟶</div>
+    <div class="inkbox tilt-r step">BRAIN</div>
+  </div>
+  <div class="napkin-quote step">“Because we can’t manufacture other senses — and most of the
+    information is obtained through these.”
+    <span class="src">— the napkin</span></div>
+  <div class="punch step">So we don’t invent new sensors. <b>Video is the eye. Audio is the ear.</b>
+    The machine perceives the same world you do — and the entire problem
+    moves to what a brain <em>does</em> with what it perceives.</div>
+</section>
+
+<!-- ═══════════ 3 · ANATOMY ═══════════ -->
+<section class="slide" id="s3">
+  <div class="kicker">Execution</div>
+  <h1>This is not a pipeline. It is an <em>anatomy</em>.</h1>
+  <div id="anatomy">
+    <div class="arow">
+      <div class="inkbox step">WORLD</div>
+      <div class="arrow-h step">⟶</div>
+      <div class="inkbox r2 step">Video · Audio<span class="s">eyes &amp; ears</span></div>
+      <div class="arrow-h step">⟶</div>
+      <div class="inkbox bb step"><span class="bt">black box 1</span>EXTRACTION<span class="s">a macro picture of what’s happening</span></div>
+      <div class="arrow-h step">⟶</div>
+      <div class="plain step">coordinates<br>+ timestamps</div>
+      <div class="arrow-h step">⟶</div>
+      <div class="inkbox step">BINDER<span class="s">physicality × time → raw material</span></div>
+    </div>
+    <div class="arow">
+      <div class="inkbox bb r2 step"><span class="bt">black box 2 · the breathing cell</span>NODE CREATION<span class="s">always running · asks questions · 1+1=4</span></div>
+      <div class="arrow-h step">⟶</div>
+      <div class="plain step">living, encrypted<br>nodes</div>
+      <div class="arrow-h step">⟶</div>
+      <div class="inkbox bb step"><span class="bt">black box 3</span>INFORMATION SUPPLIER<span class="s">just enough context</span></div>
+      <div class="arrow-h step">⟶</div>
+      <div class="inkbox r2 step">LLM<span class="s">does what an LLM does — the mouth</span></div>
+    </div>
+  </div>
+  <div class="punch step">Three black boxes. Everything else is plumbing.<br>
+    <b>The black boxes are where the company lives.</b></div>
+</section>
+
+<!-- ═══════════ 4 · EXTRACTION ═══════════ -->
+<section class="slide" id="s4">
+  <div class="kicker">Black box <b>№ 1</b> · Extraction</div>
+  <h1>Perception is <em>subtraction</em>.</h1>
+  <div class="cols">
+    <div class="main">
+      <ul class="ink">
+        <li class="step"><b>Discard the blurry.</b> A brain doesn’t store its retina.
+          Frames that carry nothing die at the gate.</li>
+        <li class="step"><b>Decipher signal from noise.</b> Out of the torrent, a macro
+          picture of what is actually happening — with its surrounding context
+          attached.</li>
+        <li class="step"><b>Stamp everything with coordinates + timestamps.</b>
+          Specialized eyes — one helper per kind of task — write what they see,
+          marked by where and when they saw it.</li>
+      </ul>
+    </div>
+    <div class="side step">
+      <div class="napkin-quote">“Blurry frames discarder · context signal–noise decipherer
+        → a macro picture of what’s happening.”
+        <span class="src">— the napkin</span></div>
+    </div>
+  </div>
+  <div class="footpunch punch step">Memory here is not addressed by content. It is addressed by
+    <b>spacetime</b>. Where-and-when is the primary key — meaning attaches
+    later, and can always find its way back.</div>
+</section>
+
+<!-- ═══════════ 5 · BINDER ═══════════ -->
+<section class="slide" id="s5">
+  <div class="kicker">The Binder</div>
+  <h1>Many eyes. One account of the scene.</h1>
+  <div class="cols">
+    <div class="main">
+      <ul class="ink">
+        <li class="step">Every helper returns <b>text marked by coordinates</b> —
+          a reading eye, a scene eye, a listening ear, each blind to the others.</li>
+        <li class="step">The Binder fuses them <b>physically and temporally</b>:
+          same place, same moment → same event. Scattered fragments become one
+          continuous account of your world.</li>
+        <li class="step">What comes out is <b>not a node yet</b>. It is raw material —
+          “a first thought to marinate on.”</li>
+      </ul>
+    </div>
+    <div class="side step">
+      <div class="napkin-quote">“Binding the coordinates — physicality &amp; temporal —
+        together. Note: this is not a complete Node. It’s raw material.”
+        <span class="src">— the napkin</span></div>
+    </div>
+  </div>
+  <div class="footpunch punch step">And because every thought carries its birth coordinates,
+    <b>every thought can be audited forever</b> — walked back to the raw moment
+    that produced it. Provenance isn’t a feature here. It’s the address system.</div>
+</section>
+
+<!-- ═══════════ 6 · RAW IS SACRED ═══════════ -->
+<section class="slide" id="s6">
+  <div class="kicker">Raw material</div>
+  <h1>The raw is <em>sacred</em>. That breaks biology’s ceiling.</h1>
+  <div class="cols">
+    <div class="main">
+      <ul class="ink">
+        <li class="step">Marination can fail. When it does, <b>the failed thought is
+          discarded — never the raw material</b> underneath it.</li>
+        <li class="step">Which means every thought is <b>retryable</b>. Better helpers,
+          better questions, better models — point them at the same raw past and
+          marinate again.</li>
+        <li class="step">A human brain gets <b>one</b> consolidation pass, then its raw
+          is gone forever — which is why memory confabulates and can never be
+          re-examined.</li>
+      </ul>
+    </div>
+    <div class="side step">
+      <div class="napkin-quote">“The marinated content that’s not useful is discarded —
+        <u>not the raw material</u>.”
+        <span class="src">— the napkin</span></div>
+    </div>
+  </div>
+  <div class="footpunch punch step">So the system’s understanding of your past
+    <b>improves retroactively</b> — your memory of last July gets sharper every
+    year you own it. No biological brain, and no product on earth, does that.
+    <b>Time works for this store instead of against it.</b></div>
+</section>
+
+<!-- ═══════════ 7 · THE CROW ═══════════ -->
+<section class="slide" id="s7">
+  <div class="kicker">1 + 1 = 4 &nbsp;≠&nbsp; 2</div>
+  <h1>The crow and the stones.</h1>
+  <div id="crowwrap">
+    <svg id="crowsvg" width="340" height="320" viewBox="0 0 360 330" fill="none">
+      <path d="M105 108 C101 160 96 226 118 285 C124 299 232 301 240 286 C263 224 258 158 253 107"
+            stroke="#141412" stroke-width="3" stroke-linecap="round"/>
+      <path d="M96 104 C140 96 220 95 262 105" stroke="#141412" stroke-width="3.4" stroke-linecap="round"/>
+      <path class="cstep c1" d="M115 205 C150 197 210 199 245 206" stroke="#4B79A1" stroke-width="3" stroke-linecap="round"/>
+      <path class="cstep c1" d="M122 218 C155 212 205 213 238 219" stroke="#4B79A1" stroke-width="2" opacity=".5" stroke-linecap="round"/>
+      <g class="cstep c1" stroke="#141412" stroke-width="2.6">
+        <ellipse cx="316" cy="286" rx="17" ry="12" transform="rotate(-9 316 286)"/>
+        <ellipse cx="290" cy="299" rx="14" ry="10" transform="rotate(12 290 299)"/>
+        <ellipse cx="322" cy="309" rx="13" ry="9"/>
+      </g>
+      <g class="cstep c2">
+        <ellipse cx="181" cy="70" rx="14" ry="10" stroke="#141412" stroke-width="2.6"/>
+        <path d="M181 92 L181 168 M181 168 l-8 -13 M181 168 l8 -13" stroke="#141412" stroke-width="2.4" stroke-linecap="round"/>
+      </g>
+      <g class="cstep c3" stroke="#D9480F" stroke-width="3" stroke-linecap="round">
+        <path d="M132 196 C131 186 131 178 132 170 M132 170 l-6 9 M132 170 l7 9"/>
+        <path d="M228 197 C229 187 229 179 228 171 M228 171 l-6 9 M228 171 l7 9"/>
+      </g>
+      <path class="cstep c3" d="M113 183 C150 175 210 177 247 184" stroke="#D9480F" stroke-width="3.2" stroke-linecap="round"/>
+      <text class="cstep c1" x="278" y="264" font-family="Bradley Hand, Marker Felt, cursive" font-size="17" fill="#3b3a35">stones</text>
+      <text x="146" y="252" font-family="Bradley Hand, Marker Felt, cursive" font-size="17" fill="#3b3a35">water · pot</text>
+      <text class="cstep c3" x="252" y="163" font-family="Bradley Hand, Marker Felt, cursive" font-size="19" fill="#D9480F">rises!</text>
+    </svg>
+    <div id="crowtext">
+      <div class="stage-line step">Store three nodes — <b>water</b>, <b>pot</b>, <b>stones</b> —
+        and all you ever get back is dead meta:
+        <span class="dead">water in pot</span>, <span class="dead">stones next to pot</span>.
+        Every database on earth stops here.</div>
+      <div class="stage-line step"><span class="q">“What happens when a stone drops into the water?”</span></div>
+      <div class="stage-line step"><span class="rises">The water rises.</span> —
+        and <b>“rises” existed in no node</b>. No sensor recorded it. The question
+        <em style="color:var(--ember);font-style:normal">created</em> data that
+        storage never contained.</div>
+      <div class="stage-line step punch">Intelligence is not storage.
+        <b>Intelligence is interrogation.</b> That is what 1+1=4 means — and it
+        is the entire reason this system exists.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 8 · THIRST ═══════════ -->
+<section class="slide dark" id="s8">
+  <div class="kicker">Black box <b>№ 2</b> · The breathing cell</div>
+  <h1>The crow asks because it is <em>thirsty</em>.</h1>
+  <div class="cols">
+    <div class="main">
+      <ul class="ink">
+        <li class="step">A brain with no need asks no questions. Remove the thirst and
+          the crow stands beside the pitcher forever — nodes intact, deriving
+          nothing.</li>
+        <li class="step">The cell has one standing need: <b>predict its human’s
+          tomorrow.</b></li>
+        <li class="step">Every <b>surprise</b> — everything today that its picture of
+          you failed to anticipate — is water it couldn’t reach. Surprises
+          become <b>tonight’s question queue</b>, ranked by how wrong they
+          proved it.</li>
+        <li class="step">So the night is never a swamp of everything. It is
+          <b>appetite with a ranking</b> — the cell interrogates exactly where
+          its model of you cracked, and nowhere else.</li>
+      </ul>
+    </div>
+    <div class="side step">
+      <div class="napkin-quote">“A physical, living, breathing cell — always running in
+        the background — can combine with fellow nodes to derive new things.”
+        <span class="src">— the napkin</span></div>
+    </div>
+  </div>
+  <div class="footpunch punch step">Always running. Always slightly wrong about you.
+    <b>Closing that gap while you sleep is what it does for a living.</b></div>
+</section>
+
+<!-- ═══════════ 9 · RENT ═══════════ -->
+<section class="slide dark" id="s9">
+  <div class="kicker">The self-evaluating machine</div>
+  <h1>Every new thought pays <em>rent</em> — or dies.</h1>
+  <div class="cols">
+    <div class="main">
+      <ul class="ink">
+        <li class="step">The crow validates “rises” by dropping the stone and watching.
+          Our cell has something better than the world: <b>the archive it swore
+          never to delete.</b></li>
+        <li class="step">A freshly marinated thought must <b>predict a piece of the raw
+          record it was not derived from</b>. Derived from Monday? Then it must
+          prove true in Thursday’s raw — moments it never touched.</li>
+        <li class="step">Predicts nothing → <b>discarded</b>. The napkin’s discarder,
+          given teeth: it doesn’t just remove the useless — it removes the
+          <b>false</b>.</li>
+        <li class="step">Nothing ungrounded is ever kept, so thoughts feeding on
+          thoughts can’t drift into confident nonsense. <b>The swamp is
+          structurally impossible.</b></li>
+      </ul>
+    </div>
+    <div class="side step">
+      <div class="napkin-quote">“The nightly must not be a swamp of information that
+        biases more information down the drain — it must be a self-fulfilling,
+        self-evaluating machine.”
+        <span class="src">— the founder</span></div>
+    </div>
+  </div>
+  <div class="footpunch punch step">The night doesn’t accumulate. <b>It selects.</b>
+    Whatever survives to morning has already been tested against your real past.</div>
+</section>
+
+<!-- ═══════════ 10 · THE MOUTH ═══════════ -->
+<section class="slide" id="s10">
+  <div class="kicker">Black box <b>№ 3</b> · Information Supplier</div>
+  <h1>The LLM is just the <em>mouth</em>.</h1>
+  <div class="cols">
+    <div class="main">
+      <ul class="ink">
+        <li class="step">When you ask, the supplier walks the living nodes and hands the
+          model <b>just enough context</b> — a small, local packet. Not search
+          results. Not a dump. The already-thought thought.</li>
+        <li class="step">Then, in the napkin’s own deliberately bored words:
+          <b>“LLM does what LLM does.”</b> The hard thinking happened nights
+          ago, in the cell.</li>
+        <li class="step">Everything stays on the device. Nodes are <b>encrypted — only
+          the person using the app can decipher them</b>. Your brain is yours.</li>
+      </ul>
+    </div>
+    <div class="side step">
+      <div class="napkin-quote">“Information Supplier → just enough context →
+        LLM does what LLM does. Local.”
+        <span class="src">— the napkin</span></div>
+    </div>
+  </div>
+  <div class="footpunch punch step">This is why the architecture is <b>model-proof</b>:
+    every model is swappable; the organism is not. Each better LLM that ships
+    makes TRACE <b>more</b> valuable — the intelligence lives in the memory,
+    not the model.</div>
+</section>
+
+<!-- ═══════════ 11 · THE ASK ═══════════ -->
+<section class="slide" id="s11">
+  <div class="kicker">Why you’re in this room</div>
+  <h1>The black boxes <em>are</em> the company.</h1>
+  <div class="cols">
+    <div class="main">
+      <ul class="ink">
+        <li class="step"><b>Solved problems:</b> the senses, coordinate-stamped
+          extraction, the binder, on-device encryption. Real engineering,
+          already running on real hardware — but engineering.</li>
+        <li class="step"><b>Open problems:</b> a cell that asks its own questions.
+          Thoughts that grade themselves against a held-out past. “Just enough”
+          context, found instead of searched. <b>Nobody has built the organ
+          that thinks unprompted and evaluates itself.</b> Not the labs, not
+          the giants.</li>
+        <li class="step">And the giants can’t follow even once they see it: their
+          business is the cloud, and this brain <b>only works because it never
+          leaves you</b>.</li>
+      </ul>
+    </div>
+    <div class="side step" style="align-self:center">
+      <div class="napkin-quote" style="font-size:25px">“The HOW is the
+        million-dollar question to<br><b style="color:var(--ember)">BUILD AN
+        ACTUAL BRAIN.</b>”
+        <span class="src">— the founder</span></div>
+    </div>
+  </div>
+  <div class="footpunch punch step">That HOW is the work. That work is the invitation.</div>
+</section>
+
+<!-- ═══════════ 12 · CLOSE ═══════════ -->
+<section class="slide dark" id="s12">
+  <div class="chain">
+    <span class="dim">WORLD</span><span class="dim">⟶</span>
+    <span class="dim">EYES · EARS</span><span class="dim">⟶</span>
+    <span style="color:var(--emberlight)">BRAIN</span>
+  </div>
+  <h1 class="step">The first two boxes exist.<br>We are building the <em>third</em>.</h1>
+  <div class="sub step">A living memory that perceives your world, questions it while
+    you sleep, discards its own bad thoughts, and speaks only when spoken to —
+    private, local, and more yours every day.</div>
+  <div class="brand">T&nbsp;R&nbsp;A&nbsp;C&nbsp;E</div>
+</section>
+
+<div id="grain"></div><div id="crease"></div>
+</div></div>
+
+<div id="hud">1 / 12</div>
+<div id="bar"></div>
+
+<script>
+(function(){
+  const slides=[...document.querySelectorAll('.slide')];
+  const hud=document.getElementById('hud'), bar=document.getElementById('bar');
+  let i=0;
+
+  // crow svg build stages keyed to how many text steps are revealed on s7
+  function crowStage(n){
+    const map={0:['c1'],2:['c2'],3:['c3']};
+    (map[n]||[]).forEach(c=>document.querySelectorAll('#crowsvg .'+c)
+      .forEach(e=>e.style.opacity=1));
+  }
+  function crowReset(){
+    document.querySelectorAll('#crowsvg .cstep').forEach(e=>e.style.opacity=0);
+  }
+  function crowAll(){[0,2,3].forEach(crowStage)}
+
+  function stepsOf(s){return [...s.querySelectorAll('.step')]}
+  function shown(s){return stepsOf(s).filter(e=>e.classList.contains('on')).length}
+
+  function render(){
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    hud.textContent=(i+1)+' / '+slides.length;
+    bar.style.width=((i+1)/slides.length*100)+'%';
+    if(slides[i].id==='s7' && shown(slides[i])===0){crowReset();crowStage(0);}
+  }
+  function next(){
+    const s=slides[i], st=stepsOf(s), n=shown(s);
+    if(n<st.length){
+      st[n].classList.add('on');
+      if(s.id==='s7') crowStage(n+1);
+    } else if(i<slides.length-1){ i++; render(); }
+  }
+  function prev(){
+    if(i>0){ i--; render();
+      const s=slides[i];
+      stepsOf(s).forEach(e=>e.classList.add('on'));
+      if(s.id==='s7') crowAll();
+    }
+  }
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown',' ','PageDown'].includes(e.key)){e.preventDefault();next();}
+    if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();prev();}
+    if(e.key==='Home'){i=0;render();}
+    if(e.key==='End'){i=slides.length-1;render();}
+  });
+  addEventListener('click',e=>{ (e.clientX>innerWidth*0.25)?next():prev(); });
+
+  const stage=document.getElementById('stage');
+  function fit(){
+    stage.style.transform='scale('+Math.min(innerWidth/1300, innerHeight/740)+')';
+  }
+  addEventListener('resize',fit); fit(); render();
+})();
+</script>
+</body>
+</html>
