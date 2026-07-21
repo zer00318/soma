@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TRACE — the metamorphosis</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#06080c;height:100%}
+  body{height:1400vh}
+  #c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+  #hint{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+    font:11px ui-monospace,Menlo,monospace;letter-spacing:.34em;color:#5b6478;z-index:5;transition:opacity .6s}
+  #rail{position:fixed;right:0;top:0;bottom:0;width:2px;background:#0f131b;z-index:5}
+  #head{position:absolute;left:0;width:2px;background:#e8a33d}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hint">SCROLL — ONE THING BECOMES THE NEXT</div>
+<div id="rail"><div id="head"></div></div>
+<script>
+(function(){
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const hint=document.getElementById('hint'), head=document.getElementById('head');
+let W=0,H=0,DPR=1;
+function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
+addEventListener('resize',resize);resize();
+
+const DIM='#39414f',MUTE='#7b8799',TXT='#dfe6f2',
+      FIRE='#e8a33d',GOLD='#ffd08a',EYE='#5cc8ff',EAR='#7ed9a0',
+      KILL='#f2685f',NODE='#c58cf5',BIND='#6fa8ff';
+const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lp2=(a,b,t)=>a+(b-a)*t;
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const eo=t=>1-Math.pow(1-t,3);
+
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function mono(x,y,s,c,sz,al){ctx.fillStyle=c||MUTE;ctx.font=(sz||11)+'px ui-monospace,Menlo,monospace';
+  ctx.textAlign=al||'left';ctx.fillText(s,x,y);ctx.textAlign='left';}
+function serif(x,y,s,c,sz,al){ctx.fillStyle=c||TXT;
+  ctx.font=(sz||22)+'px "Iowan Old Style",Palatino,Georgia,serif';ctx.textAlign=al||'left';
+  ctx.fillText(s,x,y);ctx.textAlign='left';}
+function ln(x1,y1,x2,y2,c,w){ctx.strokeStyle=c;ctx.lineWidth=w||1;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+function dot(x,y,r,c,a){ctx.globalAlpha=a===undefined?1:a;ctx.fillStyle=c;
+  ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.globalAlpha=1;}
+function glow(x,y,r,c,a){const g=ctx.createRadialGradient(x,y,0,x,y,r);
+  g.addColorStop(0,c);g.addColorStop(1,'rgba(0,0,0,0)');ctx.globalAlpha=a===undefined?.5:a;
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.globalAlpha=1;}
+
+/* the kitchen, drawable at any scale/alpha — the seed everything grows from */
+function jarDraw(x,y){
+  ctx.fillStyle='#2a2f3b';rr(x,y,62,16,4);ctx.fill();
+  ctx.fillStyle='#1d222c';rr(x+2,y+10,58,66,6);ctx.fill();
+  ctx.fillStyle='rgba(150,96,48,.55)';rr(x+6,y+44,50,28,3);ctx.fill();
+  ctx.fillStyle='rgba(236,229,214,.85)';rr(x+5,y+20,52,20,2);ctx.fill();
+  ctx.fillStyle='#20242c';ctx.font='bold 8px Georgia';ctx.fillText('NUSSGOLD',x+8,y+33);
+}
+function scene(ox,oy,s,o){o=o||{};
+  ctx.save();ctx.translate(ox,oy);ctx.scale(s,s);
+  if(o.alpha!==undefined)ctx.globalAlpha=o.alpha;
+  const g=ctx.createLinearGradient(150,-160,420,140);
+  g.addColorStop(0,'rgba(255,214,150,'+(o.dim?.04:.10)+')');g.addColorStop(1,'rgba(255,214,150,0)');
+  ctx.fillStyle=g;ctx.fillRect(120,-170,340,330);
+  ctx.strokeStyle='#1b2330';ctx.lineWidth=2;ctx.strokeRect(150,-160,150,120);
+  ctx.beginPath();ctx.moveTo(225,-160);ctx.lineTo(225,-40);ctx.moveTo(150,-100);ctx.lineTo(300,-100);ctx.stroke();
+  ctx.fillStyle='#0e131d';ctx.fillRect(455,-120,70,194);
+  ctx.fillStyle='#141a25';ctx.fillRect(-60,60,540,14);
+  ctx.fillStyle='#0d121b';ctx.fillRect(-60,74,540,90);
+  ctx.fillStyle=o.dim?'#10151f':'#161d2a';
+  ctx.beginPath();ctx.arc(30,-30,30,0,7);ctx.fill();
+  rr(-10,10,80,58,16);ctx.fill();
+  ctx.strokeStyle=o.dim?'#10151f':'#161d2a';ctx.lineWidth=17;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(66,26);ctx.lineTo(146,40);ctx.stroke();ctx.lineCap='butt';
+  jarDraw(158,-16);
+  ctx.fillStyle='#131924';rr(298,24,36,36,5);ctx.fill();
+  if(o.speak!==undefined){for(let i=0;i<3;i++){const q=((o.speak+i/3)%1);
+    ctx.strokeStyle='rgba(126,217,160,'+(0.35*(1-q))+')';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(6,-30,16+q*70,2.2,4.1);ctx.stroke();}}
+  ctx.restore();}
+
+/* stage geometry — one fixed stage; nothing pans */
+const CX=()=>W/2, CY=()=>H*0.55;
+/* the four text lines + audio line: THE recurring actors */
+const LINES=[
+  ['label reads "NUSSGOLD"','x .44 y .48 · :07 · 1.00',EYE],
+  ['glass jar, ¼ full, lid ajar','x .31 y .42 · :07 · .72',EYE],
+  ['morning kitchen, a reach','whole · :07 · .61',EYE],
+  ['"…nearly out of the hazelnut stuff"','mic · :09 · .93',EAR]];
+function lineRects(){ // the log layout the lines settle into
+  const w=Math.min(560,W*0.5), x=CX()-w/2, y0=CY()-120;
+  return LINES.map((_,i)=>[x,y0+i*56,w,40]);
+}
+function cardRect(){const w=Math.min(400,W*0.42);return [CX()-w/2,CY()-70,w,140];}
+function nodePos(){return {jar:[CX(),CY()-10,36],person:[CX()+190,CY()-110,26],pantry:[CX()-190,CY()+110,26]};}
+
+/* captions: top-left, per phase */
+const CAPS=[
+ ['09:14:07 · TUESDAY · KITCHEN','A person reaches for a jar and says something.','this is the only moment that will ever happen'],
+ ['THE STREAM','The moment splits into light and sound.','frames peel off the scene; the voice becomes a wave'],
+ ['THE SIEVE','Most frames die. One is worth reading.','the blurry one is discarded — it never touched disk'],
+ ['THE ADDRESS','The kept frame is given coordinates.','nothing is remembered without its address'],
+ ['THE WORDS','The frame becomes four lines of text.','the pixels die; the words remain — audio included'],
+ ['THE BIND','Same place, same second — one moment.','the lines fuse; still raw material, not a node yet'],
+ ['THE CELL','The moment becomes a living thing.','it thickens every time the world confirms it'],
+ ['THE NIGHT','Cells fire together. 1+1 = 4, ≠ 2.','derived — and it must cite its evidence, or die'],
+ ['THE ANSWER','"Do we need more of that spread?"','three memories, not three thousand — every clause cited'],
+ ['THE MACHINE','One second in. One cited sentence out.','frames kept: zero — the napkin, running']];
+
+function caption(i,a){
+  ctx.globalAlpha=a;
+  mono(48,64,CAPS[i][0],FIRE,12);
+  serif(48,100,CAPS[i][1],TXT,26);
+  mono(48,128,CAPS[i][2],DIM,11.5);
+  ctx.globalAlpha=1;
+}
+
+/* ══ the ten states of one object ══ */
+function ph0(t){ // the scene, alive
+  scene(CX()-180,CY()+10,1.05,{speak:(T*.5)%1});
+  const a=cl(((T*.5)%1)*3,0,1);
+  ctx.globalAlpha=cl(a*2,0,1)*cl(t*4,0,1);
+  serif(CX()+230,CY()-90,'"we’re nearly out of',EAR,19);
+  serif(CX()+230,CY()-62,'the hazelnut stuff"',EAR,19);
+  ctx.globalAlpha=1;
+}
+function ph1(t){ // scene recedes; frames + wave are BORN FROM it
+  const k=ease(cl(t*1.4,0,1));
+  scene(CX()-180,CY()+10,lp2(1.05,.62,k),{dim:1,speak:(T*.5)%1,alpha:lp2(1,.35,k)});
+  for(let i=0;i<6;i++){ // frames fan out of the scene's heart
+    const a0=Math.PI*(.15+.14*i), r=k*230;
+    const fx=CX()-40+Math.cos(a0)*r*1.3, fy=CY()-40-Math.sin(a0)*r;
+    ctx.globalAlpha=k;
+    ctx.strokeStyle=EYE;ctx.lineWidth=1.2;ctx.strokeRect(fx-19,fy-13,38,26);
+    ctx.fillStyle='rgba(92,200,255,.07)';ctx.fillRect(fx-19,fy-13,38,26);
+    ctx.globalAlpha=1;}
+  ctx.globalAlpha=k;
+  ctx.strokeStyle=EAR;ctx.lineWidth=1.4;ctx.beginPath();
+  for(let i=0;i<=140;i++){const x=CX()-260+(i/140)*520;
+    const a=13*Math.sin(i*.33+T*3)*Math.sin(i*.06+T*1.2)*k;
+    i?ctx.lineTo(x,CY()+185+a):ctx.moveTo(x,CY()+185+a);}
+  ctx.stroke();
+  mono(CX(),CY()+215,'audio · ears',EAR,10,'center');
+  mono(CX(),CY()-235,'video · eyes',EYE,10,'center');
+  ctx.globalAlpha=1;
+}
+function ph2(t){ // frames line up; blur dies; one survives and grows
+  const k=ease(cl(t*1.3,0,1));
+  scene(CX()-180,CY()+10,.62,{dim:1,alpha:.35*(1-k)});
+  // five small frames in a row, from the fan positions
+  for(let i=0;i<5;i++){
+    if(i===2)continue;
+    const fx=CX()-220+i*110, fy=CY()-150;
+    const blurDies=(i===3);
+    let a=k, dy=0, rot=0;
+    if(blurDies){const f=cl((t-.35)*2.2,0,1);a=k*(1-f);dy=f*160;rot=f*.5;}
+    ctx.save();ctx.translate(fx,fy+dy);ctx.rotate(rot);ctx.globalAlpha=a;
+    ctx.strokeStyle=blurDies?KILL:EYE;ctx.lineWidth=1.2;ctx.strokeRect(-24,-16,48,32);
+    if(blurDies){for(let s2=0;s2<3;s2++)ln(-20,-8+s2*8,20,-5+s2*8,'rgba(223,230,242,.25)',1.5);
+      if(t>.4)mono(0,34,'blur .71 — discarded',KILL,9,'center');}
+    ctx.restore();ctx.globalAlpha=1;}
+  // the survivor grows toward center
+  const g=ease(cl((t-.25)*1.6,0,1));
+  const fw=lp2(48,Math.min(430,W*.4),g), fh=fw*.66;
+  const fx=lp2(CX(),CX(),g), fy=lp2(CY()-150,CY()+10,g);
+  ctx.strokeStyle=EYE;ctx.lineWidth=1.6;
+  ctx.strokeRect(fx-fw/2,fy-fh/2,fw,fh);
+  if(g>.4){ctx.save();ctx.beginPath();ctx.rect(fx-fw/2,fy-fh/2,fw,fh);ctx.clip();
+    ctx.globalAlpha=(g-.4)/.6;
+    scene(fx-fw*.28,fy+fh*.22,fw/560,{dim:1});ctx.restore();ctx.globalAlpha=1;
+    mono(fx,fy+fh/2+22,'kept — legible · 09:14:07',EYE,10,'center');}
+}
+function ph3(t){ // the kept frame gets its grid, boxes, coordinates
+  const k=ease(cl(t*1.4,0,1));
+  const fw=Math.min(430,W*.4), fh=fw*.66, fx=CX(), fy=CY()+10;
+  ctx.strokeStyle=EYE;ctx.lineWidth=1.6;ctx.strokeRect(fx-fw/2,fy-fh/2,fw,fh);
+  ctx.save();ctx.beginPath();ctx.rect(fx-fw/2,fy-fh/2,fw,fh);ctx.clip();
+  scene(fx-fw*.28,fy+fh*.22,fw/560,{dim:1});ctx.restore();
+  ctx.globalAlpha=k*.5;
+  for(let i=1;i<8;i++)ln(fx-fw/2+i*fw/8,fy-fh/2,fx-fw/2+i*fw/8,fy+fh/2,'rgba(92,200,255,.12)',1);
+  for(let i=1;i<5;i++)ln(fx-fw/2,fy-fh/2+i*fh/5,fx+fw/2,fy-fh/2+i*fh/5,'rgba(92,200,255,.12)',1);
+  ctx.globalAlpha=1;
+  const BX=[[.52,.44,.13,.30,'jar','x .31 y .42'],[.53,.40,.10,.10,'label','x .44 y .48'],[.20,.30,.16,.42,'person','x .09 y .21']];
+  BX.forEach((b,i)=>{const bk=cl((t-.15-.18*i)*3,0,1);if(bk<=0)return;
+    ctx.globalAlpha=bk;
+    const bx=fx-fw/2+b[0]*fw-b[2]*fw/2, by=fy-fh/2+b[1]*fh-b[3]*fh/2;
+    ctx.strokeStyle=FIRE;ctx.lineWidth=1.3;ctx.strokeRect(bx,by,b[2]*fw,b[3]*fh);
+    mono(bx,by-6,b[4]+' · '+b[5],FIRE,9.5);
+    ctx.globalAlpha=1;});
+  if(t>.65){ctx.globalAlpha=cl((t-.65)*4,0,1);
+    mono(fx,fy+fh/2+26,'address first — meaning later',DIM,10.5,'center');ctx.globalAlpha=1;}
+}
+function ph4(t){ // THE MORPH: the frame compresses into the four lines
+  const k=ease(cl(t*1.2,0,1));
+  const fw=Math.min(430,W*.4), fh=fw*.66, fx=CX(), fy=CY()+10;
+  const LR=lineRects();
+  // frame rect morphs into each line rect (drawn 4x, splitting)
+  for(let i=0;i<4;i++){
+    const tr=LR[i];
+    const x=lp2(fx-fw/2,tr[0],k), y=lp2(fy-fh/2+i*fh/4,tr[1],k),
+          w2=lp2(fw,tr[2],k), h2=lp2(fh/4,tr[3],k);
+    const col=LINES[i][2];
+    ctx.globalAlpha=.25+.75*k;
+    ctx.strokeStyle=k<.5?EYE:col;ctx.lineWidth=1.2;
+    rr(x,y,w2,h2,4);ctx.stroke();
+    if(k>.55){ctx.globalAlpha=(k-.55)/.45;
+      mono(x+14,y+18,LINES[i][0],TXT,12);
+      mono(x+14,y+32,LINES[i][1],DIM,9);}
+    ctx.globalAlpha=1;}
+  // scene pixels scatter as the frame dies
+  if(k>.2&&k<.9){for(let i=0;i<40;i++){
+    const sx=fx-fw/2+((i*73)%fw), sy=fy-fh/2+((i*131)%fh);
+    const d=(k-.2)*140;
+    dot(sx+Math.cos(i)*d,sy+Math.sin(i*2.3)*d,1.5,EYE,(0.9-k)*.7);}}
+  if(k>.8){ctx.globalAlpha=(k-.8)*5;
+    mono(CX(),LR[3][1]+70,'frames kept: 0',FIRE,12,'center');ctx.globalAlpha=1;}
+}
+function ph5(t){ // THE MORPH: lines converge into one bound card
+  const k=ease(cl(t*1.2,0,1));
+  const LR=lineRects(), CR=cardRect();
+  for(let i=0;i<4;i++){
+    const fr=LR[i];
+    const x=lp2(fr[0],CR[0],k), y=lp2(fr[1],CR[1]+i*6,k),
+          w2=lp2(fr[2],CR[2],k), h2=lp2(fr[3],CR[3]-18*Math.min(k*2,1)*i? CR[3]:fr[3],0)||lp2(fr[3],CR[3],k);
+    ctx.globalAlpha=.9-(k*.5*(i/4));
+    ctx.strokeStyle=k<.5?LINES[i][2]:GOLD;ctx.lineWidth=1.2;
+    rr(x,y,w2,lp2(fr[3],CR[3],k),5);ctx.stroke();
+    if(k<.45){mono(x+14,y+18,LINES[i][0],TXT,11);}
+    ctx.globalAlpha=1;}
+  if(k>.3){const p=.5+.5*Math.sin(T*3);
+    glow(CX(),CR[1]-24,40,'rgba(111,168,255,.5)',(k-.3)*.6*p);
+    mono(CX(),CR[1]-20,'same place · same second — therefore one event',BIND,10.5,'center');}
+  if(k>.6){ctx.globalAlpha=(k-.6)/.4;
+    ctx.fillStyle='rgba(255,208,138,.05)';rr(CR[0],CR[1],CR[2],CR[3],6);ctx.fill();
+    mono(CR[0]+18,CR[1]+30,'ONE BOUND MOMENT',GOLD,10);
+    serif(CR[0]+18,CR[1]+62,'09:14 · kitchen',TXT,17);
+    mono(CR[0]+18,CR[1]+88,'the jar is nearly empty,',MUTE,11.5);
+    mono(CR[0]+18,CR[1]+104,'and it was said aloud',MUTE,11.5);
+    mono(CX(),CR[1]+CR[3]+38,'raw material — not a node yet',FIRE,10.5,'center');
+    ctx.globalAlpha=1;}
+}
+function ph6(t){ // THE MORPH: card shrinks into the breathing JAR cell
+  const k=ease(cl(t*1.2,0,1));
+  const CR=cardRect(), NP=nodePos();
+  const br=.5+.5*Math.sin(T*1.6);
+  // card → circle
+  const cw=lp2(CR[2],NP.jar[2]*2,k), chh=lp2(CR[3],NP.jar[2]*2,k);
+  const cx2=lp2(CR[0]+CR[2]/2,NP.jar[0],k), cy2=lp2(CR[1]+CR[3]/2,NP.jar[1],k);
+  ctx.globalAlpha=1;
+  if(k<.85){ctx.strokeStyle=k<.5?GOLD:NODE;ctx.lineWidth=1.4;
+    rr(cx2-cw/2,cy2-chh/2,cw,chh,lp2(6,NP.jar[2],k));ctx.stroke();}
+  if(k>.5){
+    glow(NP.jar[0],NP.jar[1],90,'rgba(197,140,245,.4)',(k-.5)*.7*(.4+br*.4));
+    ctx.fillStyle='rgba(197,140,245,'+(0.16*(k-.5)*2)+')';
+    ctx.beginPath();ctx.arc(NP.jar[0],NP.jar[1],NP.jar[2]+br*2,0,7);ctx.fill();
+    ctx.strokeStyle=NODE;ctx.lineWidth=1.5;ctx.stroke();
+    ctx.globalAlpha=(k-.5)*2;
+    mono(NP.jar[0],NP.jar[1]+4,'JAR',NODE,11,'center');
+    mono(NP.jar[0],NP.jar[1]+62,'seen 7× since 12 May',MUTE,10,'center');
+    mono(NP.jar[0],NP.jar[1]+78,'¼ full · 09:14 today',MUTE,10,'center');
+    ctx.globalAlpha=1;}
+  if(k>.7){const a=(k-.7)/.3;ctx.globalAlpha=a;
+    [[NP.person,'PERSON','said it aloud · buys ~monthly'],[NP.pantry,'PANTRY','this shelf · 41 sightings']].forEach(q=>{
+      ln(NP.jar[0],NP.jar[1],q[0][0],q[0][1],'rgba(197,140,245,.3)',1.2);
+      ctx.fillStyle='rgba(197,140,245,.12)';
+      ctx.beginPath();ctx.arc(q[0][0],q[0][1],q[0][2],0,7);ctx.fill();
+      ctx.strokeStyle=NODE;ctx.lineWidth=1.2;ctx.stroke();
+      mono(q[0][0],q[0][1]+4,q[1],NODE,9,'center');
+      mono(q[0][0],q[0][1]+q[0][2]+16,q[2],DIM,9,'center');});
+    ctx.globalAlpha=1;}
+}
+function ph7(t){ // night: cells fire; a third thing is born; a guess dies
+  const NP=nodePos(); const fire=.5+.5*Math.sin(T*2.2);
+  ctx.fillStyle='rgba(3,4,8,'+(0.5*cl(t*2,0,1))+')';ctx.fillRect(0,0,W,H);
+  [[NP.jar,'JAR'],[NP.person,'PERSON'],[NP.pantry,'PANTRY']].forEach(q=>{
+    glow(q[0][0],q[0][1],70,'rgba(197,140,245,.5)',.2+fire*.3);
+    ctx.fillStyle='rgba(197,140,245,.15)';
+    ctx.beginPath();ctx.arc(q[0][0],q[0][1],q[0][2],0,7);ctx.fill();
+    ctx.strokeStyle=NODE;ctx.lineWidth=1.3;ctx.stroke();
+    mono(q[0][0],q[0][1]+4,q[1],NODE,9.5,'center');});
+  ln(NP.jar[0],NP.jar[1],NP.person[0],NP.person[1],'rgba(197,140,245,'+(.3+fire*.3)+')',1.3);
+  const k=ease(cl((t-.2)*1.6,0,1));
+  if(k>0){
+    const bx=CX()-165, by=CY()+170;
+    glow(CX(),by+20,110,'rgba(232,163,61,.4)',k*.4);
+    ctx.globalAlpha=k;
+    ctx.strokeStyle=FIRE;ctx.lineWidth=1.5;rr(bx,by,330,74,6);ctx.stroke();
+    ctx.fillStyle='rgba(232,163,61,.05)';ctx.fill();
+    serif(bx+20,by+30,'"you run out roughly every six weeks"',TXT,15.5);
+    mono(bx+20,by+54,'derived · cites 3 readings   ·   1+1 = 4, ≠ 2',FIRE,10);
+    ctx.globalAlpha=1;}
+  if(t>.55){const f=cl((t-.55)*2.5,0,1);
+    ctx.globalAlpha=(1-f)*.7;
+    ctx.setLineDash([4,4]);ctx.strokeStyle=KILL;ctx.lineWidth=1.1;
+    rr(CX()+150,CY()-190+f*60,220,40,5);ctx.stroke();ctx.setLineDash([]);
+    mono(CX()+162,CY()-173+f*60,'"prefers the 400g size"',MUTE,10);
+    mono(CX()+162,CY()-159+f*60,'no rent paid — discarded',KILL,8.5);
+    ctx.globalAlpha=1;}
+}
+function ph8(t){ // ask: sparks leave the cells → packet → answer with citations
+  const NP=nodePos();
+  ctx.globalAlpha=.35;
+  [[NP.jar,'JAR'],[NP.person,'PERSON'],[NP.pantry,'PANTRY']].forEach(q=>{
+    ctx.strokeStyle=NODE;ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(q[0][0],q[0][1]-70,q[0][2]*.8,0,7);ctx.stroke();});
+  ctx.globalAlpha=1;
+  serif(CX(),CY()-210,'"Do we need more of that spread?"',TXT,21,'center');
+  const k1=ease(cl(t*2,0,1));
+  const px=CX()-110, py=CY()-60;
+  [[NP.jar[0],NP.jar[1]-70],[NP.person[0],NP.person[1]-70],[NP.pantry[0],NP.pantry[1]-70]].forEach((q,i)=>{
+    const sx=lp2(q[0],px+40,k1), sy=lp2(q[1],py+20+i*22,k1);
+    dot(sx,sy,3,FIRE,.9);});
+  if(k1>.6){ctx.globalAlpha=(k1-.6)/.4;
+    ctx.strokeStyle=GOLD;ctx.lineWidth=1.3;rr(px,py-8,220,96,6);ctx.stroke();
+    mono(px+14,py+10,'JUST ENOUGH CONTEXT',GOLD,9);
+    mono(px+14,py+30,'· jar ¼ full · 12 Jun',TXT,10.5);
+    mono(px+14,py+48,'· "nearly out" · heard',TXT,10.5);
+    mono(px+14,py+66,'· ~6 week cycle',TXT,10.5);
+    ctx.globalAlpha=1;}
+  const k2=ease(cl((t-.4)*1.8,0,1));
+  if(k2>0){
+    const ax=CX()-160, ay=CY()+80, aw=Math.min(520,W*.46);
+    ctx.globalAlpha=k2;
+    ctx.strokeStyle='rgba(123,135,153,.4)';ctx.lineWidth=1.3;rr(ax-40,ay-40,aw+60,86,7);ctx.stroke();
+    const L1='"Almost certainly. A quarter full on 12 June, you', L2='said so yourself — and it’s been six weeks."';
+    const n=Math.floor(cl(k2*1.3,0,1)*(L1.length+L2.length));
+    serif(ax-20,ay-8,L1.slice(0,Math.min(n,L1.length)),TXT,16);
+    serif(ax-20,ay+20,n>L1.length?L2.slice(0,n-L1.length):'',TXT,16);
+    ctx.globalAlpha=1;}
+  if(t>.75){const a=cl((t-.75)*4,0,1);ctx.globalAlpha=a;
+    for(let i=0;i<3;i++){const cxx=CX()-180+i*160, cyy=CY()+180;
+      ln(cxx+50,CY()+128,cxx+50,cyy-4,'rgba(232,163,61,.4)',1);
+      ctx.strokeStyle=FIRE;ctx.lineWidth=1.1;rr(cxx,cyy,130,36,4);ctx.stroke();
+      mono(cxx+10,cyy+15,['jar ¼ full','"nearly out"','~6 wk cycle'][i],TXT,9.5);
+      mono(cxx+10,cyy+28,['eye · .72','ear · .93','derived · 3'][i],DIM,8);}
+    mono(CX(),CY()+250,'no citation, no sentence',FIRE,10.5,'center');
+    ctx.globalAlpha=1;}
+}
+function ph9(t){ // everything collapses into the napkin chain
+  const k=ease(cl(t*1.3,0,1));
+  const B=[['World',92,MUTE],['Extraction',110,FIRE],['TEXT',80,EYE],['Binder',86,BIND],
+           ['Nodes',80,NODE],['Supplier',96,GOLD],['LLM',70,MUTE]];
+  let tot=0;B.forEach(b=>tot+=b[1]+30);tot-=30;
+  let x=CX()-tot/2; const by=CY()-10;
+  B.forEach((b,i)=>{
+    const beat=.5+.5*Math.sin(T*1.5-i*.5);
+    ctx.globalAlpha=k*(.55+beat*.45);
+    ctx.strokeStyle=b[2];ctx.lineWidth=(i===1||i===4||i===5)?1.8:1.2;
+    ctx.strokeRect(x,by,b[1],46);
+    ctx.globalAlpha=k;
+    mono(x+b[1]/2,by+27,b[0],b[2],10,'center');
+    if(i<B.length-1){ln(x+b[1]+4,by+23,x+b[1]+26,by+23,'rgba(123,135,153,.4)',1.2);}
+    x+=b[1]+30;ctx.globalAlpha=1;});
+  for(let i=0;i<10;i++){const p=((T*.06+i/10)%1);
+    dot(CX()-tot/2+40+p*(tot-80),by+23,2,FIRE,k*(.25+.75*Math.sin(p*Math.PI)));}
+  if(k>.5){ctx.globalAlpha=(k-.5)*2;
+    const rows=[['frames seen',Math.floor(1284000+T*260)],['frames kept',0],
+      ['lines of text',Math.floor(48120+T*22)],['nodes alive',612]];
+    rows.forEach((r,i)=>{const y=CY()+110+i*24;
+      mono(CX()-160,y,r[0],DIM,10.5);
+      mono(CX()+160,y,String(r[1]),r[0]==='frames kept'?FIRE:MUTE,12,'right');});
+    mono(CX(),CY()+230,'TRACE — the napkin outranks the code',FIRE,11,'center');
+    ctx.globalAlpha=1;}
+}
+
+const PHASES=[ph0,ph1,ph2,ph3,ph4,ph5,ph6,ph7,ph8,ph9];
+const N=PHASES.length;
+
+let T=0,navAct=0,locked=false;
+const scrollMax=()=>document.body.scrollHeight-innerHeight;
+const prog=()=>{const m=scrollMax();return m>0?cl(scrollY/m,0,1):0;};
+function readHash(){const h=(location.hash||'').replace(/^#/,'');if(h==='')return false;
+  const i=parseInt(h,10);if(isNaN(i))return false;navAct=cl(i,0,N-1);locked=true;return true;}
+addEventListener('hashchange',function(){readHash();});
+function goto(i){navAct=cl(i,0,N-1);const m=scrollMax();
+  if(m>0)scrollTo({top:m*(navAct/(N-1)),behavior:'smooth'});}
+addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();goto(navAct+1);}
+  if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();goto(navAct-1);}
+  if(e.key==='Home'){e.preventDefault();goto(0);}
+  if(e.key==='End'){e.preventDefault();goto(N-1);}});
+addEventListener('scroll',function(){locked=false;
+  if(scrollMax()>0)navAct=Math.round(prog()*(N-1));});
+readHash();
+
+let last=performance.now();
+function frame(now){
+  const dt=Math.min((now-last)/1000,.05);last=now;T+=dt;
+  const P=(locked||scrollMax()<=0)?navAct:prog()*(N-1);
+  const i=Math.min(N-1,Math.floor(P)), ft=P-i;
+  ctx.fillStyle='#06080c';ctx.fillRect(0,0,W,H);
+  // one fixed stage: current phase draws at local progress; captions crossfade
+  PHASES[i](locked?1:Math.max(ft, (scrollMax()<=0?1:ft)));
+  caption(i, 1-cl((ft-.85)*6,0,1));
+  if(ft>.85&&i<N-1)caption(i+1, cl((ft-.85)*6,0,1)*.5);
+  const pct=scrollMax()>0?prog():navAct/(N-1);
+  head.style.height=(pct*100)+'%';
+  hint.style.opacity=pct>.02?0:1;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
