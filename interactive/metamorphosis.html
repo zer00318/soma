@@ -966,15 +966,21 @@ function pinAt(l,x,y,z,vis,dx,dy){l.at.set(x,y,z); l.show=vis; l.off=[dx||0,dy||
 function pinIn(l,x,y,z,vis,dx,dy){pinAt(l,x,y+IY,z,vis,dx,dy);}
 /* a point that lands on a given screen pixel, `depth` in front of the camera.
    returned in IN-local space, because every beam is a child of IN (y offset IY) */
-function at3D(px,py,depth){
-  _v.set((px/innerWidth)*2-1,-(py/innerHeight)*2+1,0.5).unproject(cam);
+function at3D(px,py,depth){          /* px,py are overlay-layer units, not device px */
+  _v.set((px/VW)*2-1,-(py/VH)*2+1,0.5).unproject(cam);
   const p=cam.position.clone().add(_v.sub(cam.position).normalize().multiplyScalar(depth));
   p.y-=IY; return p;
 }
-/* measured, not assumed: the pane can be resized after load, and CSS owns the width */
-let CARD_W=360, PADX=30; const GAP=11;
+/* measured, not assumed: the pane can be resized after load, and CSS owns the width.
+   SC shrinks the whole overlay on short viewports so a column never runs under
+   the transport bar; VW/VH are the layout box in those scaled units. */
+let CARD_W=360, PADX=30, SC=1, VW=1280, VH=720; const GAP=11;
 function measure(){
   if(CARDS.length) CARD_W=CARDS[0].el.offsetWidth||CARD_W;
+  SC=cl((innerHeight-150)/540,0.68,1);
+  LAYER.style.transformOrigin='0 0';
+  LAYER.style.transform=SC<0.999?`scale(${SC.toFixed(3)})`:'';
+  VW=innerWidth/SC; VH=innerHeight/SC;
   PADX=innerWidth<900?12:30;
   TOPY=innerWidth<900?54:80;
 }
@@ -982,10 +988,10 @@ addEventListener('resize',measure);
 function cardScreen(c,px,py,show){c.screen=[px,py]; c.show=show;}
 /* three columns: l(eft) under nothing, c(entre) clear of the caption, r(ight) */
 function colX(side){
-  const r=innerWidth-CARD_W-PADX;
+  const r=VW-CARD_W-PADX;
   if(side==='r') return r;
   if(side==='l') return PADX;
-  return Math.round(Math.min(Math.max(innerWidth*0.35,PADX+200), r-CARD_W-16));
+  return Math.round(Math.min(Math.max(VW*0.35,PADX+200), r-CARD_W-16));
 }
 /* stack a column of cards using their real heights, so wrapped text never collides */
 function col(list,side,yStart){
@@ -1001,7 +1007,7 @@ function paint(){
     if(l.show<=0.012){if(l.el.style.opacity!=='0')l.el.style.opacity=0; continue;}
     _v.copy(l.at).project(cam);
     if(_v.z>1){l.el.style.opacity=0; continue;}
-    const x=(_v.x*.5+.5)*innerWidth+l.off[0],y=(-_v.y*.5+.5)*innerHeight+l.off[1];
+    const x=(_v.x*.5+.5)*VW+l.off[0],y=(-_v.y*.5+.5)*VH+l.off[1];
     l.el.style.transform=`translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
     l.el.style.opacity=l.show;
   }
@@ -1012,8 +1018,8 @@ function paint(){
     else{
       _v.copy(c.at).project(cam);
       if(_v.z>1){c.el.style.opacity=0; continue;}
-      x=(_v.x*.5+.5)*innerWidth+c.off[0]-CARD_W/2;
-      y=(-_v.y*.5+.5)*innerHeight+c.off[1];
+      x=(_v.x*.5+.5)*VW+c.off[0]-CARD_W/2;
+      y=(-_v.y*.5+.5)*VH+c.off[1];
     }
     c.el.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
     c.el.style.opacity=c.show;
@@ -1235,7 +1241,7 @@ function frame(){
     stepBraid(T,sat(p*5)*sat((1-p)*6)+0.25,gather);
     /* the five cards leave their column and collapse onto one another */
     let sy=TOPY;
-    const tx=innerWidth-CARD_W-PADX, ty=innerHeight*0.34;
+    const tx=VW-CARD_W-PADX, ty=VH*0.34;
     HELPERS.forEach((h,i)=>{
       const fly=sm(sat((p-0.02-i*0.03)/0.40));
       const c=cHelp[i];
