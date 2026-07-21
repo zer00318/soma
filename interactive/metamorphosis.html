@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TRACE // LIVE — one second, end to end</title>
+<link rel="modulepreload" href="./assets/three.module.min.js">
 <meta name="description" content="A running 3D walkthrough: a live kitchen enters through an eye and an ear, and comes out as one cited sentence — showing the actual text each helper emits, what a node stores, and how three nodes derive a fact none of them contained.">
 <style>
   :root{
@@ -120,6 +121,8 @@
     transition:background .18s,color .18s}
   #gate button:hover{background:var(--fire);color:#04060a}
   #gate .fine{color:#4b586c;font:10px var(--mono);letter-spacing:.16em;margin-top:22px;line-height:1.9}
+  #gate button:disabled{opacity:.5;cursor:progress}
+  #gate .err{color:var(--kill);letter-spacing:.12em;max-width:46ch;margin:26px auto 0}
 
   @media (max-width:900px){
     #cap{left:18px;top:18px;max-width:70vw}
@@ -169,7 +172,7 @@
 
 <div id="gate">
   <div>
-    <div class="mk">TRA<span>C</span>E</div>
+    <div class="mk" id="mk">TRA<span>C</span>E</div>
     <div class="sl">LIVE — ONE SECOND, END TO END</div>
     <p class="ln">A kitchen at 09:14 on a Tuesday. Someone reaches for a jar and says
     something. Watch that second <b>enter through an eye and an ear</b> — and follow the
@@ -179,8 +182,44 @@
     <button id="go">BEGIN</button>
     <p class="fine">3½ MIN · NO SOUND · RUNS IN YOUR BROWSER<br>
       SIMULATED WALKTHROUGH OF THE ARCHITECTURE — NOT A MEASUREMENT</p>
+    <p class="fine err" id="err"></p>
   </div>
 </div>
+
+<script>
+/* Classic script, runs before the module. Two jobs, both about the BEGIN
+   button never being a dead control:
+   1. fail loudly — if the module throws (no WebGL, blocked GPU, a bad
+      import) the reason goes on screen instead of nowhere;
+   2. accept a click before the module is ready and replay it once it is. */
+(function(){
+  var go=document.getElementById('go'), err=document.getElementById('err');
+  window.__trace={ready:false,want:false,begin:null};
+  function press(){
+    if(window.__trace.ready){ window.__trace.begin(); return; }
+    window.__trace.want=true; go.textContent='LOADING…'; go.disabled=true;
+  }
+  go.addEventListener('click',press);
+  document.getElementById('gate').addEventListener('click',function(e){
+    if(e.target===go) return;                 /* the button handles itself */
+    press();
+  });
+  addEventListener('keydown',function(e){
+    if(window.__trace.ready) return;
+    if(e.key==='Enter'||e.key===' ') press();
+  });
+  function fail(msg){
+    if(err.textContent) return;
+    go.style.display='none';
+    err.innerHTML='COULD NOT START — '+msg+'.<br><br>this page needs WebGL; '+
+      'try another browser, or enable hardware acceleration';
+  }
+  window.__trace.fail=fail;
+  addEventListener('error',function(e){
+    if(e.message) fail(String(e.message).slice(0,120));
+  });
+})();
+</script>
 
 <script type="module">
 import * as THREE from './assets/three.module.min.js';
@@ -302,7 +341,13 @@ const mix=(a,b,t)=>a+(b-a)*t;
 const N=m=>Math.max(1,Math.round(m*(MOB?0.42:1)));
 
 const cv=document.getElementById('gl');
-const R=new THREE.WebGLRenderer({canvas:cv,antialias:true,powerPreference:'high-performance'});
+let R;
+try{
+  R=new THREE.WebGLRenderer({canvas:cv,antialias:true,powerPreference:'high-performance'});
+}catch(e){
+  window.__trace.fail('this browser gave us no WebGL context');
+  throw e;
+}
 R.setPixelRatio(Math.min(devicePixelRatio,2));
 R.setSize(innerWidth,innerHeight);
 R.setClearColor(0x04060a,1);
@@ -952,12 +997,12 @@ addEventListener('keydown',e=>{
   if(e.code==='ArrowLeft'){e.preventDefault(); T=ACTS[Math.max(actIndex(T)-1,0)].t0+0.01;}
 });
 const gate=document.getElementById('gate');
-document.getElementById('go').onclick=()=>{
+function begin(){
   gate.classList.add('gone'); playing=true; pp.textContent='❚❚'; measure();
   const h=location.hash.match(/^#a(\d+)$/);
   if(h) T=ACTS[Math.min(+h[1],ACTS.length-1)].t0+0.01;
   setTimeout(()=>gate.style.display='none',1000);
-};
+}
 
 /* placement helpers */
 const _v=new THREE.Vector3(),camTgt=new THREE.Vector3();
@@ -1375,6 +1420,14 @@ function frame(){
 }
 measure();
 frame();
+
+/* everything is built — hand BEGIN over to the real handler, and honour a
+   click that landed while three.js was still parsing */
+const goBtn=document.getElementById('go');
+window.__trace.ready=true;
+window.__trace.begin=begin;
+goBtn.disabled=false; goBtn.textContent='BEGIN';
+if(window.__trace.want) begin();
 </script>
 </body>
 </html>
