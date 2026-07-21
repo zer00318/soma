@@ -1,39 +1,80 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>SOMA / TRACE — architecture resources</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TRACE — the architecture</title>
+<meta name="description" content="TRACE: an input-only wearable memory. The architecture — a live walkthrough, the founder deck, and the full thesis.">
 <style>
- body{background:#07090d;color:#e6edf3;font:16px -apple-system,sans-serif;margin:0;padding:44px;max-width:880px;margin:auto}
- h1{font-size:25px;margin:0 0 4px;font-weight:600} .sub{color:#79859b;font-size:13px;margin-bottom:30px}
- a.card{display:block;background:#0d121b;border:1px solid #182130;border-radius:10px;
-        padding:20px 24px;margin:14px 0;text-decoration:none;color:inherit;transition:.15s}
- a.card:hover{border-color:#e8a33d;background:#111825}
- .t{font-size:18px;font-weight:600;color:#e8a33d} .t2{color:#7f8ca3}
- .d{color:#79859b;font-size:13.5px;margin-top:7px;line-height:1.55}
- .tag{display:inline-block;font:11px ui-monospace,Menlo,monospace;padding:2px 8px;
-      border-radius:10px;margin-right:7px;background:#161d29;color:#79859b}
- .new{background:#2a2110;color:#e8a33d}
-</style></head><body>
-<h1>SOMA / TRACE — architecture</h1>
-<div class="sub">local preview · soma-docs/docs · branch claude/architecture-docs-visual-4tfi9g</div>
+ :root{--bg:#06080c;--card:#0d121b;--edge:#182130;--ink:#e6edf3;--dim:#79859b;--fire:#e8a33d}
+ *{box-sizing:border-box}
+ body{background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,"Helvetica Neue",sans-serif;
+      margin:0 auto;padding:56px 24px 80px;max-width:820px}
+ header{margin-bottom:8px}
+ .mark{font-size:34px;font-weight:800;letter-spacing:.24em;margin:0}
+ .mark span{color:var(--fire)}
+ .tag{color:var(--dim);font-size:14.5px;margin:10px 0 0;max-width:56ch}
+ .tag b{color:var(--ink);font-weight:600}
+ .order{margin:40px 0 10px;font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.22em;color:var(--dim)}
+ a.card{display:block;background:var(--card);border:1px solid var(--edge);border-radius:12px;
+        padding:22px 26px;margin:14px 0;text-decoration:none;color:inherit;transition:border-color .15s,background .15s}
+ a.card:hover{border-color:var(--fire);background:#111825}
+ .n{float:right;font:600 12px ui-monospace,Menlo,monospace;color:var(--dim)}
+ .t{font-size:18.5px;font-weight:650;color:var(--fire)}
+ .d{color:var(--dim);font-size:14px;margin-top:8px;line-height:1.6}
+ .d b{color:var(--ink);font-weight:600}
+ .meta{font:12px ui-monospace,Menlo,monospace;color:var(--dim);margin-top:10px;letter-spacing:.04em}
+ footer{margin-top:56px;border-top:1px solid var(--edge);padding-top:22px;
+        color:var(--dim);font-size:13px;line-height:1.8}
+ footer b{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <h1 class="mark">TRA<span>C</span>E</h1>
+  <p class="tag"><b>An input-only wearable memory.</b> It turns the live world into
+  addressed text at the moment of capture, destroys the frame, binds the words into a
+  living memory at night, and answers any question with citations — or refuses honestly.
+  Raw media never persists and never leaves the device.</p>
+</header>
 
-<a class="card" href="interactive/how-it-happens.html">
- <div class="t">How it happens — one continuous scene</div>
- <div class="d"><span class="tag new">the one to judge</span>
- A single unbroken journey, no sections: the world → video &amp; audio → the ring where
- raw lives seconds → tier one, peripheral vision watching every frame → tier two, the
- auction that sells one deep look → the dwell ladder (a jar becomes "750 g, three-quarters
- empty, German label") → text stamped with where/when → the binder → the living cell firing
- at night, 1+1=4 → just enough context → the answer that walks back home.
- Scroll drives the camera. Everything is live.</div></a>
+<div class="order">START HERE — IN ORDER</div>
 
-<a class="card" href="interactive/soma-architecture.html">
- <div class="t t2">Earlier explorer (sectioned)</div>
- <div class="d"><span class="tag">superseded</span>The scrolly document with headings — kept only for reference.</div></a>
+<a class="card" href="interactive/architecture-live.html">
+  <span class="n">1 · ~8 MIN</span>
+  <div class="t">The architecture, running</div>
+  <div class="d">One ordinary second in a kitchen, followed through every box of the
+  machine: the stream splits, the <b>blurry frame is shown and discarded</b>, the room is
+  transcribed, coordinates are drawn, the helpers are summoned, the words are bound,
+  the night derives <b>1+1=4</b>, and the answer walks back to the pixel that made it.</div>
+  <div class="meta">scroll or arrow keys · every stage deep-linkable (#0–#12)</div>
+</a>
 
 <a class="card" href="interactive/napkin-deck.html">
- <div class="t t2">The napkin deck — 12 slides</div>
- <div class="d"><span class="tag">presentation</span>Arrow keys or click to advance.</div></a>
+  <span class="n">2 · 12 SLIDES</span>
+  <div class="t">The napkin deck</div>
+  <div class="d">The founder presentation: the architecture as it was first drawn —
+  on a tissue paper — and why it is built this way. The napkin is the constitution
+  of the codebase; on any conflict, it outranks the code.</div>
+  <div class="meta">arrow keys or click to advance</div>
+</a>
 
-<a class="card" href="SOMA_Architecture_Thesis.pdf">
- <div class="t t2">Thesis — current PDF (91 pp)</div>
- <div class="d"><span class="tag">v1.0</span>The existing render. LaTeX rebuild with revision 1.1 in progress.</div></a>
-</body></html>
+<a class="card" href="TRACE_Architecture_Thesis.pdf">
+  <span class="n">3 · 37 PP · PDF</span>
+  <div class="t">The thesis — architecture &amp; rationale, v2.0</div>
+  <div class="d">The complete argument: first principles, forty years of prior art, the
+  seven locked invariants, the full pipeline, the domain model, evaluation, privacy,
+  honest risks, and <b>a "what is real today" ledger on page 3</b> that separates what
+  runs, what runs on fakes, and what is not yet built. All 40 references verified
+  against live sources on 2026-07-21.</div>
+  <div class="meta">typeset in Typst · fonts embedded · July 2026</div>
+</a>
+
+<footer>
+  <b>Venkata Sai Pranav Regulagedda</b> — founder · KIT · Max Planck Institute for
+  Plasma Physics<br>
+  TRACE · July 2026 · trace.allegedly.buzz<br>
+  Perfect recall, zero recordings — by architecture, not by promise.
+</footer>
+</body>
+</html>
