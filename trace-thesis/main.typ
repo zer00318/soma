@@ -41,6 +41,7 @@
 #let FAKES = text(fill: ember, weight: 700, size: 8.5pt)[ON FAKES]
 #let STUB = text(fill: ember, weight: 700, size: 8.5pt)[STUBBED]
 #let NOTYET = text(fill: inkgray, weight: 700, size: 8.5pt)[NOT YET]
+#let WITHDRAWN = text(fill: rgb("#b3261e"), weight: 700, size: 8.5pt)[WITHDRAWN]
 #let partpage(title) = {
   pagebreak(weak: true)
   v(9cm)
@@ -190,8 +191,14 @@ clip); the refusal-calibration research line — run with research
 collaborator Latheesh Roy — subsequently drove confident-wrong answers to
 *zero on the reproducible benchmark battery*, and holding that zero on cold
 captures is a standing gate, not a claim of final victory (§13.5, §13.8).
-On the perception side, extraction currently recovers 97.4% of what a
-frontier-model oracle reads from the same 111 real frames (§9.5).
+On the perception side the honest state is unsettled. Earlier drafts of this
+document reported 97.4% recovery against a "frontier-model oracle" over 111
+real frames; on 2026-07-21 that figure could not be reproduced from any
+artifact in the evaluation tree and has been withdrawn. What the frozen
+artifacts actually hold is *83.9%* on the capability instrument (n=26) and
+*61.6%* on the completeness instrument (n=29, baseline frozen 2026-07-14),
+and the oracle in every one of them is `gemma3:12b-it-qat` — a local
+quantized 12B model, not a frontier one (§9.5).
 
 *The state of the build.* The full thinking machinery — binder,
 consolidation, supplier, grounded recall — is implemented and passes an
@@ -229,8 +236,8 @@ the date above and demoted to hearsay a month later.
   [Extraction cascade], [#FAKES / #STUB], [M7 — logic real, hardware adapters (OCR/ASR/eyes/tap) stubbed],
   [Crown test: shuffled synthetic week → episodes → entities → nightly patterns → cited answer → honest abstention], REAL, [`tests/test_crown.py`, passing],
   [Unit wall], REAL, [274 green · 1 xfail (the TODO ledger, each naming its spec section)],
-  [Measured extraction gap], REAL, [L1-verbatim recall 0.974 (gap 0.026) over 111 real frames; ceilings audited],
-  [Confident-wrong answers on the benchmark battery], REAL, [0% — refusal-calibration line (with Latheesh Roy); cold-capture guard still open],
+  [Measured extraction score], WITHDRAWN, [the 0.974/111-frame figure carried by earlier drafts could not be reproduced from any artifact on 2026-07-21 and is withdrawn. What the frozen artifacts hold: *83.9%* (capability, n=26) and *61.6%* (completeness, n=29, baseline frozen 2026-07-14), scored against a *local quantized oracle*, `gemma3:12b-it-qat` — not a frontier model. See §9.5],
+  [Confident-wrong answers on the benchmark battery], [#REAL / #NOTYET], [0% on the in-house battery — refusal-calibration line (with Latheesh Roy). Scored against a self-authored judge; *no cold-capture result exists*, so this is not yet an external claim],
   [Falsification gate on real captured weeks], NOTYET, [the gate needs real captured weeks — the next milestone that matters],
   [v0 stack: live capture, hub, nightly job, phone app], REAL, [running since June 2026; being strangled, not extended],
 )
@@ -1032,15 +1039,41 @@ twice; storage grows with new knowledge, not with time spent looking.
 
 == The measured frontier
 
-The first real number exists, and it is encouraging without being
-sufficient: over 111 real captured frames, mechanically scored against
-pinned frontier-model ceilings (§13.2), L1-verbatim recall is *0.974* — a
-2.6% gap between what the extraction stack reads and what the best
-available oracle reads from the same frames. The audit also produced a
-diagnosed lesson — a cropping law confirmed on meal scenes (2/4 recovered
-on crops versus 0/4 on full frames) — the miss-diagnose-fix loop of I7
-operating on perception itself. The honest caveats: L1-verbatim is the
-mechanical tier of the claim-match instrument, not the full score; and 111
+A correction, stated first because it is the kind of error that gets
+believed. Earlier drafts of this chapter reported L1-verbatim recall of
+*0.974* over *111 real captured frames* scored against *pinned
+frontier-model ceilings*. Re-derived against the repository on 2026-07-21,
+none of those three claims survives:
+
+#list(
+  [*The oracle is not frontier.* Every oracle declaration in the evaluation
+   tree — all four — reads `gemma3:12b-it-qat`: a locally hosted, quantized
+   12B model. No frontier model was ever called. A score of 97.4% against a
+   12B local reader is a materially weaker statement than the same number
+   against the best reader available, and it is the only one the artifacts
+   support.],
+  [*The corpus is smaller than reported.* `evaluation/held/oracle_cache/`
+   holds *29 frames carrying 872 claims*, not 111 frames carrying 4,674.
+   The graded runs report `n=26` and `n_graded=29`.],
+  [*The score is not reproducible.* No artifact yields 0.974. The scores
+   that exist are *83.9%* (`extraction_capability.json`, n=26) and *61.6%*
+   (`extraction_completeness.json`, n=29) — the latter also frozen as the
+   baseline in `extraction_baseline_manifest.json` on 2026-07-14.],
+)
+
+The two surviving instruments measure different things and neither is a
+drop-in replacement for the withdrawn figure, so no substitute headline is
+offered here. The per-class breakdown is the more useful object anyway, and
+it is unflattering exactly where it matters most: on the completeness
+instrument the `number` class retains 62 of 109 graded claims (17 corrupted,
+30 missing) and `imagery` retains 32 of 96. Numbers and images are what a
+memory is asked to return; they are the weakest classes in the stack.
+
+What does survive from the original audit is the diagnosed lesson — a
+cropping law confirmed on meal scenes (2/4 recovered on crops versus 0/4 on
+full frames) — the miss-diagnose-fix loop of I7 operating on perception
+itself. The standing caveats also survive and are worth restating: the
+mechanical tier of the claim-match instrument is not the full score, and
 frames are frames, not weeks.
 
 = Consolidation: the night shift
@@ -1235,13 +1268,22 @@ direct measurement of the retention decision's cost (§2.5) and the
 empirical estimator of the central hypothesis (Appendix K). Raw media's
 only legitimate role in the system is here — oracle-side, offline, never
 entering production recall. In `tracemem` the same idea is systematized as
-pinned _ceilings_: frontier-model readings of the same frames, cached and
-versioned, so every extraction score is a fraction of a known maximum
-rather than a free-floating number. Current audited state: 111 ceiling
-frames carrying 4,674 claims; against their mechanical tier the extraction
-stack reads 97.4% (§9.5). Ceilings are re-pinned when the frontier moves;
-the score is always relative to the best reader rentable, which is the only
-honest definition of "lossless-enough."
+pinned _ceilings_: cached, versioned readings of the same frames, so every
+extraction score is a fraction of a known maximum rather than a
+free-floating number. Current audited state, re-derived 2026-07-21: *29
+ceiling frames carrying 872 claims*, read by `gemma3:12b-it-qat` — a local
+quantized model. Earlier drafts described these ceilings as
+"frontier-model readings" over 111 frames and 4,674 claims; that
+description was wrong on all three counts and is withdrawn (§9.5).
+
+This matters beyond the arithmetic. A ceiling set by a 12B local model is
+not a ceiling on what is *readable* — it is a ceiling on what *this reader*
+read, and the extraction stack can score highly against it while both miss
+the same things. The design intent stands: ceilings should be re-pinned
+against the best reader rentable, because that is the only honest
+definition of "lossless-enough." That pinning has not yet been done, and
+until it is, every extraction score in this document is relative to a
+local model rather than to the frontier.
 
 == The (A)/(B) instrument
 
@@ -1479,7 +1521,8 @@ the trigger that would escalate each.
 Text may not carry enough of the visual world. Mitigation: OAG and the
 ceilings exist to measure exactly this; the sufficiency phase brute-forces
 the best case before efficiency constrains it; the measured frame-level gap
-is 2.6% (§9.5). Escalation trigger: a sufficiency run on a clean real week
+is withdrawn and currently unmeasured against a frontier ceiling (§9.5).
+Escalation trigger: a sufficiency run on a clean real week
 in which the brute-force text scaffold still misses a material share of
 oracle-answerable questions. That result would demand rethinking the
 retention format itself, and no amount of scheduling cleverness would
@@ -1553,7 +1596,9 @@ questions the raw-frame oracle answers that the text cannot; the
 sufficiency phase maximizes the text side before any efficiency constraint
 bites; and the enrichment ladder exists to spend deep perception where
 tomorrow's question is likeliest to land. The honest current state: the
-frame-level gap is 2.6% (§9.5), the week-level gap is unmeasured, and if
+frame-level gap against a frontier ceiling is *unmeasured* — the figure
+earlier drafts cited here was withdrawn on 2026-07-21 (§9.5) — the
+week-level gap is likewise unmeasured, and if
 the gap ever proves irreducible at the sufficiency limit, the hypothesis is
 falsified and the premise fails — a possibility the risk register states
 rather than hides. What the objection cannot claim is that the alternative

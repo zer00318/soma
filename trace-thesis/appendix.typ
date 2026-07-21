@@ -118,7 +118,7 @@ The box→code map (subordinate to the drawing):
   [*token bucket*], [the hard hourly budget governing deep looks; no overdraft],
   [*supplier*], [the third black box: cue → retrieve → pack → ground],
   [*grounding gate*], [the checklist that admits only clauses the evidence packet supports],
-  [*ceiling*], [a pinned frontier-model reading of the same frame; the denominator of every extraction score],
+  [*ceiling*], [a pinned oracle reading of the same frame; the denominator of every extraction score. Intended to be a frontier-model reading; as of 2026-07-21 the pinned ceilings were produced by a local quantized model (`gemma3:12b-it-qat`) — see §9.5, §13.2],
   [*RAS*], [(correct − made-up) / total, over a blind adversarial battery],
   [*OAG*], [oracle-answerability gap: of oracle-answerable questions, the share the text missed],
   [*(A)/(B) miss*], [diagnosis of a failure: never captured (A) versus captured but unused (B)],
