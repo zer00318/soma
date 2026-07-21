@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SOMA — how it happens</title>
+<title>SOMA — one moment, all the way through</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body{background:#07090d;height:100%}
-  body{height:1400vh}
+  html,body{background:#06080c;height:100%}
+  body{height:1800vh}
   #c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
-  #hint{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
-    font:11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.3em;
-    color:#5b6478;z-index:5;transition:opacity .5s}
-  #rail{position:fixed;right:0;top:0;bottom:0;width:2px;background:#11151d;z-index:5}
+  #hint{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+    font:11px ui-monospace,Menlo,monospace;letter-spacing:.34em;color:#5b6478;
+    z-index:5;transition:opacity .5s}
+  #rail{position:fixed;right:0;top:0;bottom:0;width:2px;background:#0f131b;z-index:5}
   #head{position:absolute;left:0;width:2px;background:#e8a33d}
 </style>
 </head>
@@ -25,446 +25,406 @@
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 const hint=document.getElementById('hint'), head=document.getElementById('head');
 let W=0,H=0,DPR=1;
-function resize(){
-  DPR=Math.min(devicePixelRatio||1,2);
-  W=innerWidth; H=innerHeight;
-  cv.width=W*DPR; cv.height=H*DPR;
-  ctx.setTransform(DPR,0,0,DPR,0,0);
-}
-addEventListener('resize',resize); resize();
+function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
+addEventListener('resize',resize);resize();
 
-const WORLD=14400;
-let cam=0, camTarget=0;
-function scrollProgress(){
-  const max=document.body.scrollHeight-innerHeight;
-  return max>0?scrollY/max:0;
-}
+const WORLD=16200;
+let cam=0,camTarget=0;
+const prog=()=>{const m=document.body.scrollHeight-innerHeight;return m>0?scrollY/m:0;};
 
-// ── palette ──────────────────────────────────────────────────────────
-const INK='#07090d', DIM='#4a5464', MUTE='#79859b', TEXT='#dce3ef';
-const FIRE='#e8a33d', EYE='#5cc8ff', EAR='#7ed9a0', KILL='#f2685f',
-      NODE='#c58cf5', GOLD='#ffd08a';
-
-// ── tiny helpers ─────────────────────────────────────────────────────
-const R=(a,b)=>a+Math.random()*(b-a);
+const INK='#06080c',DIM='#454f60',MUTE='#7b8799',TXT='#dfe6f2',
+      FIRE='#e8a33d',GOLD='#ffd08a',EYE='#5cc8ff',EAR='#7ed9a0',
+      KILL='#f2685f',NODE='#c58cf5',WARM='#c98a4b';
+const R=(a,b)=>a+Math.random()*(b-a), cl=(v,a,b)=>Math.max(a,Math.min(b,v));
 function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
   ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
-function lab(x,y,s,col,size,align){ctx.fillStyle=col||MUTE;
-  ctx.font=(size||11)+'px ui-monospace,SFMono-Regular,Menlo,monospace';
-  ctx.textAlign=align||'left';ctx.fillFeature=0;ctx.fillText(s,x,y);ctx.textAlign='left';}
-function serif(x,y,s,col,size,align){ctx.fillStyle=col||TEXT;
-  ctx.font=size+'px "Iowan Old Style",Palatino,Georgia,serif';
-  ctx.textAlign=align||'left';ctx.fillText(s,x,y);ctx.textAlign='left';}
-function line(x1,y1,x2,y2,col,w,dash){ctx.strokeStyle=col;ctx.lineWidth=w||1;
-  if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
-  ctx.stroke();ctx.setLineDash([]);}
-function dot(x,y,r,col,a){ctx.globalAlpha=a===undefined?1:a;ctx.fillStyle=col;
+function mono(x,y,s,c,sz,al){ctx.fillStyle=c||MUTE;ctx.font=(sz||11)+'px ui-monospace,Menlo,monospace';
+  ctx.textAlign=al||'left';ctx.fillText(s,x,y);ctx.textAlign='left';}
+function serif(x,y,s,c,sz,al){ctx.fillStyle=c||TXT;
+  ctx.font=sz+'px "Iowan Old Style",Palatino,Georgia,serif';ctx.textAlign=al||'left';
+  ctx.fillText(s,x,y);ctx.textAlign='left';}
+function ln(x1,y1,x2,y2,c,w,d){ctx.strokeStyle=c;ctx.lineWidth=w||1;if(d)ctx.setLineDash(d);
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.setLineDash([]);}
+function dot(x,y,r,c,a){ctx.globalAlpha=a===undefined?1:a;ctx.fillStyle=c;
   ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.globalAlpha=1;}
-function glow(x,y,r,col,a){const g=ctx.createRadialGradient(x,y,0,x,y,r);
-  g.addColorStop(0,col);g.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.globalAlpha=a===undefined?.5:a;ctx.fillStyle=g;
-  ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.globalAlpha=1;}
-// the spine: one unbroken path the whole way
-function spineY(x){return H*0.5 + Math.sin(x/1150)*H*0.075 + Math.sin(x/430)*H*0.018;}
+function glow(x,y,r,c,a){const g=ctx.createRadialGradient(x,y,0,x,y,r);
+  g.addColorStop(0,c);g.addColorStop(1,'rgba(0,0,0,0)');ctx.globalAlpha=a===undefined?.5:a;
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.globalAlpha=1;}
+function box(x,y,w,h,c,fill){ctx.strokeStyle=c;ctx.lineWidth=1.2;ctx.strokeRect(x,y,w,h);
+  if(fill){ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);}}
 
-// ── the motes: one continuous stream through every box ───────────────
-const motes=[];
-function seed(){
-  for(let i=0;i<260;i++)
-    motes.push({x:R(0,WORLD),off:R(-46,46),lane:Math.random()<0.68?'v':'a',
-      sp:R(26,46),ph:R(0,7),dead:0});
-}
-seed();
-function moteStep(m,dt){
-  m.x+=m.sp*dt;
-  if(m.x>WORLD){m.x-=WORLD;m.dead=0;}
-  // blur gate + peripheral culling: most frames never earn a deep look
-  if(m.x>3350&&m.x<3500&&!m.dead&&m.lane==='v'&&((m.ph*7)%1)<0.55) m.dead=1;
-  if(m.x>4700&&m.x<4850&&!m.dead&&m.lane==='v'&&((m.ph*13)%1)<0.6) m.dead=2;
-}
-
-// ══ ACT 1 · THE WORLD ════════════════════════════════════════════════
-function actWorld(t){
-  const yc=spineY(700);
-  // a room, abstractly: desk line, a jar, a mug, a person, a speaker
-  ctx.strokeStyle='#141a24'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(120,yc+120); ctx.lineTo(1020,yc+120); ctx.stroke();
+// ══════════ THE SCENE — one kitchen, one moment, drawn again and again ══════
+// Everything downstream refers back to exactly this.
+function kitchen(ox,oy,s,o){
+  o=o||{};
+  ctx.save(); ctx.translate(ox,oy); ctx.scale(s,s);
+  // window light
+  const g=ctx.createLinearGradient(150,-160,420,140);
+  g.addColorStop(0,'rgba(255,214,150,.09)');g.addColorStop(1,'rgba(255,214,150,0)');
+  ctx.fillStyle=g; ctx.fillRect(120,-170,340,330);
+  ctx.strokeStyle='#1b2330';ctx.lineWidth=2;ctx.strokeRect(150,-160,150,120);
+  ctx.beginPath();ctx.moveTo(225,-160);ctx.lineTo(225,-40);
+  ctx.moveTo(150,-100);ctx.lineTo(300,-100);ctx.stroke();
+  // counter
+  ctx.fillStyle='#141a25'; ctx.fillRect(-60,60,540,14);
+  ctx.fillStyle='#0d121b'; ctx.fillRect(-60,74,540,90);
   // person
-  ctx.fillStyle='#111722';
-  ctx.beginPath(); ctx.arc(250,yc+22,26,0,7); ctx.fill();
-  rr(214,yc+56,72,66,14); ctx.fill();
-  // jar (the one that will be studied later)
-  ctx.fillStyle='#151c27'; rr(470,yc+48,54,72,7); ctx.fill();
-  ctx.fillStyle='#1d2431'; rr(470,yc+48,54,20,7); ctx.fill();
-  // mug
-  ctx.fillStyle='#131924'; rr(600,yc+80,40,40,6); ctx.fill();
-  // sound rings from the person
-  for(let i=0;i<3;i++){
-    const p=((t*0.55+i/3)%1);
-    ctx.strokeStyle='rgba(126,217,160,'+(0.30*(1-p))+')'; ctx.lineWidth=1.4;
-    ctx.beginPath(); ctx.arc(250,yc+22,18+p*130,-0.9,0.9); ctx.stroke();
+  ctx.fillStyle=o.dim?'#10151f':'#161d2a';
+  ctx.beginPath();ctx.arc(30,-30,30,0,7);ctx.fill();
+  rr(-10,10,80,58,16);ctx.fill();
+  // arm reaching to the jar
+  ctx.strokeStyle=o.dim?'#10151f':'#161d2a';ctx.lineWidth=17;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(66,26);ctx.lineTo(146,40);ctx.stroke();ctx.lineCap='butt';
+  // THE JAR
+  ctx.fillStyle='#1d222c'; rr(160,-6,58,66,6); ctx.fill();
+  ctx.fillStyle='#2a2f3b'; rr(158,-16,62,16,4); ctx.fill();      // lid
+  ctx.fillStyle='rgba(150,96,48,.55)'; rr(164,26,50,32,3); ctx.fill(); // contents ¼
+  ctx.fillStyle='rgba(236,229,214,.82)'; rr(163,4,52,20,2); ctx.fill(); // label
+  ctx.fillStyle='#20242c';ctx.font='bold 9px Georgia';ctx.fillText('NUTELLA',167,17);
+  ctx.fillStyle='#4a4f58';ctx.font='7px Georgia';ctx.fillText('750 g',196,17);
+  // mug, board
+  ctx.fillStyle='#131924'; rr(300,26,34,34,5); ctx.fill();
+  ctx.fillStyle='#151b26'; rr(360,44,86,16,3); ctx.fill();
+  // speech
+  if(o.speak){
+    const p=o.speak;
+    for(let i=0;i<3;i++){const q=((p+i/3)%1);
+      ctx.strokeStyle='rgba(126,217,160,'+(0.34*(1-q))+')';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(6,-30,16+q*70,2.2,4.1);ctx.stroke();}
   }
-  // light leaving the objects toward the senses
-  for(let i=0;i<26;i++){
-    const p=((t*0.30+i/26)%1), x=470+p*640, y=yc+70-Math.sin(i*2.1)*46*p;
-    dot(x,y,1.5,EYE,0.30*(1-p*0.4));
-  }
-  lab(120,yc-150,'THE WORLD',FIRE,12);
-  serif(120,yc-112,'Everything that happens, happens once.',TEXT,26);
-  lab(120,yc-80,'a brain never touches it directly — only its light and its sound',DIM,12);
+  ctx.restore();
 }
 
-// ══ ACT 2 · THE SENSES ═══════════════════════════════════════════════
-function actSenses(t){
-  const x0=1150, yc=spineY(x0+400);
-  lab(x0,yc-150,'VIDEO (EYES) · AUDIO (EARS)',FIRE,12);
-  lab(x0,yc-124,'the only two senses worth manufacturing',DIM,12);
-  // eye aperture
-  const ex=x0+330, ey=yc-70;
-  ctx.strokeStyle=EYE; ctx.lineWidth=1.6; ctx.globalAlpha=.75;
-  ctx.beginPath(); ctx.ellipse(ex,ey,72,38,0,0,7); ctx.stroke();
-  ctx.globalAlpha=1; dot(ex,ey,13,EYE,.85); glow(ex,ey,52,'rgba(92,200,255,.5)',.5);
-  lab(ex+92,ey+4,'frames, continuously',EYE,11);
-  // ear waveform
-  const ax=x0+330, ay=yc+92;
-  ctx.strokeStyle=EAR; ctx.lineWidth=1.6; ctx.beginPath();
-  for(let i=-80;i<=80;i++){
-    const v=Math.sin(i*0.22+t*5)*Math.exp(-Math.abs(i)/70)*26;
-    i===-80?ctx.moveTo(ax+i,ay+v):ctx.lineTo(ax+i,ay+v);
-  }
-  ctx.stroke(); lab(ax+92,ay+4,'sound, continuously',EAR,11);
-  // funnel into one stream
-  ctx.strokeStyle='#1a2230'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(ex+80,ey); ctx.quadraticCurveTo(x0+560,yc,x0+660,yc);
-  ctx.moveTo(ax+80,ay); ctx.quadraticCurveTo(x0+560,yc,x0+660,yc); ctx.stroke();
+function spineY(x){return H*0.52+Math.sin(x/1300)*H*0.05;}
+
+// ══ 1 · THE MOMENT ═════════════════════════════════════════════════════════
+function actMoment(t){
+  const x0=120, yc=spineY(600);
+  kitchen(x0+180,yc,1,{speak:(t*0.5)%1});
+  mono(x0,yc-250,'09:14:07 · TUESDAY · KITCHEN',FIRE,12);
+  serif(x0,yc-212,'A person reaches for a jar and says something.',TXT,27);
+  mono(x0,yc-180,'this is the only moment that will ever happen. everything after is about keeping it.',DIM,12);
+  const a=cl(((t*0.5)%1)*3,0,1);
+  if(a>0.15){ctx.globalAlpha=cl(a*2,0,1);
+    serif(x0+560,yc-40,'“we\'re nearly out of',EAR,20);
+    serif(x0+560,yc-10,'the hazelnut stuff”',EAR,20);ctx.globalAlpha=1;}
+  mono(x0+560,yc+40,'sound, arriving as sound — not yet as words',DIM,11);
 }
 
-// ══ ACT 3 · THE RING — RAW LIVES SECONDS ═════════════════════════════
-function actRing(t){
-  const x0=2350, yc=spineY(x0+420);
-  lab(x0,yc-150,'THE RING · RAW MATERIAL, HELD FOR SECONDS',FIRE,12);
-  lab(x0,yc-124,'pixels are never a memory — they are a moment about to be read',DIM,12);
-  const cx=x0+420, cy=yc, rad=118;
-  ctx.strokeStyle='#161d29'; ctx.lineWidth=26;
-  ctx.beginPath(); ctx.arc(cx,cy,rad,0,7); ctx.stroke();
-  for(let i=0;i<22;i++){
-    const a=(i/22)*7 - t*1.25, age=((i/22)+t*0.2)%1;
-    const x=cx+Math.cos(a)*rad, y=cy+Math.sin(a)*rad;
-    ctx.save(); ctx.translate(x,y); ctx.rotate(a+1.57);
-    ctx.globalAlpha=Math.max(0,1-age*1.25);
-    ctx.fillStyle=EYE; ctx.fillRect(-11,-7,22,14);
-    ctx.restore(); ctx.globalAlpha=1;
-  }
-  // pixels dying out the far side
-  for(let i=0;i<16;i++){
-    const p=((t*0.7+i/16)%1);
-    dot(cx+rad+p*150, cy+Math.sin(i*3)*24*p, 2*(1-p), KILL, .5*(1-p));
-  }
-  lab(cx+rad+40,cy+92,'then destroyed — the footage is never the memory',KILL,11);
-}
-
-// ══ ACT 4 · TIER ONE — PERIPHERAL, WATCHES EVERYTHING ════════════════
-function actPeripheral(t){
-  const x0=3300, yc=spineY(x0+560);
-  lab(x0,yc-176,'TIER ONE · PERIPHERAL VISION',FIRE,12);
-  serif(x0,yc-140,'Cheap eyes that miss nothing.',TEXT,24);
-  lab(x0,yc-110,'watches every single frame — and reports only two things',DIM,12);
-  const gx=x0+120, gy=yc-56, cw=52, ch=34, cols=12, rows=4;
-  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
-    const x=gx+c*cw, y=gy+r*ch;
-    const n=Math.sin(c*1.7+r*2.3+t*1.6)*0.5+0.5;
-    const changed=n>0.86;
-    ctx.strokeStyle=changed?'rgba(232,163,61,.85)':'#131a25';
-    ctx.lineWidth=changed?1.6:1; ctx.strokeRect(x,y,cw-5,ch-5);
-    if(changed){ctx.fillStyle='rgba(232,163,61,.13)';ctx.fillRect(x,y,cw-5,ch-5);
-      lab(x+4,y+ch-13,'△',FIRE,10);}
-  }
-  lab(gx,gy+rows*ch+26,'"something changed HERE"',FIRE,12);
-  lab(gx+240,gy+rows*ch+26,'"this has been still for 12s"',MUTE,12);
-  lab(gx,gy+rows*ch+50,'blurry and unchanged frames die here — before anything expensive is spent',KILL,11);
-}
-
-// ══ ACT 5 · TIER TWO — THE AUCTION, ONE DEEP LOOK ════════════════════
-function actAuction(t){
-  const x0=4650, yc=spineY(x0+560);
-  lab(x0,yc-176,'TIER TWO · THE FOVEA',FIRE,12);
-  serif(x0,yc-140,'One expensive look. Sold to the highest bid.',TEXT,24);
-  lab(x0,yc-110,'attention is a budget, so it is spent like one',DIM,12);
-  const bids=[['change: jar region',0.92],['still 12s: document',0.44],
-              ['hunger: "whose mug?"',0.61],['change: menubar clock',0.12]];
-  const bx=x0+120, by=yc+96;
-  const win=Math.floor(t*0.35)%1===0?0:0;
-  bids.forEach((b,i)=>{
-    const h=b[1]*128, x=bx+i*150, pulse=i===win?(Math.sin(t*5)*0.5+0.5):0;
-    ctx.fillStyle=i===win?'rgba(232,163,61,'+(0.55+pulse*0.4)+')':'#1a2230';
-    rr(x,by-h,54,h,4); ctx.fill();
-    lab(x,by+18,b[0].split(':')[0],i===win?FIRE:DIM,10);
-    lab(x,by+32,b[0].split(':')[1]||'',i===win?GOLD:'#39424f',10);
+// ══ 2 · SAMPLING — HOW MUCH TO RECORD, DECIDED CONTINUOUSLY ════════════════
+function actSampling(t){
+  const x0=1700, yc=spineY(x0+600);
+  kitchen(x0-40,yc+30,0.52,{dim:1,speak:(t*0.5)%1});
+  mono(x0,yc-260,'THE SENSES DO NOT RECORD EVERYTHING THE SAME WAY',FIRE,12);
+  serif(x0,yc-222,'How much to spend on this instant?',TXT,26);
+  mono(x0,yc-190,'the dial moves by itself, many times a second',DIM,12);
+  // the regimes, chosen by what the scene is doing
+  const phase=(t*0.18)%1;
+  const regimes=[
+    ['STILL','5 fps · 360p','nothing is moving — barely look',0.00],
+    ['MOTION','30 fps · 1080p','a hand enters the frame',0.28],
+    ['FAST','120 fps · 720p','the reach is quick; freeze it or lose it',0.52],
+    ['DWELL','1 frame · 4K','it settled — now spend everything, once',0.76]];
+  let cur=0; regimes.forEach((r,i)=>{if(phase>=r[3])cur=i;});
+  const bx=x0+330;
+  regimes.forEach((r,i)=>{
+    const y=yc-130+i*66, on=i===cur;
+    ctx.globalAlpha=on?1:0.28;
+    box(bx,y,20,20,on?FIRE:DIM, on?'rgba(232,163,61,.22)':null);
+    mono(bx+34,y+15,r[0],on?FIRE:DIM,12);
+    mono(bx+124,y+15,r[1],on?GOLD:DIM,13);
+    mono(bx+280,y+15,r[2],on?MUTE:DIM,11);
+    ctx.globalAlpha=1;
   });
-  lab(bx,by-160,'bids rise from the periphery ...',MUTE,11);
-  // winner cone converging
-  const tx=bx+430, ty=yc-30;
-  ctx.strokeStyle='rgba(232,163,61,.5)'; ctx.lineWidth=1.2;
-  ctx.beginPath(); ctx.moveTo(bx+20,by-118); ctx.lineTo(tx,ty);
-  ctx.moveTo(bx+58,by-118); ctx.lineTo(tx,ty); ctx.stroke();
-  glow(tx,ty,70,'rgba(232,163,61,.55)',.75); dot(tx,ty,7,GOLD);
-  lab(tx+26,ty+4,'the gaze lands — once',GOLD,11);
-  lab(bx,by+66,'losers age upward, so a patient hunger eventually beats fresh noise',DIM,11);
+  // the data cost of each choice
+  const cost=[6,64,180,240][cur];
+  mono(bx,yc+180,'data this second ≈ '+cost+' units',MUTE,11);
+  ctx.fillStyle='rgba(232,163,61,.5)';ctx.fillRect(bx+180,yc+170,cost*0.9,8);
+  mono(bx,yc+206,'spend follows the world — not a clock. still rooms are almost free.',DIM,11);
 }
 
-// ══ ACT 6 · MACRO PICTURE, THEN THE HELPERS ══════════════════════════
-function actHelpers(t){
-  const x0=5950, yc=spineY(x0+560);
-  lab(x0,yc-176,'THE MACRO PICTURE, THEN THE SPECIALISTS',FIRE,12);
-  serif(x0,yc-140,'What is happening? Then: who should look closer?',TEXT,24);
-  const mx=x0+120, my=yc-80;
-  ctx.strokeStyle='#232c3b'; rr(mx,my,268,74,8); ctx.stroke();
-  lab(mx+14,my+26,'a kitchen counter, daytime,',TEXT,12);
-  lab(mx+14,my+46,'one person, a jar in hand',TEXT,12);
-  lab(mx+14,my-10,'macro picture',FIRE,10);
-  const helpers=[['reading eye','words + boxes',EYE],['object eye','things + state',NODE],
-                 ['listening ear','speech + time',EAR]];
-  helpers.forEach((h,i)=>{
-    const x=mx+360+i*190, y=my+(i-1)*16, on=(Math.sin(t*1.5+i*2)*0.5+0.5)>0.45;
-    ctx.strokeStyle=on?h[2]:'#1b2330'; ctx.globalAlpha=on?.95:.4;
-    rr(x,y,168,60,8); ctx.stroke(); ctx.globalAlpha=1;
-    lab(x+12,y+24,h[0],on?h[2]:DIM,11); lab(x+12,y+42,h[1],DIM,10);
-    line(mx+268,my+37,x,y+30,on?'rgba(120,140,170,.45)':'#161d29',1);
+// ══ 3 · COORDINATES + THE FRAMES THAT DIE ══════════════════════════════════
+function actCoords(t){
+  const x0=3450, yc=spineY(x0+600);
+  mono(x0,yc-260,'EVERY READING IS STAMPED WHERE AND WHEN',FIRE,12);
+  serif(x0,yc-222,'Nothing is remembered without its address.',TXT,26);
+  kitchen(x0+40,yc+30,0.62,{dim:1});
+  // boxes over the scene with live coordinates
+  const boxes=[[100,-6,42,52,'jar','.31 .42'],[168,4,34,14,'label','.44 .48'],
+               [-8,-42,44,44,'face','.09 .21'],[186,22,24,24,'mug','.52 .55']];
+  boxes.forEach((b,i)=>{
+    const on=(Math.sin(t*1.4+i*1.5)*0.5+0.5)>0.25;
+    if(!on) return;
+    const bx=x0+40+b[0]*0.62, by=yc+30+b[1]*0.62;
+    box(bx,by,b[2]*0.62,b[3]*0.62,'rgba(92,200,255,.75)');
+    mono(bx,by-6,b[4]+' '+b[5],EYE,9);
   });
-  lab(mx,yc+120,'no specialist is architecture — drop any one and the organism does not notice',DIM,11);
+  // frames streaming, blurry ones killed
+  const fx=x0+560;
+  mono(fx,yc-120,'frames arriving',DIM,11);
+  for(let i=0;i<9;i++){
+    const p=((t*0.35+i/9)%1), y=yc-96+p*250;
+    const blurry=(i%3===1);
+    ctx.globalAlpha=blurry?cl(1-(p-0.45)*4,0,1):1;
+    if(blurry&&p>0.45){ctx.globalAlpha=cl(1-(p-0.45)*4,0,1);}
+    ctx.strokeStyle=blurry?KILL:'rgba(92,200,255,.6)';ctx.lineWidth=1.2;
+    ctx.strokeRect(fx,y,64,40);
+    if(blurry){ctx.strokeStyle=KILL;ln(fx,y,fx+64,y+40,KILL,1);
+      if(p>0.3)mono(fx+74,y+24,'blurred — dropped',KILL,10);}
+    else if(p>0.3&&p<0.9) mono(fx+74,y+24,'sharp — read it',EYE,10);
+    ctx.globalAlpha=1;
+  }
+  mono(x0,yc+250,'coordinates + timestamps are the primary key. meaning is attached later, and can always find its way home.',DIM,11);
 }
 
-// ══ ACT 7 · THE DWELL LADDER — DEEPER, NEVER REPEATING ═══════════════
+// ══ 4 · GLANCE vs DWELL ════════════════════════════════════════════════════
 function actDwell(t){
-  const x0=7150, yc=spineY(x0+600);
-  lab(x0,yc-206,'THE LONGER IT STAYS, THE DEEPER IT LOOKS',FIRE,12);
-  serif(x0,yc-170,'A scene that stays earns nuance — and never repeats itself.',TEXT,24);
-  // the jar, held in gaze
-  const jx=x0+150, jy=yc-40;
-  glow(jx+30,jy+50,110,'rgba(232,163,61,.22)',.9);
-  ctx.fillStyle='#1a212d'; rr(jx,jy,64,104,8); ctx.fill();
-  ctx.fillStyle='#242c3a'; rr(jx,jy,64,26,8); ctx.fill();
-  ctx.fillStyle='rgba(200,140,60,.28)'; rr(jx+5,jy+58,54,42,5); ctx.fill();
-  // dwell clock
-  const cyc=(t*0.16)%1;
-  ctx.strokeStyle='#222b3a'; ctx.lineWidth=3;
-  ctx.beginPath(); ctx.arc(jx+32,jy+150,20,0,7); ctx.stroke();
-  ctx.strokeStyle=FIRE; ctx.beginPath();
-  ctx.arc(jx+32,jy+150,20,-1.57,-1.57+cyc*6.283); ctx.stroke();
-  lab(jx+62,jy+155,(cyc*12).toFixed(1)+'s of gaze',MUTE,11);
-  // the ladder: each rung appears once, in order, and stays
+  const x0=5250, yc=spineY(x0+600);
+  mono(x0,yc-268,'A GLANCE IS CHEAP. STAYING IS HOW IT LEARNS.',FIRE,12);
+  serif(x0,yc-230,'The same jar, looked at for longer.',TXT,26);
+  const cyc=(t*0.14)%1;
+  // the jar alone, held in the gaze
+  ctx.save();ctx.translate(x0+90,yc-40);ctx.scale(1.7,1.7);
+  glow(30,30,70,'rgba(232,163,61,.18)',.9);
+  ctx.fillStyle='#1d222c'; rr(0,0,58,66,6); ctx.fill();
+  ctx.fillStyle='#2a2f3b'; rr(-2,-10,62,16,4); ctx.fill();
+  ctx.fillStyle='rgba(150,96,48,.55)'; rr(4,32,50,32,3); ctx.fill();
+  ctx.fillStyle='rgba(236,229,214,.85)'; rr(3,10,52,20,2); ctx.fill();
+  ctx.fillStyle='#20242c';ctx.font='bold 9px Georgia';ctx.fillText('NUTELLA',7,23);
+  ctx.restore();
+  // gaze clock
+  ctx.strokeStyle='#1d2532';ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(x0+140,yc+130,22,0,7);ctx.stroke();
+  ctx.strokeStyle=FIRE;ctx.beginPath();
+  ctx.arc(x0+140,yc+130,22,-1.57,-1.57+cyc*6.283);ctx.stroke();
+  mono(x0+172,yc+135,(cyc*14).toFixed(1)+'s held',MUTE,11);
   const rungs=[
-    ['L0  glance','a jar',0.06],
-    ['L1  read','NUTELLA · 750 g',0.24],
-    ['L2  study','three-quarters empty · lid not fully turned',0.48],
-    ['L3  infer','German promo label — this kitchen is probably in Germany',0.74]];
-  const rx=x0+400;
+    ['0.2s','a jar','glance · 1 unit',0.05],
+    ['1.4s','NUTELLA · 750 g','read the label · 4 units',0.26],
+    ['5.0s','three-quarters empty · lid not fully turned','study it · 22 units',0.50],
+    ['11.0s','German promo sleeve — this kitchen is probably in Germany','infer · 60 units',0.76]];
+  const rx=x0+330;
   rungs.forEach((r,i)=>{
-    const on=cyc>r[2], y=jy-10+i*54;
-    ctx.globalAlpha=on?1:0.16;
-    lab(rx,y,r[0],on?FIRE:DIM,10);
-    serif(rx+96,y+2,r[1],on?TEXT:DIM,17);
-    if(on&&i>0) line(rx+42,y-40,rx+42,y-8,'rgba(232,163,61,.4)',1.2);
+    const on=cyc>r[3], y=yc-150+i*74;
+    ctx.globalAlpha=on?1:0.14;
+    mono(rx,y,r[0],on?FIRE:DIM,11);
+    serif(rx+66,y+3,r[1],on?TXT:DIM,17);
+    mono(rx+66,y+22,r[2],on?DIM:DIM,10);
+    if(on&&i>0)ln(rx+22,y-52,rx+22,y-10,'rgba(232,163,61,.35)',1.2);
     ctx.globalAlpha=1;
   });
-  lab(rx,jy+232,'each level adds only what is NEW — the same fact is never written twice',DIM,11);
+  mono(rx,yc+186,'each level writes only what is NEW. the same fact is never stored twice.',DIM,11);
 }
 
-// ══ ACT 8 · TEXT — STAMPED, GRADED, PERMANENT ════════════════════════
-function actText(t){
-  const x0=8700, yc=spineY(x0+520);
-  lab(x0,yc-176,'TEXT',FIRE,12);
-  serif(x0,yc-140,'Marked by where, and when, and how sure.',TEXT,24);
-  const cards=[
-    ['"NUTELLA 750g"','x .42 y .31 · 09:14:07','VERBATIM 1.00',EYE],
-    ['jar ¾ empty, lid ajar','x .42 y .33 · 09:14:19','GIST 0.72',NODE],
-    ['"we\'re nearly out"','mic · 09:14:22','VERBATIM 0.93',EAR]];
-  cards.forEach((c,i)=>{
-    const x=x0+130+i*300, y=yc-70+i*22, fl=(Math.sin(t*2+i)*0.5+0.5)*0.25+0.75;
-    ctx.globalAlpha=fl;
-    ctx.strokeStyle='#232c3b'; rr(x,y,268,86,7); ctx.stroke();
-    ctx.fillStyle='rgba(12,16,23,.85)'; rr(x,y,268,86,7); ctx.fill();
+// ══ 5 · THE HELPERS ════════════════════════════════════════════════════════
+function actHelpers(t){
+  const x0=7100, yc=spineY(x0+600);
+  mono(x0,yc-260,'DIFFERENT EYES FOR DIFFERENT THINGS — EACH BLIND TO THE OTHERS',FIRE,12);
+  serif(x0,yc-222,'Three readings of one instant.',TXT,26);
+  kitchen(x0-30,yc+40,0.42,{dim:1,speak:(t*0.5)%1});
+  const hs=[
+    ['reading eye','"NUTELLA 750 g"','x .44 y .48 · 09:14:07 · verbatim 1.00',EYE],
+    ['object eye','glass jar, ¼ full, lid ajar','x .31 y .42 · 09:14:07 · gist 0.72',NODE],
+    ['listening ear','"we\'re nearly out of the hazelnut stuff"','mic · 09:14:09 · verbatim 0.93',EAR]];
+  hs.forEach((h,i)=>{
+    const y=yc-160+i*112, on=(Math.sin(t*1.1+i*2.1)*0.5+0.5)>0.3;
+    ctx.globalAlpha=on?1:0.4;
+    ctx.strokeStyle=h[3];rr(x0+340,y,470,84,8);ctx.stroke();
+    ctx.fillStyle='rgba(9,12,18,.7)';rr(x0+340,y,470,84,8);ctx.fill();
+    mono(x0+356,y+22,h[0],h[3],11);
+    serif(x0+356,y+48,h[1],TXT,16);
+    mono(x0+356,y+70,h[2],DIM,10);
+    ln(x0+250,yc+30,x0+340,y+42,on?'rgba(120,140,170,.4)':'#141b26',1);
     ctx.globalAlpha=1;
-    serif(x+14,y+30,c[0],TEXT,15);
-    lab(x+14,y+52,c[1],DIM,10);
-    lab(x+14,y+70,c[2],c[3],10);
   });
-  // raw dissolving behind
-  for(let i=0;i<18;i++){
-    const p=((t*0.5+i/18)%1);
-    dot(x0+120+i*46, yc+130+Math.sin(i*2+t)*10, 2.5*(1-p), KILL, .35*(1-p));
-  }
-  lab(x0+130,yc+170,'the pixels that produced these are already gone — the words are the memory now',KILL,11);
+  mono(x0+340,yc+260,'no helper is architecture — remove any one and the rest carry on',DIM,11);
 }
 
-// ══ ACT 9 · THE BINDER ═══════════════════════════════════════════════
+// ══ 6 · THE BINDER ═════════════════════════════════════════════════════════
 function actBinder(t){
-  const x0=9800, yc=spineY(x0+520);
-  lab(x0,yc-176,'THE BINDER',FIRE,12);
-  serif(x0,yc-140,'Same place, same moment — therefore the same event.',TEXT,24);
-  const cx=x0+520, cy=yc+10, p=(Math.sin(t*0.7)*0.5+0.5);
-  const srcs=[[-320,-90,EYE,'what was seen'],[-320,70,EAR,'what was heard'],
-              [-320,-10,NODE,'where you were']];
-  srcs.forEach((s,i)=>{
-    const x=cx+s[0]*(1-p*0.82), y=cy+s[1]*(1-p*0.82);
-    dot(x,y,5,s[2],.9); glow(x,y,26,s[2].replace(')',',.5)').replace('#','rgba('),.4);
-    line(x,y,cx,cy,'rgba(90,105,130,'+(0.15+p*0.4)+')',1);
-    if(p<0.6) lab(x+12,y-10,s[3],s[2],10);
+  const x0=8950, yc=spineY(x0+560);
+  mono(x0,yc-250,'SAME PLACE, SAME SECOND — THEREFORE ONE EVENT',FIRE,12);
+  serif(x0,yc-212,'The binder makes three readings into one moment.',TXT,26);
+  const cx=x0+560, cy=yc+20, p=(Math.sin(t*0.6)*0.5+0.5);
+  const src=[[-360,-130,EYE,'"NUTELLA 750 g"'],[-380,0,NODE,'jar ¼ full, lid ajar'],
+             [-360,130,EAR,'"nearly out of..."']];
+  src.forEach(s=>{
+    const x=cx+s[0]*(1-p*0.8), y=cy+s[1]*(1-p*0.8);
+    dot(x,y,5,s[2],.9);
+    ln(x,y,cx,cy,'rgba(95,112,140,'+(0.12+p*0.42)+')',1);
+    if(p<0.55){ctx.globalAlpha=1-p*1.8;serif(x+14,y+5,s[3],s[2],14);ctx.globalAlpha=1;}
   });
-  glow(cx,cy,70+p*40,'rgba(197,140,245,.45)',.5+p*0.4);
-  dot(cx,cy,10+p*8,NODE,.95);
-  lab(cx+34,cy-6,'one moment of your life',NODE,12);
-  lab(cx+34,cy+14,'still raw material — not yet a node',DIM,11);
+  glow(cx,cy,78+p*46,'rgba(197,140,245,.4)',.45+p*0.4);
+  dot(cx,cy,11+p*8,NODE,.95);
+  if(p>0.55){serif(cx+40,cy-6,'09:14 · kitchen · the jar is nearly empty, and it was said aloud',TXT,17);
+    mono(cx+40,cy+20,'still raw material — a first thought, not yet a node',DIM,11);}
 }
 
-// ══ ACT 10 · THE CELL, AND THE NIGHT ═════════════════════════════════
-const cells=[];
-(function(){for(let i=0;i<11;i++)cells.push({a:R(0,7),r:R(70,215),ph:R(0,7)});})();
+// ══ 7 · NODES ══════════════════════════════════════════════════════════════
 function actNodes(t){
-  const x0=11050, yc=spineY(x0+640);
-  lab(x0,yc-206,'THE NODE — A LIVING CELL',FIRE,12);
-  serif(x0,yc-170,'It sleeps, it wakes, it combines. 1 + 1 = 4.',TEXT,24);
-  const cx=x0+560, cy=yc+20;
-  // encrypted shell
-  ctx.strokeStyle='rgba(197,140,245,.18)'; ctx.lineWidth=1;
-  ctx.setLineDash([3,7]); ctx.beginPath(); ctx.arc(cx,cy,265,0,7); ctx.stroke();
-  ctx.setLineDash([]);
-  lab(cx-262,cy-278,'encrypted — only you hold the key',NODE,10);
-  // nodes + edges
-  const pts=cells.map(c=>{const a=c.a+t*0.06;
-    return {x:cx+Math.cos(a)*c.r, y:cy+Math.sin(a)*c.r*0.62,
-            f:(Math.sin(t*1.4+c.ph)*0.5+0.5)};});
-  pts.forEach((p,i)=>pts.forEach((q,j)=>{ if(j<=i) return;
+  const x0=10700, yc=spineY(x0+560);
+  mono(x0,yc-250,'THE MOMENT BECOMES THINGS THAT PERSIST',FIRE,12);
+  serif(x0,yc-212,'Nodes: a jar, a person, a pantry — each with a history.',TXT,26);
+  const ns=[['JAR · hazelnut spread',x0+150,yc-60,
+             ['seen 7 times since 12 May','¼ full · 09:14 today','bought ~6 weeks ago']],
+            ['YOU',x0+620,yc-140,['said it aloud · 09:14','buys it roughly monthly']],
+            ['PANTRY · kitchen',x0+640,yc+90,['this shelf, 41 sightings']]];
+  ns.forEach((n,i)=>{
+    const f=(Math.sin(t*1.2+i*2)*0.5+0.5);
+    glow(n[1]+90,n[2]+40,90,'rgba(197,140,245,.30)',.3+f*.3);
+    ctx.strokeStyle='rgba(197,140,245,.55)';rr(n[1],n[2],290,44+n[3].length*22,9);ctx.stroke();
+    ctx.fillStyle='rgba(9,12,18,.75)';rr(n[1],n[2],290,44+n[3].length*22,9);ctx.fill();
+    mono(n[1]+16,n[2]+26,n[0],NODE,12);
+    n[3].forEach((a,j)=>mono(n[1]+16,n[2]+50+j*22,'· '+a,MUTE,11));
+  });
+  ln(x0+440,yc-20,x0+620,yc-100,'rgba(197,140,245,.4)',1.4);
+  ln(x0+440,yc+10,x0+640,yc+110,'rgba(197,140,245,.4)',1.4);
+  mono(x0+150,yc+230,'every line above can name the second it came from, and the pixel it was read at',DIM,11);
+}
+
+// ══ 8 · THE FORMAT — OUR OWN EXTENSION ═════════════════════════════════════
+function actFormat(t){
+  const x0=12500, yc=spineY(x0+560);
+  mono(x0,yc-262,'IT NEEDS ITS OWN FILE FORMAT — THE WAY IMAGES NEEDED .PNG',FIRE,12);
+  serif(x0,yc-224,'A life does not fit in a database row.',TXT,26);
+  mono(x0,yc-192,'a specified container anyone can implement, and only you can open',DIM,12);
+  const chunks=[
+    ['HEADER','version · device · counts — readable without the key',GOLD,64],
+    ['RAW LOG','append-only. every reading, immutable, forever',EYE,150],
+    ['GRAPH','nodes, edges, confidence — rebuildable from RAW',NODE,120],
+    ['PROVENANCE','which pixel, which second, which helper, how sure',EAR,110],
+    ['META','derived thoughts — deletable, re-derivable',WARM,80]];
+  let y=yc-140;
+  chunks.forEach((c,i)=>{
+    const on=(t*0.5+i*0.2)%2.2<1.6;
+    ctx.globalAlpha=on?1:.55;
+    ctx.strokeStyle=c[2];rr(x0+140,y,c[3]*2.6,42,5);ctx.stroke();
+    ctx.fillStyle='rgba(9,12,18,.6)';rr(x0+140,y,c[3]*2.6,42,5);ctx.fill();
+    mono(x0+156,y+26,c[0],c[2],12);
+    mono(x0+160+c[3]*2.6,y+26,c[1],MUTE,11);
+    ctx.globalAlpha=1; y+=54;
+  });
+  mono(x0+140,y+16,'.trace  —  encrypted at rest · portable · yours to take anywhere',GOLD,12);
+  mono(x0+140,y+40,'lose the meta and nothing is lost. lose the raw and everything is.',DIM,11);
+}
+
+// ══ 9 · MARINATION ═════════════════════════════════════════════════════════
+const cells=[];(function(){for(let i=0;i<12;i++)cells.push({a:R(0,7),r:R(80,225),p:R(0,7)});})();
+function actNight(t){
+  const x0=14150, yc=spineY(x0+560);
+  mono(x0,yc-262,'AT NIGHT IT THINKS ABOUT WHAT IT SAW',FIRE,12);
+  serif(x0,yc-224,'Nodes fire together. Some pairs make a third thing.',TXT,26);
+  const cx=x0+560,cy=yc+30;
+  const pts=cells.map(c=>{const a=c.a+t*0.05;
+    return{x:cx+Math.cos(a)*c.r,y:cy+Math.sin(a)*c.r*0.6,f:(Math.sin(t*1.3+c.p)*0.5+0.5)};});
+  pts.forEach((p,i)=>pts.forEach((q,j)=>{if(j<=i)return;
     const d=Math.hypot(p.x-q.x,p.y-q.y);
-    if(d<190){ const fire=Math.min(p.f,q.f);
-      ctx.strokeStyle='rgba(197,140,245,'+(0.05+fire*0.35)+')';
-      ctx.lineWidth=0.6+fire*1.5; ctx.beginPath();
-      ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); }}));
-  pts.forEach(p=>{ dot(p.x,p.y,3.5+p.f*3,NODE,.55+p.f*.45);
-    if(p.f>0.8) glow(p.x,p.y,30,'rgba(197,140,245,.6)',.5); });
-  // the derivation: two fire together, a third is born
-  const dc=(t*0.22)%1;
-  if(dc>0.35){
-    const a=pts[2],b=pts[6], mx=(a.x+b.x)/2, my=(a.y+b.y)/2-58;
-    const g=Math.min(1,(dc-0.35)/0.3);
-    line(a.x,a.y,mx,my,'rgba(255,208,138,'+(0.7*g)+')',1.6);
-    line(b.x,b.y,mx,my,'rgba(255,208,138,'+(0.7*g)+')',1.6);
-    glow(mx,my,44*g,'rgba(255,208,138,.6)',.7*g); dot(mx,my,5*g,GOLD,g);
-    if(g>0.6) lab(mx+16,my-8,'a thought nobody recorded',GOLD,11);
-  }
-  // pruning: a failed derivation fades, the raw beneath it does not
-  const pr=(t*0.19+0.5)%1;
-  const px=cx-190, py=cy+205;
-  ctx.globalAlpha=Math.max(0,1-pr*1.6);
-  ctx.strokeStyle=KILL; rr(px,py,150,30,5); ctx.stroke();
-  lab(px+10,py+20,'a guess that paid no rent',KILL,10);
+    if(d<180){const f=Math.min(p.f,q.f);
+      ctx.strokeStyle='rgba(197,140,245,'+(0.04+f*0.32)+')';ctx.lineWidth=0.6+f*1.4;
+      ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}}));
+  pts.forEach(p=>{dot(p.x,p.y,3.4+p.f*3,NODE,.5+p.f*.5);
+    if(p.f>0.82)glow(p.x,p.y,28,'rgba(197,140,245,.55)',.45);});
+  const dc=(t*0.2)%1;
+  if(dc>0.3){const a=pts[3],b=pts[8],mx=(a.x+b.x)/2,my=(a.y+b.y)/2-64,g=cl((dc-0.3)/0.3,0,1);
+    ln(a.x,a.y,mx,my,'rgba(255,208,138,'+0.7*g+')',1.6);
+    ln(b.x,b.y,mx,my,'rgba(255,208,138,'+0.7*g+')',1.6);
+    glow(mx,my,46*g,'rgba(255,208,138,.55)',.7*g);dot(mx,my,5*g,GOLD,g);
+    if(g>0.55)serif(mx+18,my-4,'“you run out roughly every six weeks”',GOLD,16);
+    if(g>0.75)mono(mx+18,my+18,'nobody recorded this. it was derived, and it cites its evidence.',DIM,10);}
+  const pr=(t*0.17+0.4)%1;
+  ctx.globalAlpha=cl(1-pr*1.7,0,1);
+  ctx.strokeStyle=KILL;rr(x0+170,yc+250,220,30,5);ctx.stroke();
+  mono(x0+182,yc+270,'a guess that paid no rent',KILL,10);
   ctx.globalAlpha=1;
-  lab(px,py+56,'the failed thought is discarded — the raw material underneath never is',DIM,11);
-  lab(cx+150,cy+250,'always running · deepest at night',MUTE,11);
+  mono(x0+170,yc+306,'the failed thought is deleted. the raw underneath is never touched —',DIM,11);
+  mono(x0+170,yc+326,'so a better idea tomorrow can be tried on the same evidence.',DIM,11);
 }
 
-// ══ ACT 11 · JUST ENOUGH CONTEXT ═════════════════════════════════════
-function actSupplier(t){
-  const x0=12700, yc=spineY(x0+480);
-  lab(x0,yc-176,'JUST ENOUGH CONTEXT',FIRE,12);
-  serif(x0,yc-140,'A question arrives. Not everything is fetched — only what answers it.',TEXT,22);
-  const qx=x0+120, qy=yc-60;
-  ctx.strokeStyle=FIRE; rr(qx,qy,330,42,21); ctx.stroke();
-  lab(qx+18,qy+26,'"are we out of the hazelnut stuff?"',GOLD,13);
-  const p=(t*0.4)%1;
-  const picks=[[0,-40],[1,10],[2,58]];
+// ══ 10 · THE QUESTION, THE ANSWER, THE WAY HOME ════════════════════════════
+function actAsk(t){
+  const x0=15650, yc=spineY(x0+400);
+  mono(x0,yc-250,'MONTHS LATER',FIRE,12);
+  const p=(t*0.22)%1;
+  ctx.strokeStyle=FIRE;rr(x0,yc-200,392,44,22);ctx.stroke();
+  serif(x0+20,yc-171,'“do we need more of that spread?”',GOLD,17);
+  const picks=['jar ¼ full · 09:14, 12 Jun','"nearly out" · heard, 12 Jun','runs out every ~6 weeks'];
   picks.forEach((s,i)=>{
-    const sx=qx+380+i*10, sy=qy+s[1]+40;
-    const tx=qx+560, ty=qy+20+i*30;
-    const lp=Math.max(0,Math.min(1,(p-i*0.12)*2.4));
-    dot(sx+(tx-sx)*lp, sy+(ty-sy)*lp, 4, NODE, .8);
-    if(lp>=1){ctx.strokeStyle='#232c3b'; rr(tx,ty-12,240,26,5); ctx.stroke();
-      lab(tx+10,ty+5,['jar ¾ empty · 09:14','"we\'re nearly out"','bought 6 weeks ago'][i],TEXT,11);}
+    const lp=cl((p-i*0.1)*3,0,1);
+    if(lp<=0)return;
+    ctx.globalAlpha=lp;
+    ctx.strokeStyle='#1d2634';rr(x0+40,yc-110+i*38,330,30,5);ctx.stroke();
+    mono(x0+54,yc-90+i*38,s,MUTE,11);
+    ctx.globalAlpha=1;
   });
-  lab(qx+560,qy+150,'three memories — not three thousand',DIM,11);
-}
-
-// ══ ACT 12 · THE ANSWER, AND THE WAY HOME ════════════════════════════
-function actAnswer(t){
-  const x0=13600, yc=spineY(x0+400);
-  lab(x0,yc-176,'THE MOUTH',FIRE,12);
-  serif(x0,yc-140,'It answers — or it says it does not know.',TEXT,24);
-  const ax=x0+120, ay=yc-70;
-  serif(ax,ay+30,'Nearly. The jar was three-quarters',TEXT,21);
-  serif(ax,ay+62,'empty this morning, and you said so.',TEXT,21);
-  const chips=[['09:14 · seen',EYE],['09:14 · heard',EAR]];
-  chips.forEach((c,i)=>{
-    const x=ax+i*160, y=ay+92;
-    ctx.strokeStyle=c[1]; ctx.globalAlpha=.75; rr(x,y,146,26,13); ctx.stroke();
-    ctx.globalAlpha=1; lab(x+14,y+17,c[0],c[1],10);
-  });
-  // the citation walks all the way home
-  const p=(t*0.25)%1;
-  const hx=ax-(p*4200);
-  ctx.strokeStyle='rgba(232,163,61,.30)'; ctx.setLineDash([2,8]); ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(ax,ay+118); ctx.lineTo(hx,ay+118); ctx.stroke();
-  ctx.setLineDash([]);
-  dot(hx,ay+118,3.5,FIRE,.9);
-  lab(ax,ay+152,'every sentence can walk back to the moment that made it',DIM,11);
-  serif(x0+120,yc+190,'It never says more than it saw.',GOLD,22);
-}
-
-// ── the spine, drawn continuously beneath everything ─────────────────
-function drawSpine(){
-  ctx.strokeStyle='#121824'; ctx.lineWidth=1.4; ctx.beginPath();
-  for(let x=cam-200;x<cam+W+200;x+=14){
-    const y=spineY(x); x===cam-200?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  mono(x0+40,yc+30,'three memories — not three thousand',DIM,11);
+  if(p>0.45){
+    ctx.globalAlpha=cl((p-0.45)*4,0,1);
+    serif(x0,yc+96,'Almost certainly. It was a quarter full on',TXT,21);
+    serif(x0,yc+126,'12 June, you said so out loud, and it has',TXT,21);
+    serif(x0,yc+156,'been about six weeks.',TXT,21);
+    ctx.globalAlpha=1;
   }
+  // the citation walks all the way back to the jar in the first scene
+  if(p>0.7){
+    const w=cl((p-0.7)/0.3,0,1), hx=x0-w*15400;
+    ln(x0,yc+190,hx,yc+190,'rgba(232,163,61,.28)',1,[2,9]);
+    dot(hx,yc+190,3.5,FIRE,.9);
+    mono(x0,yc+218,'every sentence can walk back to the pixel that made it',FIRE,11);
+  }
+}
+
+function drawSpine(){
+  ctx.strokeStyle='#0e131c';ctx.lineWidth=1.4;ctx.beginPath();
+  for(let x=cam-200;x<cam+W+200;x+=16){const y=spineY(x);
+    x===cam-200?ctx.moveTo(x,y):ctx.lineTo(x,y);}
   ctx.stroke();
 }
-function drawMotes(){
+const motes=[];
+for(let i=0;i<200;i++)motes.push({x:R(0,WORLD),o:R(-60,60),l:Math.random()<.7?'v':'a',s:R(24,44)});
+function drawMotes(dt){
   motes.forEach(m=>{
-    if(m.x<cam-120||m.x>cam+W+120) return;
-    const y=spineY(m.x)+m.off*(m.lane==='a'?0.55:1);
-    if(m.dead){ dot(m.x,y,1.6,KILL,.22); return; }
-    const col=m.lane==='v'?EYE:EAR;
-    // past the binder the stream is meaning, not signal
-    const c = m.x>10300 ? NODE : (m.x>8600 ? TEXT : col);
-    dot(m.x,y,m.x>8600?1.7:2.1,c, m.x>8600?.5:.38);
+    m.x+=m.s*dt; if(m.x>WORLD)m.x-=WORLD;
+    if(m.x<cam-100||m.x>cam+W+100)return;
+    const y=spineY(m.x)+m.o;
+    const c = m.x>10500?NODE : (m.x>8800?TXT : (m.l==='v'?EYE:EAR));
+    dot(m.x,y,1.9,c,.3);
   });
 }
 
-// ── loop ─────────────────────────────────────────────────────────────
 let last=performance.now();
 function frame(now){
-  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  const dt=Math.min(.05,(now-last)/1000); last=now;
   const t=now/1000;
-  camTarget=scrollProgress()*(WORLD-W*0.55);
+  // A page can load into a container with no size yet (hidden tab, embed).
+  // Re-adopt the real viewport whenever it disagrees, not just on resize.
+  if(W!==innerWidth||H!==innerHeight){
+    if(innerWidth&&innerHeight) resize();
+    else { requestAnimationFrame(frame); return; }   // keep the loop alive
+  }
+  camTarget=prog()*(WORLD-W*0.6);
   cam+=(camTarget-cam)*Math.min(1,dt*4.5);
-  head.style.height=(scrollProgress()*100)+'%';
-  hint.style.opacity=scrollProgress()>0.01?0:1;
-
-  ctx.fillStyle=INK; ctx.fillRect(0,0,W,H);
-  ctx.save(); ctx.translate(-cam,0);
-  drawSpine();
-  motes.forEach(m=>moteStep(m,dt));
-  drawMotes();
-  const acts=[[0,1700,actWorld],[900,3000,actSenses],[2000,4000,actRing],
-    [2900,5200,actPeripheral],[4200,6600,actAuction],[5500,7800,actHelpers],
-    [6700,9200,actDwell],[8200,10400,actText],[9300,11400,actBinder],
-    [10400,13100,actNodes],[12200,14000,actSupplier],[13100,14400,actAnswer]];
+  head.style.height=(prog()*100)+'%';
+  hint.style.opacity=prog()>0.01?0:1;
+  ctx.fillStyle=INK;ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.translate(-cam,0);
+  drawSpine(); drawMotes(dt);
+  const acts=[[0,2200,actMoment],[900,4200,actSampling],[2600,5900,actCoords],
+    [4400,7600,actDwell],[6200,9400,actHelpers],[8100,11000,actBinder],
+    [9800,12800,actNodes],[11600,14600,actFormat],[13200,16200,actNight],
+    [14800,16200,actAsk]];
   let ran=[];
-  acts.forEach(a=>{ if(cam+W>a[0]&&cam<a[1]){
-    ran.push(a[2].name);
-    try{ a[2](t); }catch(e){ window.__err=(a[2].name||'?')+': '+e.message; }
-  }});
-  window.__dbg={cam:Math.round(cam),camTarget:Math.round(camTarget),W:W,H:H,
-    ran:ran.join(','),prog:scrollProgress().toFixed(3)};
+  acts.forEach(a=>{if(cam+W>a[0]&&cam<a[1]){ran.push(a[2].name);
+    try{a[2](t);}catch(e){window.__err=a[2].name+': '+e.message;}}});
+  window.__dbg={cam:Math.round(cam),ran:ran.join(','),prog:prog().toFixed(3)};
   ctx.restore();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-// Some embedded/background contexts throttle rAF to zero. Keep the scene
-// alive there too, and expose a manual tick for headless verification.
 window.__frame=frame;
 let lastPaint=0;
-setInterval(()=>{ if(performance.now()-lastPaint>300) frame(performance.now()); },250);
-const _f=frame; frame=function(n){ lastPaint=n; _f(n); };
+setInterval(()=>{if(performance.now()-lastPaint>300)frame(performance.now());},250);
+const _f=frame; frame=function(n){lastPaint=n;_f(n);};
 })();
 </script>
 </body>

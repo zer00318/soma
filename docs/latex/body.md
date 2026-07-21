@@ -1,12 +1,8 @@
-# SOMA — An Input-Only Wearable Memory
-
-*Architecture, Rationale, and the Case for a Memory That Keeps Words Instead of Footage.*
-
 ## Abstract
 
 SOMA is a wearable memory system built on one uncompromising invariant: raw media never persists and never leaves the device; only typed text may cross the boundary. On-device perception converts the live world into open-vocabulary, provenance-bearing text observations at the moment of capture; the raw pixels and audio that produced them are discarded within milliseconds. A nightly consolidation process — deliberately modeled on biological sleep — binds the day's scattered observations into a typed evidence graph by spatial and temporal co-occurrence, attaching a calibrated confidence to every link and refusing weak ones outright. A recall engine answers unconstrained natural-language questions from this bound text alone, citing the exact observations that support each claim and refusing honestly when the answer was never perceived. This document is the complete argument for that architecture. It derives the design from first principles (Chapters 1–2), situates it against forty years of lifelogging, egocentric-vision, and retrieval-augmented-generation research (Chapter 3), states the seven locked invariants that govern all implementation (Chapter 4), and walks the full pipeline from photons to answers (Chapter 5) — including a complete worked example, the crow, followed end to end from a single wingbeat on a balcony railing to a derived habit node no sensor ever observed (Chapter 6). It then descends into the machine: the formal domain model (Chapter 7), the hexagonal event-sourced software architecture (Chapter 8), the salience-governed perception subsystem (Chapter 9), the binder (Chapter 10), and grounded recall with calibrated refusal (Chapter 11). The remaining chapters treat the privacy architecture and its threat model (Chapter 12), the evaluation methodology that makes every failure diagnosable (Chapter 13), engineering governance (Chapter 14), market position and moat (Chapter 15), honest risks (Chapter 16), and the road from prototype to glasses (Chapter 17). The central hypothesis — that perception can be decomposed into channels which reconstruct lossless-enough textual context for a tractable reasoner to answer arbitrary retroactive questions at near-zero hallucination — is stated throughout as what it is: unvalidated, falsifiable, and instrumented. Every architectural decision in this document exists to test it faster.
 
-## Executive Summary
+# Executive Summary {-}
 
 For the reader with ten minutes. Every claim below is developed, evidenced, and stress-tested in the body; section pointers are given throughout. The product. SOMA is a wearable memory you can question. It senses the day through always-on, cheap perception; turns everything into words the instant it happens — never keeping one frame of video or one second of audio; binds those words into understanding at night; and answers any question about the past with citations to what it actually perceived, or an honest "I don't know."
 
@@ -16,7 +12,7 @@ The hypothesis, stated as one. That textual channels can carry lossless-enough c
 
 The ask of the reader. Chapter 6 to feel it; Chapter 13 to audit it; Chapter 16 to see what could kill it; Chapter 18 for every hard objection, answered at full strength. The interactive companion (docs/interactive/soma-architecture.html) renders the node graph, the crow, and the privacy membrane live.
 
-## 1 — Introduction and Problem Statement
+# Introduction and Problem Statement
 
 ### 1.1 The problem: lives are forgotten by the people who live them
 
@@ -52,7 +48,7 @@ Chapters 1–6 are readable by anyone and constitute the argument; a reader deci
 
 EYES / EARS (manufacturable senses) Standard model (human) CAMERA / MIC TYPED WORDS raw pixels/audio die in milliseconds - only the words survive SOMA (machine) Figure 1 — The standard model, copied then amended: SOMA keeps the words, never the stream.
 
-## 2 — Conceptual Foundations
+# Conceptual Foundations
 
 ### 2.1 The standard model: a brain never touches the world
 
@@ -60,7 +56,7 @@ The founding sketch of SOMA — drawn on a napkin, reproduced and transcribed in
 
 This observation does real work. It says that a machine memory need not apologize for perceiving only sight and sound: that is approximately the human condition too, and humans construct rich, queryable lives from it. It also says that whatever the system stores is already an interpretation — there is no neutral, complete record to preserve, only choices about which interpretation to keep. Storage-first systems pretend otherwise; they keep the stream and defer interpretation, inheriting the costs of both. SOMA commits to the interpretation at capture time and keeps only that.
 
-The amendment SOMA makes to the standard model is therefore not a compromise but a completion: World → senses → words → brain. The words are the interpretation; the brain — consolidation at night, reasoning at question time — operates on words alone.
+The amendment SOMA makes to the standard model is therefore not a compromise but a completion: World $\rightarrow$ senses $\rightarrow$ words $\rightarrow$ brain. The words are the interpretation; the brain — consolidation at night, reasoning at question time — operates on words alone.
 
 ### 2.2 Episodic memory is reconstruction, not playback
 
@@ -86,9 +82,9 @@ The cost of the decision is stated with equal weight: whatever the perceivers fa
 
 ### 2.6 The resolution of the central tension
 
-Maximum context and detail-follows-attention pull in opposite directions, and the project's north-star document resolves the tension in one sentence that governs the whole capture design: capture everything cheaply, perceive deeply only what attention marks. Maximum cheap context — the continuous scaffold of OCR, speech, sound events, motion, place — plus selective deep context where salience justifies the spend. Chapter 9 gives the scheduler that implements the resolution; Chapter 13 gives the method that verifies, by ablation, that nothing load-bearing was lost to the economy. CAPTURE live · cheap · parallel · OCR / ASR / sounds · sensors + pose · VLM gist (gated) · raw discarded instantly SLEEP nightly · the big model · congregate + dedupe · bind by when+where · confidence per link · weak links refused ASK on demand · navigate bound words · cite what was seen · refuse the unperceived · never re-open raw Figure 3 — Three tempos: live capture, nightly consolidation, on-demand recall.
+Maximum context and detail-follows-attention pull in opposite directions, and the project's north-star document resolves the tension in one sentence that governs the whole capture design: capture everything cheaply, perceive deeply only what attention marks. Maximum cheap context — the continuous scaffold of OCR, speech, sound events, motion, place — plus selective deep context where salience justifies the spend. Chapter 9 gives the scheduler that implements the resolution; Chapter 13 gives the method that verifies, by ablation, that nothing load-bearing was lost to the economy. CAPTURE live \textperiodcentered{} cheap \textperiodcentered{} parallel \textperiodcentered{} OCR / ASR / sounds \textperiodcentered{} sensors + pose \textperiodcentered{} VLM gist (gated) \textperiodcentered{} raw discarded instantly SLEEP nightly \textperiodcentered{} the big model \textperiodcentered{} congregate + dedupe \textperiodcentered{} bind by when+where \textperiodcentered{} confidence per link \textperiodcentered{} weak links refused ASK on demand \textperiodcentered{} navigate bound words \textperiodcentered{} cite what was seen \textperiodcentered{} refuse the unperceived \textperiodcentered{} never re-open raw Figure 3 — Three tempos: live capture, nightly consolidation, on-demand recall.
 
-## 3 — Prior Art and Position
+# Prior Art and Position
 
 ### 3.1 The memex lineage: total capture as an old dream
 
@@ -116,7 +112,7 @@ secrets Audio pendant recorders audio and/or verbatim transcripts cloud, retaine
 
 The evidence graph is a property graph — entities, typed edges, confidence, provenance — squarely in the knowledge-graph tradition [14]. The deliberate deviation is open vocabulary: observation kinds and binding predicates are unconstrained strings, because a fixed schema is a fixed ceiling on what can be remembered, and the project explicitly rejected constraining the question surface. Schema discipline is replaced by evidential discipline: any predicate is admissible, but no predicate is assertable without provenance and confidence.
 
-## 4 — The Seven Invariants
+# The Seven Invariants
 
 Architecture is what remains constant while everything else iterates. SOMA locks seven invariants; each is stated with its rationale, its enforcement mechanism, and the failure mode it forecloses. Code that violates an invariant does not merge — several are enforced by construction, so violating them does not even compile against the domain model.
 
@@ -170,9 +166,9 @@ Enforcement. Governance (Chapter 14): the plan-gate requires naming the roadmap 
 
 The seven interlock. I1 and I2 make the privacy claim structural; I3 and I4 make memory auditable and experimentation safe; I5 and I6 together make "ask anything" compatible with "near-zero hallucination" — the refusal gate absorbs what open vocabulary exposes; I7 keeps the whole system growing along the gradient of measured need. Remove any one and a neighboring invariant loses its footing: without I4, I5's confidences have nothing to bind to; without I3, I7's replays are impossible; without I5, I6 becomes reckless. They are stated separately for enforcement but justified jointly.
 
-## 5 — The Pipeline: From Photons to Answers
+# The Pipeline: From Photons to Answers
 
-The founding napkin decomposes execution into a chain of black boxes. Each has since become a named subsystem with a file path. This chapter walks the chain in order; Chapters 7–11 open each box. Appendix A maps every napkin phrase to its production counterpart. SENSES video·audio·pose EXTRACTION frames→signal MACRO VLM scene gist HELPERS OCR·ASR·sounds TEXT +coords +time BINDER co-occurrence NODES living cells SUPPLIER just-enough ctx LLM sits after the last box - a commodity reasoner; the value is everything upstream Figure 2 — The execution pipeline: eight black boxes from the napkin, industrialized.
+The founding napkin decomposes execution into a chain of black boxes. Each has since become a named subsystem with a file path. This chapter walks the chain in order; Chapters 7–11 open each box. Appendix A maps every napkin phrase to its production counterpart. SENSES video\textperiodcentered{}audio\textperiodcentered{}pose EXTRACTION frames$\rightarrow$signal MACRO VLM scene gist HELPERS OCR\textperiodcentered{}ASR\textperiodcentered{}sounds TEXT +coords +time BINDER co-occurrence NODES living cells SUPPLIER just-enough ctx LLM sits after the last box - a commodity reasoner; the value is everything upstream Figure 2 — The execution pipeline: eight black boxes from the napkin, industrialized.
 
 ### 5.1 Stage 1 — Senses
 
@@ -210,9 +206,9 @@ At question time, the supplier navigates the graph and assembles just enough con
 
 Interface Payload Persisted?
 
-Chapter Senses → Extraction frames, samples, sensor ticks never Extraction → Perceivers gated crops + coordinates + t never Perceivers → Log typed Observation forever (append-only) Log → Binder observation replay derived only Binder → Graph Entity, Binding (+confidence, evidence) disposable projection Graph → Supplier evidence dossier transient Supplier → Reasoner just-enough context (text) transient Anything → off-device TextEgress only, via EgressGuard n/a
+Chapter Senses $\rightarrow$ Extraction frames, samples, sensor ticks never Extraction $\rightarrow$ Perceivers gated crops + coordinates + t never Perceivers $\rightarrow$ Log typed Observation forever (append-only) Log $\rightarrow$ Binder observation replay derived only Binder $\rightarrow$ Graph Entity, Binding (+confidence, evidence) disposable projection Graph $\rightarrow$ Supplier evidence dossier transient Supplier $\rightarrow$ Reasoner just-enough context (text) transient Anything $\rightarrow$ off-device TextEgress only, via EgressGuard n/a
 
-## 6 — The Crow: One Memory, End to End
+# The Crow: One Memory, End to End
 
 A worked example is worth a chapter of assertion. What follows traces a single, small, real-shaped memory through every subsystem — capture, gating, binding, refusal, derivation, and recall — at the level of the actual data structures. The interactive companion renders this same scenario as a live, steppable node graph; here it is frozen on paper with the numbers visible.
 
@@ -248,13 +244,13 @@ Now the cell combines with its fellow nodes and derives something no sensor ever
 
 "Why is that crow always on my balcony?" The supplier walks the graph — crow_1, its sightings, its derived habit — and hands the reasoner a dossier of perhaps twenty lines. The answer returns with its evidence attached: "A crow has been landing on your balcony railing on the mornings you take the trash out — seen Tuesday, Wednesday, and Friday around 07:40. It appears to be showing up for the trash." — citations: ev-4183, ev-4188, wed cluster, fri cluster "What color were its eyes?" The supplier finds no observation about eyes — the level-1 enrichment never got that deep, because dwell never earned level 3. The grounding gate finds the draft unsupported, and the memory answers: "I didn't perceive that." No fabrication. The refusal is not a failure of the system; it is the system, working. A storage-first product would have offered to re-watch the video. SOMA has no video — it has the honesty of its words.
 
-black bird · railing sound: caw corvid, glossy black trash bag in hand place: balcony CROW  conf .87 comes for the trash  conf .81 wind chime refused (.31) Figure 6 — The crow example as it rests in the graph after Friday's night shift.
+black bird \textperiodcentered{} railing sound: caw corvid, glossy black trash bag in hand place: balcony CROW  conf .87 comes for the trash  conf .81 wind chime refused (.31) Figure 6 — The crow example as it rests in the graph after Friday's night shift.
 
 ### 6.9 What the example proves
 
 Every invariant did visible work. I1: no pixel of the crow survived the capture second. I3: three nights of binder runs never touched Tuesday's raw observations. I4: the final answer cites capture-time event IDs. I5: the wind chime died at the floor; the eye-color question died at the gate. I7, prospectively: had the user asked "which direction did it fly off?" and the memory missed, the diagnosis log would name the missing channel (heading, from pose), and that miss — not intuition — would authorize building it. The crow is small. The architecture is exactly the crow, at the scale of a life.
 
-## 7 — The Domain Model
+# The Domain Model
 
 The domain layer (src/soma/domain/) is deliberately tiny: seven frozen value types, each a dataclass whose constructor is the boundary where invariants are enforced [19]. Nothing in the layer performs I/O, imports an adapter, or names a model. The layer is small enough to read in half an hour, and that smallness is a design position: the vocabulary of memory should fit in a head.
 
@@ -286,11 +282,11 @@ TextEgress is non-empty text plus a non-empty tuple of source_event_ids. It is t
 
 All seven types validate in __post_init__ and are frozen thereafter. The alternative — permissive construction plus downstream validation — distributes the invariant over every consumer and guarantees eventual drift. Here, an invalid domain object cannot exist, so every function accepting an Observation inherits its guarantees silently. The strict-typing gate (Chapter 14) runs mypy --strict over this layer with 100% of the public surface typed; the test suite covers the constructor rejections explicitly.
 
-## 8 — Software Architecture
+# Software Architecture
 
 Three patterns govern the production monolith, each chosen for a failure mode it forecloses: hexagonal structure against substrate lock-in, event sourcing against experimental memory loss, and the strangler fig against the big-bang rewrite.
 
-ADAPTERS - sqlite eventlog · encrypted text · vision OCR · MLX VLM · ollama · cloud text (guarded) PORTS - Perceiver · Ocr · Asr · VlmRunner · TextReasoner · MemoryStore · RecallBackend APPLICATION - Recall · EgressGuard · Binder · CaptureScheduler · GroundingGate DOMAIN Observation · Entity · Binding · Confidence · Provenance · TextEgress dependencies point inward only - the domain imports nothing concrete Figure 4 — The hexagonal monolith: dependencies point inward; substrates swap at the rim.
+ADAPTERS - sqlite eventlog \textperiodcentered{} encrypted text \textperiodcentered{} vision OCR \textperiodcentered{} MLX VLM \textperiodcentered{} ollama \textperiodcentered{} cloud text (guarded) PORTS - Perceiver \textperiodcentered{} Ocr \textperiodcentered{} Asr \textperiodcentered{} VlmRunner \textperiodcentered{} TextReasoner \textperiodcentered{} MemoryStore \textperiodcentered{} RecallBackend APPLICATION - Recall \textperiodcentered{} EgressGuard \textperiodcentered{} Binder \textperiodcentered{} CaptureScheduler \textperiodcentered{} GroundingGate DOMAIN Observation \textperiodcentered{} Entity \textperiodcentered{} Binding \textperiodcentered{} Confidence \textperiodcentered{} Provenance \textperiodcentered{} TextEgress dependencies point inward only - the domain imports nothing concrete Figure 4 — The hexagonal monolith: dependencies point inward; substrates swap at the rim.
 
 ### 8.1 Hexagonal: ports and adapters
 
@@ -314,7 +310,7 @@ Path Role Status src/soma/domain/ seven value types; the vocabulary production, 
 
 Three roads not taken, recorded because the reasons generalize. A microservice decomposition was rejected: the system is one person's memory on one person's device; network boundaries inside it would add failure modes and remove type safety, for zero scaling benefit. A neural/vector-native store as the source of truth was rejected: embeddings are projections here — rebuildable accelerators — because the truth must remain human-auditable text (I4) and replayable (I3). The relational hub — an earlier architecture with a server-backed relational graph at the center — was built, measured, and archived; its lesson (in-process graph writes, no server, phone-library shape) is encoded in the current perception loop's design.
 
-## 9 — The Perception Subsystem
+# The Perception Subsystem
 
 Perception is where the economics live. A phone cannot run a deep vision model continuously for sixteen hours; a memory cannot afford to look deeply at nothing. This chapter describes the machinery that spends a fixed attention budget where it buys the most future answer — the component the project regards as its moat.
 
@@ -332,7 +328,7 @@ The base of the stack never sleeps, because it costs almost nothing: – Detecti
 
 ### 9.2 Salience: deciding what deserves the expensive eye
 
-The scheduler (soma_perception/scheduler.py) is pure logic — no I/O, injected clock, portable 1:1 to Swift. Its inputs are track statistics from the cheap stratum; its outputs are sparse, budgeted enrichment decisions. The scoring function: salience = dwell_progress × (0.6 · novelty + 0.4 · stability) Dwell is attention's signature — what the wearer lingers near matters; novelty front-loads the unfamiliar — the hundredth sighting of the kitchen kettle is worth less than the first crow; stability suppresses motion blur — a deep look at a smear is a wasted token. The weights are starting points, tuned against captured data, not doctrine.
+The scheduler (soma_perception/scheduler.py) is pure logic — no I/O, injected clock, portable 1:1 to Swift. Its inputs are track statistics from the cheap stratum; its outputs are sparse, budgeted enrichment decisions. The scoring function: salience = dwell_progress $\times$ (0.6 \textperiodcentered{} novelty + 0.4 \textperiodcentered{} stability) Dwell is attention's signature — what the wearer lingers near matters; novelty front-loads the unfamiliar — the hundredth sighting of the kitchen kettle is worth less than the first crow; stability suppresses motion blur — a deep look at a smear is a wasted token. The weights are starting points, tuned against captured data, not doctrine.
 
 ### 9.3 The budget: a token bucket with no overdraft
 
@@ -340,25 +336,25 @@ Enrichment requests spend from a token bucket [28] refilled at a hard hourly rat
 
 ### 9.4 The progressive enrichment ladder
 
-Depth of attention buys depth of knowledge, in three levels — overview → attributes → minutiae — where each level costs one token and demands roughly 3× the accumulated dwell of the previous: dwell time → knowledge depth → L1 overview  (costs 1 token, ~3× dwell) L2 attributes  (costs 1 token, ~3× dwell) L3 minutiae  (costs 1 token, ~3× dwell) Figure 8 — The progressive enrichment ladder: attention depth buys knowledge depth. Level 1 records what a glance records: category, color, activity. Level 2 is a delta pass — the prompt includes what the graph already knows and asks only for new detail: material, condition, readable text, accessories. Level 3 hunts identifying minutiae: scratches, stickers, wear marks, unique blemishes — the details that make this backpack findable among the world's backpacks. Delta prompting matters twice over: it saves tokens, and it structurally prevents the model from re-asserting (and re-hallucinating) what is already known. A worked scheduler trace The crow's enrichment decision, with the arithmetic visible. At 07:42:06 the track has been alive ~3 seconds; nothing like it has been seen at this anchor before; the bird is still. Input Value Note dwell_progress (toward L1 threshold) 0.75 3s of a 4s L1 requirement novelty 0.9 first corvid at this anchor stability (1 − motion) 0.8 perched; low blur risk salience
+Depth of attention buys depth of knowledge, in three levels — overview $\rightarrow$ attributes $\rightarrow$ minutiae — where each level costs one token and demands roughly 3$\times$ the accumulated dwell of the previous: dwell time $\rightarrow$ knowledge depth $\rightarrow$ L1 overview  (costs 1 token, ~3$\times$ dwell) L2 attributes  (costs 1 token, ~3$\times$ dwell) L3 minutiae  (costs 1 token, ~3$\times$ dwell) Figure 8 — The progressive enrichment ladder: attention depth buys knowledge depth. Level 1 records what a glance records: category, color, activity. Level 2 is a delta pass — the prompt includes what the graph already knows and asks only for new detail: material, condition, readable text, accessories. Level 3 hunts identifying minutiae: scratches, stickers, wear marks, unique blemishes — the details that make this backpack findable among the world's backpacks. Delta prompting matters twice over: it saves tokens, and it structurally prevents the model from re-asserting (and re-hallucinating) what is already known. A worked scheduler trace The crow's enrichment decision, with the arithmetic visible. At 07:42:06 the track has been alive ~3 seconds; nothing like it has been seen at this anchor before; the bird is still. Input Value Note dwell_progress (toward L1 threshold) 0.75 3s of a 4s L1 requirement novelty 0.9 first corvid at this anchor stability (1 - motion) 0.8 perched; low blur risk salience
 
-### 0.75 × (0.6·0.9 + 0.4·0.8) = 0.65
+### 0.75 $\times$ (0.6\textperiodcentered{}0.9 + 0.4\textperiodcentered{}0.8) = 0.65
 
 above the 0.5 decision floor bucket tokens
 
 ### 2.3 available
 
-refill 6/hr, last spend 22 min ago decision enrich, level 1, focus "overview" one token spent Contrast the kitchen kettle at 09:15: dwell_progress 1.0 (stared at while waiting), but novelty ≈ 0.05 after a hundred sightings — salience 0.35, below the floor, no token spent. The kettle stays a cheap word; the crow earned a deep look. That asymmetry, repeated thousands of times a day, is the whole attention economy. The prompts encode field-learned humility — "material and brand are often NOT determinable from an image… a confident wrong material is worse than none" — a lesson bought with a real error (a glass phone recorded as plastic) and now enforced in the prompt contract, including the permission to answer exactly: nothing new.
+refill 6/hr, last spend 22 min ago decision enrich, level 1, focus "overview" one token spent Contrast the kitchen kettle at 09:15: dwell_progress 1.0 (stared at while waiting), but novelty $\approx$ 0.05 after a hundred sightings — salience 0.35, below the floor, no token spent. The kettle stays a cheap word; the crow earned a deep look. That asymmetry, repeated thousands of times a day, is the whole attention economy. The prompts encode field-learned humility — "material and brand are often NOT determinable from an image... a confident wrong material is worse than none" — a lesson bought with a real error (a glass phone recorded as plastic) and now enforced in the prompt contract, including the permission to answer exactly: nothing new.
 
 ### 9.5 The enricher: expensive eye, delta facts
 
-The enricher consumes the scheduler's decisions: crop + level → local multimodal model (currently Gemma 3 12B, quantized, via Ollama [17][29]) → delta facts written to the graph, in-process, no server. Every emission is a normal Observation with provenance; the expensive eye enjoys no epistemic privilege over the cheap ones — its words meet the same binder and the same confidence discipline as everyone else's.
+The enricher consumes the scheduler's decisions: crop + level $\rightarrow$ local multimodal model (currently Gemma 3 12B, quantized, via Ollama [17][29]) $\rightarrow$ delta facts written to the graph, in-process, no server. Every emission is a normal Observation with provenance; the expensive eye enjoys no epistemic privilege over the cheap ones — its words meet the same binder and the same confidence discipline as everyone else's.
 
 ### 9.6 Honesty about the current frontier
 
 The perception loop runs today on the Mac substrate against recorded and live streams; the device app lineage (soma-native-fastvlm/) is a migration input, not the target. The scheduler's Swift port, the on-device budget measurements, and the live no-raw-persistence gate are Phase 1 work with named gates (Chapter 17). Numbers claimed for the loop — enrichments per hour, battery per hour — appear in the demo script only once measured on device (Chapter 14's governance forbids otherwise).
 
-## 10 — The Binder: Consolidation as Sleep
+# The Binder: Consolidation as Sleep
 
 ### 10.1 The job
 
@@ -386,7 +382,7 @@ The project's north star preserves its own counter-arguments, and the binder cha
 
 Phase 0's honest report: two binder prototypes produced zero entities and zero bindings — the consensus projection shipped in a follow-on branch is the first to bind for real (36 entities, 58 bindings, 144 weak links refused on the hero walk). The numbers in this document describe the contract and the measured frontier, not a finished component; Chapter 17 places binder completion in Phase 2 with its gate.
 
-## 11 — Recall: Grounded Answering with Calibrated Refusal
+# Recall: Grounded Answering with Calibrated Refusal
 
 ### 11.1 The loop
 
@@ -412,15 +408,15 @@ Refusal is governed by selective-prediction discipline [13]: answer when evidenc
 
 If local reasoning is the wall — and the north star names this risk explicitly — the architecture permits routing SLEEP binding and ASK reasoning to a stronger text-only model. The hatch is safe by construction: TextEgress is the only shape that fits through it (I2), carrying provenance (I4), so escalation changes who reasons, never what leaves. The decision to open the hatch is a measurement, not a mood: local quality is scored against the same batteries, and the hatch opens when the gap justifies it. Privacy posture is unchanged either way — raw media does not exist to send.
 
-## 12 — The Privacy Architecture
+# The Privacy Architecture
 
 The moat is that surveillance is architecturally impossible, not promised away. This chapter states the layers, the threat model, and the residual obligations that architecture alone cannot discharge.
 
-ON DEVICE, EPHEMERAL · raw frames (ms lifetime) · raw audio (ms lifetime) · no record path exists PERSISTED / EGRESSABLE · TextEgress: text + source_event_ids · append-only log, AES-256-GCM · auditable, human-readable PERCEPTION + EGRESS GUARD any non-text payload at the wall → PrivacyViolationError Figure 5 — The one-way membrane: meaning crosses, media dies at the wall.
+ON DEVICE, EPHEMERAL \textperiodcentered{} raw frames (ms lifetime) \textperiodcentered{} raw audio (ms lifetime) \textperiodcentered{} no record path exists PERSISTED / EGRESSABLE \textperiodcentered{} TextEgress: text + source_event_ids \textperiodcentered{} append-only log, AES-256-GCM \textperiodcentered{} auditable, human-readable PERCEPTION + EGRESS GUARD any non-text payload at the wall $\rightarrow$ PrivacyViolationError Figure 5 — The one-way membrane: meaning crosses, media dies at the wall.
 
 ### 12.1 Layer 1 — Ephemerality at the source
 
-Raw media exists in memory for the milliseconds between capture and text extraction. There is no record path: no API in the production capture code writes a frame or an audio buffer to durable storage. Deletion is not a policy here; deletion is not even the right word — nothing is created that would need deleting. (The honesty note of §4.1 applies: legacy clips predating the architecture exist as evaluation oracles, and the live gate that proves the invariant on device is named, scheduled work.)
+Raw media exists in memory for the milliseconds between capture and text extraction. There is no record path: no API in the production capture code writes a frame or an audio buffer to durable storage. Deletion is not a policy here; deletion is not even the right word — nothing is created that would need deleting. (The honesty note of \S{}4.1 applies: legacy clips predating the architecture exist as evaluation oracles, and the live gate that proves the invariant on device is named, scheduled work.)
 
 ### 12.2 Layer 2 — The typed boundary
 
@@ -450,19 +446,19 @@ as legal clearance — wearables face jurisdiction-specific recording law — bu
 
 Honesty requires the residue stated. Perceiving people into text still touches privacy: "Anna said she's pregnant" is sensitive with no pixel involved. The bystander literature on wearable cameras [34] transfers in part to any wearable perception. Product-level obligations therefore remain: disclosure norms for wearers, redaction policies for bystander speech, retention and export controls in the user's hands, and the wearer's own social contract. The architecture makes the worst artifact impossible; it does not make the remaining ones weightless. This paragraph exists so that no investor, customer, or regulator can say the project hid the residue behind the moat.
 
-## 13 — Evaluation: Every Miss Names the Next Build
+# Evaluation: Every Miss Names the Next Build
 
 Measurement is the most opinionated subsystem in SOMA. It is designed so that failure is never ambient — every miss is attributed, mechanically, to a cause that names the work that fixes it.
 
-REAL CAPTURE walk clip / vlog / day BLIND ADVERSARIAL QUESTION BATTERY ANSWER + CITATIONS + what-brain-looked-at log SCORE RAS / OAG (A) NEVER CAPTURED → build the missing channel (B) BRAIN FAILED TO USE IT → fix bind / retrieval / refusal both branches feed the next capture - nothing is built until a missed question demands it Figure 7 — The measurement loop: every miss is diagnosed (A) or (B) and names the next build.
+REAL CAPTURE walk clip / vlog / day BLIND ADVERSARIAL QUESTION BATTERY ANSWER + CITATIONS + what-brain-looked-at log SCORE RAS / OAG (A) NEVER CAPTURED $\rightarrow$ build the missing channel (B) BRAIN FAILED TO USE IT $\rightarrow$ fix bind / retrieval / refusal both branches feed the next capture - nothing is built until a missed question demands it Figure 7 — The measurement loop: every miss is diagnosed (A) or (B) and names the next build.
 
 ### 13.1 RAS: fabrication priced like a loss, because it is one
 
-The headline metric over a blind adversarial battery on a real capture: RAS = (correct − made-up) / total A fabricated answer subtracts what a correct one adds; an honest refusal costs nothing. The metric encodes the product ethics (I5) so directly that optimizing the number and behaving honestly are the same act. The qualitative bar attached to it in the north star: a stranger asks about your day and is amazed, with near-zero made-up answers.
+The headline metric over a blind adversarial battery on a real capture: RAS = (correct - made-up) / total A fabricated answer subtracts what a correct one adds; an honest refusal costs nothing. The metric encodes the product ethics (I5) so directly that optimizing the number and behaving honestly are the same act. The qualitative bar attached to it in the north star: a stranger asks about your day and is amazed, with near-zero made-up answers.
 
 ### 13.2 OAG: the price of throwing the pixels away
 
-The oracle-answerability gap (src/soma/eval/oag.py): among questions an offline oracle with the raw frames can answer, the percentage the on-device text memory cannot. OAG is the direct measurement of the retention decision's cost (§2.5) and the falsifier of the central hypothesis (§1.3). Raw media's only legitimate role in the system is here — oracle-side, offline, never entering production recall. The evaluator is engine-independent and tracks tuning exposure per dataset, because an oracle gap measured on a tuned clip is not a measurement.
+The oracle-answerability gap (src/soma/eval/oag.py): among questions an offline oracle with the raw frames can answer, the percentage the on-device text memory cannot. OAG is the direct measurement of the retention decision's cost (\S{}2.5) and the falsifier of the central hypothesis (\S{}1.3). Raw media's only legitimate role in the system is here — oracle-side, offline, never entering production recall. The evaluator is engine-independent and tracks tuning exposure per dataset, because an oracle gap measured on a tuned clip is not a measurement.
 
 ### 13.3 The (A)/(B) instrument
 
@@ -486,7 +482,7 @@ Gold answer keys are hash-pinned (evaluation/gold.lock.json); a silent edit to t
 
 Question generation itself is automated: an overnight job drives question batteries against the day's memory, mines the misses, and files them into the (A)/(B) queue. The system that answers questions by night also discovers, by night, which questions it cannot answer — turning I7's discipline ("build only what a missed question demands") into a continuously running discovery loop rather than a quarterly ritual.
 
-## 14 — Engineering Governance
+# Engineering Governance
 
 A two-person company with an ambitious architecture survives on discipline that is cheaper to follow than to break. SOMA's governance is code where possible, ritual where necessary.
 
@@ -504,13 +500,13 @@ Before any build: name the roadmap item and the missed question that authorizes 
 
 ### 14.4 Honesty as an artifact
 
-Phase reports record what was verified against the live code, including corrections of prior claims; evaluation reports carry their contamination flags; the README states which invariants are proven and which are targets. The document you are reading inherits the same rule — see §4.1, §9.6, §10.5. A pitch built on these artifacts survives due diligence because it is due diligence.
+Phase reports record what was verified against the live code, including corrections of prior claims; evaluation reports carry their contamination flags; the README states which invariants are proven and which are targets. The document you are reading inherits the same rule — see \S{}4.1, \S{}9.6, \S{}10.5. A pitch built on these artifacts survives due diligence because it is due diligence.
 
-## 15 — Market Position and the Moat
+# Market Position and the Moat
 
 ### 15.1 The quadrant
 
-Two axes organize the field: what persists (raw media ↔ derived text) and where reasoning happens (cloud ↔ device). Screen-recording memory tools, audio pendants, and camera glasses all sit in the raw-persistence half-plane — differing only in which medium they hoard. The text-only, device-perception quadrant is empty, and not by accident: occupying it requires giving up the raw stream, which storage-first architectures cannot do retroactively — their features, their indexes, and their user expectations are built on the archive. An incumbent cannot follow without abandoning its own foundation. That is what makes the position a moat rather than a feature.
+Two axes organize the field: what persists (raw media $\leftrightarrow$ derived text) and where reasoning happens (cloud $\leftrightarrow$ device). Screen-recording memory tools, audio pendants, and camera glasses all sit in the raw-persistence half-plane — differing only in which medium they hoard. The text-only, device-perception quadrant is empty, and not by accident: occupying it requires giving up the raw stream, which storage-first architectures cannot do retroactively — their features, their indexes, and their user expectations are built on the archive. An incumbent cannot follow without abandoning its own foundation. That is what makes the position a moat rather than a feature.
 
 ### 15.2 The demo that proves the moat
 
@@ -522,7 +518,7 @@ For platform acquirers, an input-only memory is the wearable strategy without th
 
 MARKET POSITION AND THE MOAT
 
-## 16 — Risks and Open Problems
+# Risks and Open Problems
 
 Stated plainly, ordered by severity, with the mitigation that exists and the trigger that would escalate each.
 
@@ -548,29 +544,29 @@ One clip has dominated tuning. Mitigation: hash-pinned golds, contamination flag
 
 ### 16.6 Bystander and social risk
 
-Architecture removes stored media; it does not remove the social fact of being perceived. Mitigation: §12.7's product obligations; disclosure norms; text-level redaction options. Residual: recording-law heterogeneity across jurisdictions — a compliance program, not an architecture patch.
+Architecture removes stored media; it does not remove the social fact of being perceived. Mitigation: \S{}12.7's product obligations; disclosure norms; text-level redaction options. Residual: recording-law heterogeneity across jurisdictions — a compliance program, not an architecture patch.
 
 ### 16.7 The binder as single point of intellectual failure
 
 If disciplined binding at scale proves intractable — entity resolution degrading over weeks, derived nodes accumulating subtle wrongness — the graph's value proposition erodes. Mitigation: accelerator-not-gatekeeper (the scaffold always answers); replayability (every binder version can be re-run over history); refusal (the graph prefers silence to error). Honesty: this is the research risk. The crow binds cleanly; a life is noisier than a crow.
 
-## 17 — Roadmap
+# Roadmap
 
 ### 17.1 Prototype tiers
 
-Tier Definition Horizon V0 Mac-processed, generalizing, trustworthy: record → one command → ask → cited answers days–weeks V1 live, on-device, attention-gated, all-day (phone rig) — the moat made wearable weeks–months Glasses the same architecture in the target form factor months+
+Tier Definition Horizon V0 Mac-processed, generalizing, trustworthy: record $\rightarrow$ one command $\rightarrow$ ask $\rightarrow$ cited answers days–weeks V1 live, on-device, attention-gated, all-day (phone rig) — the moat made wearable weeks–months Glasses the same architecture in the target form factor months+
 
 ### 17.2 Phases and gates
 
-Phase Work Gate 0 — Baseline & instrument pin the hero clip + battery; wire (A)/(B) logging; one source of truth honest baseline + diagnosis log ✔ (done) 1 — Sufficiency brute-force maximal offline capture; agentic brain; score and tag every miss a clean answer to "does lossless context + brain work at all?"
+Phase Work Gate 0 — Baseline & instrument pin the hero clip + battery; wire (A)/(B) logging; one source of truth honest baseline + diagnosis log $\checkmark$ (done) 1 — Sufficiency brute-force maximal offline capture; agentic brain; score and tag every miss a clean answer to "does lossless context + brain work at all?"
 
-2 — Close (A)s, kill hallucination build only the channels missed questions demand (egomotion first); tighten refusal until made-up ≈ 0 hallucination ~0; spatial answered or honestly refused 3 — Close (B)s navigation/indexing where context was present but unused; measured hatch if needed no unexplained (B) failures on the set 4 — Necessity & harden ablate to load-bearing channels; moat-proof panel; cold-capture guard anti-overfit green; minimal channel set known 5 — Package demo script + moat proof + market beat, rehearsed end to end founder runs the pitch alone
+2 — Close (A)s, kill hallucination build only the channels missed questions demand (egomotion first); tighten refusal until made-up $\approx$ 0 hallucination ~0; spatial answered or honestly refused 3 — Close (B)s navigation/indexing where context was present but unused; measured hatch if needed no unexplained (B) failures on the set 4 — Necessity & harden ablate to load-bearing channels; moat-proof panel; cold-capture guard anti-overfit green; minimal channel set known 5 — Package demo script + moat proof + market beat, rehearsed end to end founder runs the pitch alone
 
 ### 17.3 The founder's rituals
 
 The division of labor is explicit: human hands record clips (with real sensor streams), write and extend adversarial questions, run one command, and occasionally capture what a diagnosed miss demands. Everything else — pipeline, helpers, ablation, scoring, night-bind, bookkeeping — is the machine's, around the clock. The system is built to need its founders for judgment, not for labor.
 
-## 18 — Objections and Responses
+# Objections and Responses
 
 Every serious reader of this architecture raises a version of the same dozen objections. They deserve direct answers, in one place, at full strength. Where an objection is partially right, the response says so.
 
@@ -578,7 +574,7 @@ Every serious reader of this architecture raises a version of the same dozen obj
 
 answer."
 
-The strongest objection, and the one the whole evaluation apparatus exists to face. Response: it is a measurable claim, not a debate. OAG quantifies exactly the questions the raw-frame oracle answers that the text cannot; the sufficiency phase maximizes the text side before any efficiency constraint is allowed to bite; and the enrichment ladder exists precisely to spend deep perception where tomorrow's question is likeliest to land. The honest current state: the measured gap is real (Chapter 13), and the diagnosis says most of it is the brain's misuse of captured text, not missing capture. If the gap ever proves irreducible at the sufficiency limit, the hypothesis is falsified and the project's premise fails — a possibility this document states in its own risk register (§16.1) rather than hiding. What the objection cannot claim is that the alternative escapes the problem: storage-first systems defer extraction, they do not solve it, and they pay the surveillance price forever while deferring.
+The strongest objection, and the one the whole evaluation apparatus exists to face. Response: it is a measurable claim, not a debate. OAG quantifies exactly the questions the raw-frame oracle answers that the text cannot; the sufficiency phase maximizes the text side before any efficiency constraint is allowed to bite; and the enrichment ladder exists precisely to spend deep perception where tomorrow's question is likeliest to land. The honest current state: the measured gap is real (Chapter 13), and the diagnosis says most of it is the brain's misuse of captured text, not missing capture. If the gap ever proves irreducible at the sufficiency limit, the hypothesis is falsified and the project's premise fails — a possibility this document states in its own risk register (\S{}16.1) rather than hiding. What the objection cannot claim is that the alternative escapes the problem: storage-first systems defer extraction, they do not solve it, and they pay the surveillance price forever while deferring.
 
 ### 18.2 "A verbal description of a scene is a pale shadow of the
 
@@ -588,7 +584,7 @@ True — and the wrong comparison. The competitor is not the scene; it is human 
 
 ### 18.3 "People will not wear a camera, period."
 
-The social objection. Response: people already carry always-on microphones and cameras in their pockets and on their wrists; what they reject — and what jurisdictions legislate against — is retention and replay. SOMA's answer is not "trust us" but "there is nothing to distrust": no stored image of any bystander exists one second after the moment. That claim is demonstrable on stage (the no-raw-media proof panel) and auditable in code (eleven lines of egress guard). It may still fail socially — §12.7 and §16.6 keep that residue on the books — but it fails from a categorically stronger position than any recording device.
+The social objection. Response: people already carry always-on microphones and cameras in their pockets and on their wrists; what they reject — and what jurisdictions legislate against — is retention and replay. SOMA's answer is not "trust us" but "there is nothing to distrust": no stored image of any bystander exists one second after the moment. That claim is demonstrable on stage (the no-raw-media proof panel) and auditable in code (eleven lines of egress guard). It may still fail socially — \S{}12.7 and \S{}16.6 keep that residue on the books — but it fails from a categorically stronger position than any recording device.
 
 ### 18.4 "Local models are too weak to bind a day correctly."
 
@@ -596,7 +592,7 @@ Possibly. The architecture's response is the measured hatch: binding and answeri
 
 ### 18.5 "The graph will silt up with garbage over months."
 
-The scaling objection to consolidation, and the project's honest research risk (§16.7). Three structural answers: weak-link refusal keeps coincidence out of the graph at write time; projections are disposable, so a better binder can re-marinate history at any time (I3); and the graph is an accelerator, never a gatekeeper — recall can always fall back to the raw scaffold. What these do not answer is whether any binder discipline holds at life-scale; that is what the phased evaluation is for.
+The scaling objection to consolidation, and the project's honest research risk (\S{}16.7). Three structural answers: weak-link refusal keeps coincidence out of the graph at write time; projections are disposable, so a better binder can re-marinate history at any time (I3); and the graph is an accelerator, never a gatekeeper — recall can always fall back to the raw scaffold. What these do not answer is whether any binder discipline holds at life-scale; that is what the phased evaluation is for.
 
 ### 18.6 "Why not just embeddings? Vector search over frames is
 
@@ -622,7 +618,7 @@ Sometimes it will — a budget is a bet. Two answers. First, the cheap stratum n
 
 recovery."
 
-Correct, and chosen. A memory this intimate with a vendor-side recovery path is a memory with a second reader. The design accepts the consumer-grade consequence (lose the key hierarchy, lose the memory) in exchange for the categorical claim (§12.3); key-escrow-by-user-choice can exist as product surface without weakening the default.
+Correct, and chosen. A memory this intimate with a vendor-side recovery path is a memory with a second reader. The design accepts the consumer-grade consequence (lose the key hierarchy, lose the memory) in exchange for the categorical claim (\S{}12.3); key-escrow-by-user-choice can exist as product surface without weakening the default.
 
 ### 18.11 "Two people cannot build this."
 
@@ -632,17 +628,17 @@ The scope objection. The architecture is its own answer: a domain layer small en
 
 Because the alternative is confident fabrication about their own life, and one such fabrication ends the relationship with the product. Refusal is not the product; trust is, and refusal is trust's price. The demo bets on this directly: the "ask it anything" kicker treats an honest "I didn't perceive that" as a feature moment. If users in fact prefer comfortable invention to honest silence, then this product should not exist — and its founders would rather learn that than build the alternative.
 
-## 19 — Conclusion
+# Conclusion
 
 SOMA's argument compresses to four sentences. The valuable artifact of a lived day was never the footage; it was the bound, queryable meaning, and meaning survives translation to words while surveillance does not. A memory that keeps only words can be structurally incapable of the harms that have sunk every storage-first wearable, while remaining open to any question its perception actually answered. Whether words captured at the moment of living are enough — lossless enough, bindable enough, honest enough — is a falsifiable hypothesis, and this architecture is the instrument built to test it at maximum speed: append-only truth, disposable understanding, calibrated refusal, and a measurement loop in which every failure names its own fix. The crow on the railing either becomes a cited answer or an honest "I don't know" — and a system that can tell you which, and why, is a system worth building.
 
 CONCLUSION
 
-## Addendum — Revision 1.1 (2026-07-20)
+# Addendum — Revision 1.1 {-}
 
 *Added after version 1.0 was rendered: what building the desk pillar taught, which the design could not have known in advance.*
 
-## 20 — The desk pillar's gaze economy: attention as an auction
+# The desk pillar's gaze economy: attention as an auction
 
 Chapter 9 stated the attention economy as a design: a cheap always-on stratum
 deciding what deserves the expensive eye. Between version 1.0 and this
@@ -713,7 +709,7 @@ of I1 plus the closed pantry, not a preference; it dictates which bindings the
 live beat must compute before the pixels die, and it is written into the
 binder's contract as such.
 
-## 21 — Laws the cell taught us: identity, birth, and night
+# Laws the cell taught us: identity, birth, and night
 
 The graph of Chapter 7 is typed evidence; the desk pillar's node layer put a
 *living* cell on top of it — born, warmed, combined, pruned. Building it
@@ -773,15 +769,15 @@ never the material it thought about. And spacetime as the primary key of every
 record — meaning attaches later and can always find its way home — is the
 cognitive-map thesis [47] applied as a storage schema.
 
-## Appendix W — Witnessed status of the desk pillar (2026-07-20)
+# Appendix W — Witnessed status of the desk pillar (2026-07-20) {-}
 
 Numbers below are witnessed outputs, not projections; each has a command and a
 log behind it in the desk repository's board.
 
 - Suite: **274 passed, 1 xfailed** — the single xfail is the VLM specialist
   eye, gated by the one-GPU law, not by missing work.
-- **The core loop has run end-to-end on lived data**: live screen → auction
-  chose the gaze → Vision read it → claims went durable in the encrypted log →
+- **The core loop has run end-to-end on lived data**: live screen $\rightarrow$ auction
+  chose the gaze $\rightarrow$ Vision read it $\rightarrow$ claims went durable in the encrypted log $\rightarrow$
   a natural-language question about that lived moment returned cited, graded,
   timestamped evidence — carrying an honest 0.30 confidence on a shaky read
   rather than a confident fabrication (I5 exercised in anger).
@@ -796,10 +792,10 @@ log behind it in the desk repository's board.
   carrying its own work order, proof criterion, and prerequisites.
 - Unproven, stated plainly: the never-lies contract against a real local
   model (0% tested — the hardest open loop); identity resolution on real
-  weeks; and the two load-bearing bets of §1.3, which only banked weeks of
+  weeks; and the two load-bearing bets of \S{}1.3, which only banked weeks of
   real life can settle.
 
-## References
+# References {-}
 
 [1] E. Tulving, "Episodic and Semantic Memory," in Organization of Memory, Academic Press, 1972;
 
@@ -841,11 +837,11 @@ doi:10.1007/11853565_11
 
 [11] K. Grauman et al., "Ego4D: Around the World in 3,000 Hours of Egocentric Video," Proc. CVPR,
 
-2022. arXiv:2110.07058
+2022.\ arXiv:2110.07058
 
 [12] P. Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks," NeurIPS,
 
-2020. arXiv:2005.11401
+2020.\ arXiv:2005.11401
 
 [13] A. Kamath, R. Jia, P. Liang, "Selective Question Answering under Domain Shift," Proc. ACL, 2020.
 
@@ -869,8 +865,7 @@ developer.apple.com/documentation/arkit
 
 [19] E. Evans, Domain-Driven Design: Tackling Complexity in the Heart of Software, Addison-Wesley,
 
-2003.
-
+2003.\ 
 [20] C. Guo, G. Pleiss, Y. Sun, K. Q. Weinberger, "On Calibration of Modern Neural Networks," Proc.
 
 ICML, 2017. arXiv:1706.04599
@@ -899,7 +894,7 @@ Detection," Proc. CVPR, 2016 (arXiv:1506.02640); Ultralytics YOLO documentation,
 
 Models through Multi-Modal Reinforced Training," Proc. CVPR, 2024. arXiv:2311.17049
 
-[28] A. S. Tanenbaum, D. J. Wetherall, Computer Networks, 5th ed., Pearson, 2011 — §5.4, token-bucket
+[28] A. S. Tanenbaum, D. J. Wetherall, Computer Networks, 5th ed., Pearson, 2011 — \S{}5.4, token-bucket
 
 traffic shaping.
 
@@ -945,7 +940,7 @@ ICASSP, 2017.
 
 Internal primary sources (SOMA repository) ops/NORTH_STAR.md — product source of truth: the three-stage machine, the attention principle, metrics, prototype tiers, honest critiques.
 
-ops/ROADMAP.md — canonical implementation spec: central hypothesis, the (A)/(B) instrument, sufficiency→necessity→efficiency, phases and gates, the anti-diversion law. ops/MARKET_AND_SCOPE.md — quadrant analysis, named acquirers, scope boundaries. ops/enrichment_scheduler_design.md — salience scheduler design note (Swift portability contract).
+ops/ROADMAP.md — canonical implementation spec: central hypothesis, the (A)/(B) instrument, sufficiency$\rightarrow$necessity$\rightarrow$efficiency, phases and gates, the anti-diversion law. ops/MARKET_AND_SCOPE.md — quadrant analysis, named acquirers, scope boundaries. ops/enrichment_scheduler_design.md — salience scheduler design note (Swift portability contract).
 
 docs/PHASE0_REPORT.md — verified Phase 0 state: gate output, coverage, known debt, contamination flags.
 
@@ -975,41 +970,41 @@ README.md — orientation; locked architecture decisions; current privacy status
 
 [23][24][25] supplies the three patterns that structure the monolith: event sourcing (the
 
-## Appendix A — The Napkin, Transcribed and Mapped
+# Appendix A — The Napkin, Transcribed and Mapped {-}
 
 The founding sketch, transcribed line by line, with each phrase's production counterpart. The napkin reads top-to-bottom as two blocks: the "Standard Model" header and the EXECUTION pipeline.
 
 ### A.1 The Standard Model block
 
-"World → Senses (Eyes, Ears, Organs) → Brain. Standard Model. (Because we can't manufacture other senses, or most of the information is obtained through this.)" Mapped: Chapter 2's epistemology. Eyes and ears become camera and microphone; "organs" becomes the sensor suite (pose, motion, place) — the one sense the phone can manufacture beyond sight and sound, and the one that answers spatial questions.
+"World $\rightarrow$ Senses (Eyes, Ears, Organs) $\rightarrow$ Brain. Standard Model. (Because we can't manufacture other senses, or most of the information is obtained through this.)" Mapped: Chapter 2's epistemology. Eyes and ears become camera and microphone; "organs" becomes the sensor suite (pose, motion, place) — the one sense the phone can manufacture beyond sight and sound, and the one that answers spatial questions.
 
 ### A.2 The EXECUTION block, phrase by phrase
 
-Napkin phrase Production meaning Where "World → Video (Eyes), Audio (Ears)" capture substrate, always-on cheap senses Ch. 5.1, 9.1 "Extraction Black Box" frame gating + scaffold stamping Ch. 5.2 "Coordinates, time stamps" the spatio-temporal scaffold on every datum Ch. 7.1–7.2 "Blurry frames discarded, Signal–Noise deciphered" + "Context" quality gating; context rides with every emission Ch. 5.2 "A macro picture of what's happening ⇒ VLM" salience-gated scene gist Ch. 5.3, 9.4 "A specialized eye or helper for various tasks; called as needed" the helper stratum: OCR, ASR, sounds, detector Ch. 5.4, 9.1 "Best understanding possible of the world → TEXT" typed open-vocabulary observations Ch. 5.5, 7.1 "Text from various helpers marked by coordinates" provenance + anchors on every line Ch. 7.2 "Binder ⇒ binding the coordinates, physicality & temporality together" co-occurrence fusion Ch. 5.6, 10 "First thought or raw material that can be marinated on. Note: this is not a complete Node, it's raw material" append-only observation log as episodic store Ch. 5.6, 8.2 "Node Creation Black Box" consolidation → evidence graph Ch. 5.7, 10 "A physical living breathing cell that can combine with fellow nodes to derive new things — 1+1=4 ≠ 2" entities + derived bindings; the crow's habit node Ch. 6.7, 10.2 "Always running in the background but better nightly" incremental + nightly binding Ch. 2.3, 10.3 "Encryption, i.e. people using our app can decipher" AES-256-GCM user-key codec Ch. 12.3 "Discarder of meta, i.e. the marinated content that's not useful is discarded, not the raw material" disposable projections over an immutable log Ch. 8.2, I3 "Information Supplier Black Box" recall retrieval + grounding gate Ch. 5.8, 11 "Just Enough Context for local LLM" the evidence dossier Ch. 11.2 "LLM does what LLM does" commodity reasoner at the end of the pipe Ch. 11.1 Nothing on the napkin failed to survive contact with implementation; what changed is that every phrase acquired a type, a file, and a test.
+Napkin phrase Production meaning Where "World $\rightarrow$ Video (Eyes), Audio (Ears)" capture substrate, always-on cheap senses Ch. 5.1, 9.1 "Extraction Black Box" frame gating + scaffold stamping Ch. 5.2 "Coordinates, time stamps" the spatio-temporal scaffold on every datum Ch. 7.1–7.2 "Blurry frames discarded, Signal–Noise deciphered" + "Context" quality gating; context rides with every emission Ch. 5.2 "A macro picture of what's happening $\Rightarrow$ VLM" salience-gated scene gist Ch. 5.3, 9.4 "A specialized eye or helper for various tasks; called as needed" the helper stratum: OCR, ASR, sounds, detector Ch. 5.4, 9.1 "Best understanding possible of the world $\rightarrow$ TEXT" typed open-vocabulary observations Ch. 5.5, 7.1 "Text from various helpers marked by coordinates" provenance + anchors on every line Ch. 7.2 "Binder $\Rightarrow$ binding the coordinates, physicality & temporality together" co-occurrence fusion Ch. 5.6, 10 "First thought or raw material that can be marinated on. Note: this is not a complete Node, it's raw material" append-only observation log as episodic store Ch. 5.6, 8.2 "Node Creation Black Box" consolidation $\rightarrow$ evidence graph Ch. 5.7, 10 "A physical living breathing cell that can combine with fellow nodes to derive new things — 1+1=4 $\neq$ 2" entities + derived bindings; the crow's habit node Ch. 6.7, 10.2 "Always running in the background but better nightly" incremental + nightly binding Ch. 2.3, 10.3 "Encryption, i.e. people using our app can decipher" AES-256-GCM user-key codec Ch. 12.3 "Discarder of meta, i.e. the marinated content that's not useful is discarded, not the raw material" disposable projections over an immutable log Ch. 8.2, I3 "Information Supplier Black Box" recall retrieval + grounding gate Ch. 5.8, 11 "Just Enough Context for local LLM" the evidence dossier Ch. 11.2 "LLM does what LLM does" commodity reasoner at the end of the pipe Ch. 11.1 Nothing on the napkin failed to survive contact with implementation; what changed is that every phrase acquired a type, a file, and a test.
 
-## Appendix B — Glossary
+# Appendix B — Glossary {-}
 
-Observation one typed, provenance-bearing emission from a perceiver; the atom of memory Provenance (event id, source channel, capture time) — the birth certificate of any datum Confidence a probability in [0,1], intended calibrated; the currency of trust Entity a stable identity (crow_1) that observations resolve to Binding a subject–predicate–object edge with confidence and evidence Derived node a binding produced from other nodes, not from a sensor (the 1+1=4 output) Evidence graph the disposable projection of entities and bindings built from the log Event log the append-only, immutable store of all observations; the single source of truth Projection any structure derived from the log; rebuildable, discardable Helper a narrow, cheap, always-on perceiver (OCR, ASR, sound events, detector) Salience dwell × (0.6·novelty + 0.4·stability); what earns the expensive eye Enrichment ladder overview → attributes → minutiae; depth of attention buys depth of knowledge Token bucket the hard hourly budget governing deep looks Binder the consolidation process fusing observations by co-occurrence Night shift / SLEEP the nightly deep binding pass Weak-link refusal dropping (not down-weighting) any binding below the confidence floor Dossier the just-enough-context evidence package handed to the reasoner Grounding gate claim-level verification that every assertion traces to citations TextEgress the only type allowed off-device: text + source event ids EgressGuard the runtime wall that rejects any non-TextEgress payload RAS (correct − made-up)/total on a blind adversarial battery OAG of oracle-answerable questions, the share the text memory cannot answer (A) miss the fact was never captured — build the missing channel (B) miss the fact was captured but unused — fix binding/retrieval/refusal Hero capture the pinned proving-ground clip with its frozen question set Cold capture a never-tuned-on recording used as the anti-overfit guard Strangler fig incremental replacement of the legacy engine behind a stable boundary The napkin the founding sketch; transcribed in Appendix A
+Observation one typed, provenance-bearing emission from a perceiver; the atom of memory Provenance (event id, source channel, capture time) — the birth certificate of any datum Confidence a probability in [0,1], intended calibrated; the currency of trust Entity a stable identity (crow_1) that observations resolve to Binding a subject–predicate–object edge with confidence and evidence Derived node a binding produced from other nodes, not from a sensor (the 1+1=4 output) Evidence graph the disposable projection of entities and bindings built from the log Event log the append-only, immutable store of all observations; the single source of truth Projection any structure derived from the log; rebuildable, discardable Helper a narrow, cheap, always-on perceiver (OCR, ASR, sound events, detector) Salience dwell $\times$ (0.6\textperiodcentered{}novelty + 0.4\textperiodcentered{}stability); what earns the expensive eye Enrichment ladder overview $\rightarrow$ attributes $\rightarrow$ minutiae; depth of attention buys depth of knowledge Token bucket the hard hourly budget governing deep looks Binder the consolidation process fusing observations by co-occurrence Night shift / SLEEP the nightly deep binding pass Weak-link refusal dropping (not down-weighting) any binding below the confidence floor Dossier the just-enough-context evidence package handed to the reasoner Grounding gate claim-level verification that every assertion traces to citations TextEgress the only type allowed off-device: text + source event ids EgressGuard the runtime wall that rejects any non-TextEgress payload RAS (correct - made-up)/total on a blind adversarial battery OAG of oracle-answerable questions, the share the text memory cannot answer (A) miss the fact was never captured — build the missing channel (B) miss the fact was captured but unused — fix binding/retrieval/refusal Hero capture the pinned proving-ground clip with its frozen question set Cold capture a never-tuned-on recording used as the anti-overfit guard Strangler fig incremental replacement of the legacy engine behind a stable boundary The napkin the founding sketch; transcribed in Appendix A
 
-## Appendix C — The Domain Model, Formally
+# Appendix C — The Domain Model, Formally {-}
 
-The complete public surface of src/soma/domain/, stated as contracts. (The code is the authority; this listing is for readers without the repository.) Attribute(name: str, value: str) — rejects empty name or value. Provenance(event_id: str, source_channel: str, captured_at_ms: int ≥ 0) — rejects empty ids/channels, negative times.
+The complete public surface of src/soma/domain/, stated as contracts. (The code is the authority; this listing is for readers without the repository.) Attribute(name: str, value: str) — rejects empty name or value. Provenance(event_id: str, source_channel: str, captured_at_ms: int $\geq$ 0) — rejects empty ids/channels, negative times.
 
-Confidence(value: float ∈ [0,1]) — rejects out-of-range.
+Confidence(value: float $\in$ [0,1]) — rejects out-of-range.
 
-Observation(kind: str, subject: str, attributes: tuple[Attribute,...], t_ms: int ≥ 0, spatial_anchor: str|None, confidence: Confidence, provenance: Provenance, refutation_cue: str|None = None) — rejects empty kind/subject, negative t, and t_ms ≠ provenance.captured_at_ms.
+Observation(kind: str, subject: str, attributes: tuple[Attribute,...], t_ms: int $\geq$ 0, spatial_anchor: str|None, confidence: Confidence, provenance: Provenance, refutation_cue: str|None = None) — rejects empty kind/subject, negative t, and t_ms $\neq$ provenance.captured_at_ms.
 
-Entity(entity_id: str, kind: str, label: str) — rejects any empty field. Binding(binding_id: str, subject_id: str, predicate: str, object_id: str|None, object_text: str|None, confidence: Confidence, evidence: tuple[Provenance,...]) — rejects empty identity fields; requires exactly one of object_id/object_text; requires non-empty evidence. Method: is_usable(minimum_confidence) → confidence.value ≥ floor.
+Entity(entity_id: str, kind: str, label: str) — rejects any empty field. Binding(binding_id: str, subject_id: str, predicate: str, object_id: str|None, object_text: str|None, confidence: Confidence, evidence: tuple[Provenance,...]) — rejects empty identity fields; requires exactly one of object_id/object_text; requires non-empty evidence. Method: is_usable(minimum_confidence) $\rightarrow$ confidence.value $\geq$ floor.
 
 Query(text: str) — rejects empty. Citation(node_id: str, t_ms: int|None). RecallAnswer(text: str, citations: tuple[Citation,...]).
 
 TextEgress(text: str, source_event_ids: tuple[str,...]) — rejects empty text or empty sources. The application-layer counterpart: EgressGuard.text(payload) raises PrivacyViolationError unless payload is a TextEgress.
 
-Ports (Protocols): Perceiver.perceive(payload, captured_at_ms) → tuple[Observation,...] · Ocr.read(pixels) → tuple[str,...] · Asr.transcribe(audio) → str · VlmRunner.describe(pixels) → str · TextReasoner.reason(prompt) → str · MemoryStore.append(obs) / .observations() · RecallBackend.answer(query, memory_reference) → RecallAnswer.
+Ports (Protocols): Perceiver.perceive(payload, captured_at_ms) $\rightarrow$ tuple[Observation,...] \textperiodcentered{} Ocr.read(pixels) $\rightarrow$ tuple[str,...] \textperiodcentered{} Asr.transcribe(audio) $\rightarrow$ str \textperiodcentered{} VlmRunner.describe(pixels) $\rightarrow$ str \textperiodcentered{} TextReasoner.reason(prompt) $\rightarrow$ str \textperiodcentered{} MemoryStore.append(obs) / .observations() \textperiodcentered{} RecallBackend.answer(query, memory_reference) $\rightarrow$ RecallAnswer.
 
 THE DOMAIN MODEL, FORMALLY
 
-## Appendix D — The Evaluation Instrument
+# Appendix D — The Evaluation Instrument {-}
 
 ### D.1 Shape of a question battery
 
@@ -1017,19 +1012,19 @@ Each hero capture carries a frozen adversarial set (~25 questions) spanning: obj
 
 ### D.2 Scoring a run
 
-Each answer is graded correct / wrong / refused; wrong answers asserting unperceived facts count as made-up. RAS = (correct − made-up)/total. In parallel, the oracle (a strong model with the raw clip) answers the same battery; OAG = among oracle-correct questions, the fraction the text memory missed. Every miss receives an (A)/(B) tag from the what-the-brain-looked-at log. A run's report is: RAS, hallucination rate, OAG, the tagged miss list — and, per I7, the miss list is the backlog.
+Each answer is graded correct / wrong / refused; wrong answers asserting unperceived facts count as made-up. RAS = (correct - made-up)/total. In parallel, the oracle (a strong model with the raw clip) answers the same battery; OAG = among oracle-correct questions, the fraction the text memory missed. Every miss receives an (A)/(B) tag from the what-the-brain-looked-at log. A run's report is: RAS, hallucination rate, OAG, the tagged miss list — and, per I7, the miss list is the backlog.
 
 ### D.3 The walk baseline, as a worked scorecard
 
-The 92-second outdoor walk, 25 questions, frozen June answers: 16 correct, 6 wrong, 3 refused → RAS 40.0, hallucination 27.3%. Diagnosis: 8/9 misses (B) — wrong-object bindings (three questions), confident-wrong binaries (zip state, draft state), one counting failure, two retrieval misses; 1/9 (A) — head-pose for the two spatial questions, correctly refused rather than fabricated. Consequence, already executed in the follow-on branch: a consensus binder with weak-link refusal (36 entities / 58 bindings / 144 refusals on this clip) and cited answers on the previously-missed screen-text and brand questions — with egomotion capture queued as the sole sensor build the data authorizes. THE EVALUATION INSTRUMENT
+The 92-second outdoor walk, 25 questions, frozen June answers: 16 correct, 6 wrong, 3 refused $\rightarrow$ RAS 40.0, hallucination 27.3%. Diagnosis: 8/9 misses (B) — wrong-object bindings (three questions), confident-wrong binaries (zip state, draft state), one counting failure, two retrieval misses; 1/9 (A) — head-pose for the two spatial questions, correctly refused rather than fabricated. Consequence, already executed in the follow-on branch: a consensus binder with weak-link refusal (36 entities / 58 bindings / 144 refusals on this clip) and cited answers on the previously-missed screen-text and brand questions — with egomotion capture queued as the sole sensor build the data authorizes. THE EVALUATION INSTRUMENT
 
-## Appendix E — Annotated Bibliography
+# Appendix E — Annotated Bibliography {-}
 
 The bibliography, re-read with intent: for each cluster of sources, what it establishes and which SOMA decision rests on it.
 
 ### E.1 Memory science
 
-Tulving [1] establishes the episodic/semantic distinction that SOMA's two stores mirror: the time-stamped observation log is episodic (events located in time and place), the bound evidence graph is semantic (consolidated knowledge). The mapping is load-bearing, not decorative — it predicts the interface between the stores: consolidation runs episodic→semantic, never the reverse, exactly as the binder reads the log and never writes it. Bartlett [2] demonstrates that human recall is reconstructive and schema-driven — people confidently invent congruent detail. This is simultaneously SOMA's permission (a words-only memory is not a diminished memory; it is how memory works) and its warning (reconstruction without evidence discipline is confabulation — hence the grounding gate). Klinzing, Niethard & Born [3] review sleep-dependent systems consolidation: the brain replays and integrates by night because deep integration and live perception compete for the same machinery. SOMA's night shift is the same scheduling theorem applied to silicon thermals. Zacks et al. [4] show perception segments experience at change boundaries and encodes richly there — the cognitive license for gated deep capture. Hebb [35] supplies the binder's slogan and its mechanism: co-occurrence-driven association. Itti & Koch [8] formalize salience as the currency of visual attention; the scheduler's dwell-novelty-stability score is a wearable-economics translation of that literature.
+Tulving [1] establishes the episodic/semantic distinction that SOMA's two stores mirror: the time-stamped observation log is episodic (events located in time and place), the bound evidence graph is semantic (consolidated knowledge). The mapping is load-bearing, not decorative — it predicts the interface between the stores: consolidation runs episodic$\rightarrow$semantic, never the reverse, exactly as the binder reads the log and never writes it. Bartlett [2] demonstrates that human recall is reconstructive and schema-driven — people confidently invent congruent detail. This is simultaneously SOMA's permission (a words-only memory is not a diminished memory; it is how memory works) and its warning (reconstruction without evidence discipline is confabulation — hence the grounding gate). Klinzing, Niethard & Born [3] review sleep-dependent systems consolidation: the brain replays and integrates by night because deep integration and live perception compete for the same machinery. SOMA's night shift is the same scheduling theorem applied to silicon thermals. Zacks et al. [4] show perception segments experience at change boundaries and encodes richly there — the cognitive license for gated deep capture. Hebb [35] supplies the binder's slogan and its mechanism: co-occurrence-driven association. Itti & Koch [8] formalize salience as the currency of visual attention; the scheduler's dwell-novelty-stability score is a wearable-economics translation of that literature.
 
 ### E.2 Lifelogging and egocentric vision
 
@@ -1037,7 +1032,7 @@ Bush [36] is the genre's founding document; its sixty-year lesson is that captur
 
 ### E.3 Language models, retrieval, and honesty
 
-Brown et al. [7] mark text's coronation as the interlingua of machine reasoning — the substrate bet of §2.5. Lewis et al. [12] define the retrieve-then-generate shape of the ASK stage. Bohnet et al. [31] formalize attribution — answers that cite — as an evaluable property, which SOMA promotes from evaluation criterion to type obligation. Kamath, Jia & Liang [13] ground selective prediction: answering only above a confidence bar, measured as a risk-coverage trade — the formal frame for refusal. Guo et al. [20] show modern networks are miscalibrated by default and calibration must be measured and repaired — why Confidence is a contract, not a float. Ji et al. [32] taxonomize hallucination; the grounding gate's checklist (unsupported binaries, phantom objects, over-specificity) is that taxonomy operationalized.
+Brown et al. [7] mark text's coronation as the interlingua of machine reasoning — the substrate bet of \S{}2.5. Lewis et al. [12] define the retrieve-then-generate shape of the ASK stage. Bohnet et al. [31] formalize attribution — answers that cite — as an evaluable property, which SOMA promotes from evaluation criterion to type obligation. Kamath, Jia & Liang [13] ground selective prediction: answering only above a confidence bar, measured as a risk-coverage trade — the formal frame for refusal. Guo et al. [20] show modern networks are miscalibrated by default and calibration must be measured and repaired — why Confidence is a contract, not a float. Ji et al. [32] taxonomize hallucination; the grounding gate's checklist (unsupported binaries, phantom objects, over-specificity) is that taxonomy operationalized.
 
 ### E.4 Software architecture
 
@@ -1055,7 +1050,7 @@ Redmon et al. / Ultralytics [26] — the always-on detector lineage. Vasu et al.
 
 Cavoukian [5] names the standard SOMA meets architecturally rather than procedurally: privacy embedded in design. GDPR Art. 5(1)(c) [6] makes data minimization a legal principle; keeping meaning instead of medium is its strongest available reading for a perception device.
 
-## Appendix F — The Question Battery, in Full Shape
+# Appendix F — The Question Battery, in Full Shape {-}
 
 The hero walk's 25-question adversarial battery, by category, with what each category stresses. (Questions paraphrased from the frozen set; gold keys are hash-pinned in evaluation/.)
 
@@ -1077,13 +1072,13 @@ timeline navigation 22–23 Cross-channel "What was making the humming sound?"
 
 binder co-occurrence (the fan/hum class) 24–25 Unanswerable (planted) "What was written on the far poster?" (never legible) refusal calibration; RAS rewards the honest no Three design rules govern battery construction. Questions are written blind — the author has not seen what the system captured, so the battery samples the world's distribution, not the system's strengths. Gold keys carry acceptable-answer lists and founder verdicts resolve disputes. And planted unanswerables are mandatory: a battery without them cannot distinguish a calibrated system from a talkative one.
 
-## Appendix G — The Decision Log
+# Appendix G — The Decision Log {-}
 
-Locked decisions, their rationale, and their revisit condition — the institutional memory of the architecture. (Decisions marked ◆ are founder-locked product decisions; ■ are audited engineering verdicts.)
+Locked decisions, their rationale, and their revisit condition — the institutional memory of the architecture. (Decisions marked $\blacklozenge$ are founder-locked product decisions; $\blacksquare$ are audited engineering verdicts.)
 
-Decision Rationale Revisit when ◆ Text-only retention (I1) privacy structural; text queryable/auditable sufficiency run falsifies losslessness (§16.1) ◆ Unconstrained questions (I6) constrained surface hides hallucination never — supersedes north star's older suggestion ◆ Refusal over fabrication (I5) trust is the product never ■ MobileCLIP-S0 for naming ANE-fast; words-not-prose; open vocab; audit: weak link was proposals, not naming desk-test diag shows naming (not proposals) is the bottleneck ■ ARKit for pose/reloc only free 6-DOF + relocalization on the hardware cross-day reloc fails at its measured gate ■ Append-only SQLite event log replay, audit, crash-safety; no server store outgrows device (not projected) ■ AES-256-GCM user-key codec authenticated encryption; versioned AAD crypto review mandates change ■ Strangler over rewrite for ask_home 2,900 lines of earned heuristics; rewrite risk strangling completes (celebration, not revisit) ■ No app rewrite before demo build+install loop is the only device-test loop after the pitch window ◆ Kill the 3D world renderer no question needed it (I7's founding case) a diagnosed (A) spatial miss that egomotion cannot close ■ Gemma-3-12B local / hatch to frontier text local-first economics; typed egress makes hatch safe measured local-vs-hatch delta justifies switch ◆ RAS ≥ 60, hallucination < 5% as prototype gate the stranger-amazement bar made numeric founder resets the bar THE DECISION LOG
+Decision Rationale Revisit when $\blacklozenge$ Text-only retention (I1) privacy structural; text queryable/auditable sufficiency run falsifies losslessness (\S{}16.1) $\blacklozenge$ Unconstrained questions (I6) constrained surface hides hallucination never — supersedes north star's older suggestion $\blacklozenge$ Refusal over fabrication (I5) trust is the product never $\blacksquare$ MobileCLIP-S0 for naming ANE-fast; words-not-prose; open vocab; audit: weak link was proposals, not naming desk-test diag shows naming (not proposals) is the bottleneck $\blacksquare$ ARKit for pose/reloc only free 6-DOF + relocalization on the hardware cross-day reloc fails at its measured gate $\blacksquare$ Append-only SQLite event log replay, audit, crash-safety; no server store outgrows device (not projected) $\blacksquare$ AES-256-GCM user-key codec authenticated encryption; versioned AAD crypto review mandates change $\blacksquare$ Strangler over rewrite for ask_home 2,900 lines of earned heuristics; rewrite risk strangling completes (celebration, not revisit) $\blacksquare$ No app rewrite before demo build+install loop is the only device-test loop after the pitch window $\blacklozenge$ Kill the 3D world renderer no question needed it (I7's founding case) a diagnosed (A) spatial miss that egomotion cannot close $\blacksquare$ Gemma-3-12B local / hatch to frontier text local-first economics; typed egress makes hatch safe measured local-vs-hatch delta justifies switch $\blacklozenge$ RAS $\geq$ 60, hallucination < 5% as prototype gate the stranger-amazement bar made numeric founder resets the bar THE DECISION LOG
 
-## Appendix H — A Day in the Life of the System
+# Appendix H — A Day in the Life of the System {-}
 
 The architecture, narrated once more as an operational timeline — what is actually running, hour by hour.
 
@@ -1097,13 +1092,13 @@ The architecture, narrated once more as an operational timeline — what is actu
 
 06:58, again. The wearer wakes with a memory one day richer, a graph one night wiser, a backlog written by the system's own misses — and not one frame, anywhere, of anything. — end of document —
 
-## Appendix I — The Capture Notation: Worked Records
+# Appendix I — The Capture Notation: Worked Records {-}
 
 The wire format of memory, shown whole. Below are the actual record shapes for one minute of the crow morning, as they rest in the append-only log (field order as in src/soma/domain/observation.py; values illustrative).
 
 ### I.1 A detector observation
 
-Field Value kind object subject black bird attributes (position: balcony_railing), (size: small), (motion: landing) t_ms 27_723_210 (07:42:03.210) spatial_anchor balcony/railing confidence 0.71 provenance (event_id: ev-4183, source_channel: detector, captured_at_ms: 27_723_210) refutation_cue track lost within 1s → possible shadow The refutation cue deserves a note: it is the observation announcing, at birth, what future evidence would disprove it. A shadow misread as a bird is expected to lose its track within a second; when the track instead persists forty seconds and earns a VLM look, the cue's condition fails and the observation's standing strengthens. Falsifiability is not a philosophy here; it is a field.
+Field Value kind object subject black bird attributes (position: balcony_railing), (size: small), (motion: landing) t_ms 27_723_210 (07:42:03.210) spatial_anchor balcony/railing confidence 0.71 provenance (event_id: ev-4183, source_channel: detector, captured_at_ms: 27_723_210) refutation_cue track lost within 1s $\rightarrow$ possible shadow The refutation cue deserves a note: it is the observation announcing, at birth, what future evidence would disprove it. A shadow misread as a bird is expected to lose its track within a second; when the track instead persists forty seconds and earns a VLM look, the cue's condition fails and the observation's standing strengthens. Falsifiability is not a philosophy here; it is a field.
 
 ### I.2 A sound observation
 
@@ -1121,7 +1116,7 @@ Field Value binding_id b-0917 subject_id crow_1 predicate observed_at object_tex
 
 Nine observations, one entity, two bindings: roughly 2.1 KB of text before compression. The same minute as 30 fps 4K video: roughly 1.4 GB. The ratio — about six orders of magnitude — is the entire economics of "never delete" (I3), and the reason a life fits on a phone.
 
-## Appendix J — Substrates and Hardware Budgets
+# Appendix J — Substrates and Hardware Budgets {-}
 
 The same architecture, three bodies. What changes per substrate is only the adapter ring; what never changes is the domain, the invariants, and the evaluation harness.
 
@@ -1131,7 +1126,7 @@ The proving substrate: recorded or streamed capture processed on a Mac (MLX-host
 
 ### J.2 V1 — the phone rig
 
-The moat substrate: chest-mounted iPhone, all-day. The constraints that shaped the architecture become measurable here: the Apple Neural Engine favors small always-on models (MobileCLIP's audit-winning property [27]); ARKit supplies 6-DOF pose and relocalization [15]; thermal and battery ceilings set the token bucket's refill rate empirically. The governance rule for this substrate is the build stamp (§14.2): no number is believed until read off a device artifact carrying the git SHA that produced it. Two open gates define V1 honesty: the all-day budget story (measured battery %/hr, enrichments/hr) and the live no-raw-persistence proof.
+The moat substrate: chest-mounted iPhone, all-day. The constraints that shaped the architecture become measurable here: the Apple Neural Engine favors small always-on models (MobileCLIP's audit-winning property [27]); ARKit supplies 6-DOF pose and relocalization [15]; thermal and battery ceilings set the token bucket's refill rate empirically. The governance rule for this substrate is the build stamp (\S{}14.2): no number is believed until read off a device artifact carrying the git SHA that produced it. Two open gates define V1 honesty: the all-day budget story (measured battery %/hr, enrichments/hr) and the live no-raw-persistence proof.
 
 ### J.3 Glasses — the destination
 
@@ -1141,7 +1136,7 @@ The form factor the architecture was shaped for rather than on: a device worn at
 
 Resource Cheap stratum Expensive eye Night shift Cadence continuous tokens/hour (bucket) once nightly Model class detector, OCR, ASR, tagger, sensors 7–12B multimodal 12B+ text (or hatch) Power posture always-on, ANE-friendly budgeted bursts on charger Failure visibility (A) misses in OAG (A) misses in OAG (B) misses in RAS Where it runs (V0 / V1) Mac / device Mac / device Mac / device-on-charger
 
-## Appendix K — Future Work
+# Appendix K — Future Work {-}
 
 Marked explicitly as unauthorized work in the I7 sense: none of it may be built until a missed question or a product gate demands it. It is recorded so that ambition is documented without being licensed.
 
@@ -1151,17 +1146,17 @@ Shared and multi-person memory. Two SOMA wearers who consent could bind across l
 
 Refutation-driven revision. The refutation_cue field is stored but not yet acted upon at scale; a full implementation runs nightly refutation sweeps — evidence arriving later that triggers stored cues demotes or annotates the observations they guard. On-answer teaching. When the user corrects an answer ("that wasn't the North Face bag, it was the Patagonia"), the correction is itself an observation — user-channel, high confidence — that the next night's shift binds against the record. The memory would then be the first perception system whose owner can argue with it, with citations, and win. Question-cost forecasting. The scheduler currently spends attention on salience; a stronger version prices tracks by expected future question value learned from the wearer's own question history — closing the loop between what is asked and what is looked at. FUTURE WORK
 
-## Appendix L — Reading Paths
+# Appendix L — Reading Paths {-}
 
-Three curated routes through this document, for three readers. The evaluator (an hour). Chapter 1 (the claim) → Chapter 6 (the crow, the claim made concrete) → Chapter 13 (how failure is measured) → Chapter 16 (what could kill it) → Appendix D (the scorecard). This path contains every number and every risk; nothing in the remaining chapters softens or contradicts it.
+Three curated routes through this document, for three readers. The evaluator (an hour). Chapter 1 (the claim) $\rightarrow$ Chapter 6 (the crow, the claim made concrete) $\rightarrow$ Chapter 13 (how failure is measured) $\rightarrow$ Chapter 16 (what could kill it) $\rightarrow$ Appendix D (the scorecard). This path contains every number and every risk; nothing in the remaining chapters softens or contradicts it.
 
-The engineer (an afternoon). Chapters 4–5 (invariants, pipeline) → Chapters 7–11 (domain to recall) → Appendix C (the formal surface) → Appendix I (the wire format) → then the repository itself, in the order README → ops/NORTH_STAR.md → ops/ROADMAP.md → src/soma/domain/.
+The engineer (an afternoon). Chapters 4–5 (invariants, pipeline) $\rightarrow$ Chapters 7–11 (domain to recall) $\rightarrow$ Appendix C (the formal surface) $\rightarrow$ Appendix I (the wire format) $\rightarrow$ then the repository itself, in the order README $\rightarrow$ ops/NORTH_STAR.md $\rightarrow$ ops/ROADMAP.md $\rightarrow$ src/soma/domain/.
 
-The skeptic (an evening). Chapter 2 (why words) → Chapter 3 (who tried before) → Chapter 18 (the objections, at full strength) → Chapter 12 (the moat, and its honest residue §12.7) → Chapter 16 (the risk register). If the skeptic leaves with one sentence, it should be the one the architecture stakes everything on: the failure modes of this system are designed to be measurable, attributable, and named — and a system that can name its failures can fix them.
+The skeptic (an evening). Chapter 2 (why words) $\rightarrow$ Chapter 3 (who tried before) $\rightarrow$ Chapter 18 (the objections, at full strength) $\rightarrow$ Chapter 12 (the moat, and its honest residue \S{}12.7) $\rightarrow$ Chapter 16 (the risk register). If the skeptic leaves with one sentence, it should be the one the architecture stakes everything on: the failure modes of this system are designed to be measurable, attributable, and named — and a system that can name its failures can fix them.
 
 READING PATHS
 
-## Appendix M — The Legacy Engine: An Archaeology and a Strangling Plan
+# Appendix M — The Legacy Engine: An Archaeology and a Strangling Plan {-}
 
 scripts/ask_home.py — roughly 2,900 lines — is the system's functioning ancestor: the answer engine that produced every baseline number in Chapter 13. It predates the domain model, violates most of the style gate, and contains 47 broad exception handlers. It is also a repository of earned answer-quality defenses, bought one hallucination at a time on real captures, and the strangling plan's first rule is that none of them may be lost in translation.
 
@@ -1171,13 +1166,13 @@ scripts/ask_home.py — roughly 2,900 lines — is the system's functioning ance
 
 – Phantom-class defenses. A deliberately narrow watchlist (locomotion, animate, crowd classes) guards existence questions — "did I see a dog?", "was there a train?" — the classes where prior plausibility most strongly tempts a model to invent. – Absence and negation handling. Explicit machinery for answering "no" from the absence of evidence plus positive contrary cues (the empty-platform class), the hardest honest answer for a generative system.
 
-– Cross-lingual matching. English questions match German OCR (molecule↔Molekül, crowded↔leer) — a semantic-index lesson from captures in a bilingual environment. – Evidence dossiers. An 818-line dossier builder — oversized, but embodying the just-enough-context craft that Chapter 11 formalizes.
+– Cross-lingual matching. English questions match German OCR (molecule$\leftrightarrow$Molekül, crowded$\leftrightarrow$leer) — a semantic-index lesson from captures in a bilingual environment. – Evidence dossiers. An 818-line dossier builder — oversized, but embodying the just-enough-context craft that Chapter 11 formalizes.
 
 ### M.2 The strangling sequence
 
-Capability Legacy home New home Status Answer boundary + citations ad-hoc dict output Recall → RecallAnswer via LegacyAskHome done Bound memory bound_memory (empty, unusable) Binder consensus projection first real version on follow-on branch Grounded generation inline prompt rules GroundedRecall on local gemma first version on follow-on branch Claim verification scattered regex gates grounding_gate.py (Phase 3) boundary named Retrieval / indexes per-script builders projections over the event log migrating State/phantom/absence defenses prompt strings + regexes typed gate rules with tests to extract The migration's covenant: every extracted capability lands behind a port with tests that encode the legacy behavior it must preserve, and the baseline battery re-runs after each extraction — the strangler fig with a regression harness wrapped around it. When the last capability moves, the 47 broad excepts retire with the file, not before.
+Capability Legacy home New home Status Answer boundary + citations ad-hoc dict output Recall $\rightarrow$ RecallAnswer via LegacyAskHome done Bound memory bound_memory (empty, unusable) Binder consensus projection first real version on follow-on branch Grounded generation inline prompt rules GroundedRecall on local gemma first version on follow-on branch Claim verification scattered regex gates grounding_gate.py (Phase 3) boundary named Retrieval / indexes per-script builders projections over the event log migrating State/phantom/absence defenses prompt strings + regexes typed gate rules with tests to extract The migration's covenant: every extracted capability lands behind a port with tests that encode the legacy behavior it must preserve, and the baseline battery re-runs after each extraction — the strangler fig with a regression harness wrapped around it. When the last capability moves, the 47 broad excepts retire with the file, not before.
 
-## Appendix N — Threat Scenarios, Walked
+# Appendix N — Threat Scenarios, Walked {-}
 
 Abstract threat tables persuade engineers; scenarios persuade everyone else. Four walks through the membrane.
 
@@ -1185,9 +1180,9 @@ The stolen phone. A thief lifts the device from a café table mid-afternoon. Wha
 
 The subpoena. Litigation compels production of "all recordings" from a contested afternoon. SOMA's truthful response: no recordings exist; what exists is the owner's typed observation log — the same artifact class as a diary, with the same legal posture, readable by its owner, produced or contested under the same rules diaries have had for a century. The system has not made its owner a walking evidence locker for third parties. The cloud breach. The vendor's infrastructure is compromised entirely. Exposed: whatever guarded text the user's measured hatch decisions sent for deep reasoning — each payload provenance-stamped and text-only — and nothing else, because nothing else was ever transmissible (I2). The breach headline for a storage-first competitor is a media archive; for SOMA it is a subset of an already-minimal text stream.
 
-The coerced unlock. The hardest scenario, stated honestly: an adversary with the user and the user's key — an abusive partner, a border agent — reads text. The text is the day as words: real exposure, and §12.7's residue made concrete. What the architecture still withholds is the replayable stream — no scrubbing through footage of who the user met, no faces of third parties, no audio to re-hear. Harm is bounded to what words carry; that bound is the difference between a diary seized and a surveillance archive seized. THREAT SCENARIOS, WALKED
+The coerced unlock. The hardest scenario, stated honestly: an adversary with the user and the user's key — an abusive partner, a border agent — reads text. The text is the day as words: real exposure, and \S{}12.7's residue made concrete. What the architecture still withholds is the replayable stream — no scrubbing through footage of who the user met, no faces of third parties, no audio to re-hear. Harm is bounded to what words carry; that bound is the difference between a diary seized and a surveillance archive seized. THREAT SCENARIOS, WALKED
 
-## Appendix O — Binding Arithmetic: How 0.87 Happens
+# Appendix O — Binding Arithmetic: How 0.87 Happens {-}
 
 The crow's binding confidence, decomposed. The binder scores a candidate join over evidence features; the shape below is the contract (weights illustrative, tuned per Chapter 13's method, never hand-trusted): Feature Crow join (ev-4183 + ev-4184 + ev-4188) Chime join (ev-4191 + crow_1) Temporal proximity (window overlap)
 
@@ -1197,28 +1192,28 @@ The crow's binding confidence, decomposed. The binder scores a candidate join ov
 
 Spatial agreement (anchor match)
 
-### 0.9 — railing ⊂ balcony
+### 0.9 — railing $\subset$ balcony
 
 ### 0.4 — chime anchored next-door
 
-Kind compatibility (object↔sound↔gist priors)
+Kind compatibility (object$\leftrightarrow$sound$\leftrightarrow$gist priors)
 
-### 0.85 — corvid call ↔ bird ↔
+### 0.85 — corvid call $\leftrightarrow$ bird $\leftrightarrow$
 
 corvid gist
 
-### 0.2 — chime ↔ animal: no prior
+### 0.2 — chime $\leftrightarrow$ animal: no prior
 
-Channel independence bonus +: three channels agree −: single channel, single event Recurrence support n/a (first day) → neutral none Score → calibrated confidence 0.87 0.31 Floor (0.55) bind refuse Two properties of the arithmetic matter more than its constants. Independence is rewarded: three channels agreeing is evidence in a way three emissions of one channel is not — the fusion literature's core lesson [16]. And calibration is audited downstream: Chapter 13's scoring checks that bindings at 0.8x are right at roughly that rate, because a binder whose
+Channel independence bonus +: three channels agree -: single channel, single event Recurrence support n/a (first day) $\rightarrow$ neutral none Score $\rightarrow$ calibrated confidence 0.87 0.31 Floor (0.55) bind refuse Two properties of the arithmetic matter more than its constants. Independence is rewarded: three channels agreeing is evidence in a way three emissions of one channel is not — the fusion literature's core lesson [16]. And calibration is audited downstream: Chapter 13's scoring checks that bindings at 0.8x are right at roughly that rate, because a binder whose
 
 ### 0.87 behaves like a 0.6 poisons every threshold above it [20].
 
 ### O.1 Recurrence, formally
 
-On Wednesday the binder faces a choice: new entity or same? Identity resolution scores anchor consistency (same railing), kind and attribute consistency (corvid, glossy black), and behavioral signature (morning, brief perch) — resolving to crow_1 and pooling evidence. Confidence under pooling rises sublinearly (0.87 → 0.93, not → 0.99): repeated observation strengthens identity but never launders it into certainty. The asymptote is deliberate; certainty is reserved for the log itself (what was observed is a fact; what it was remains an inference forever).
+On Wednesday the binder faces a choice: new entity or same? Identity resolution scores anchor consistency (same railing), kind and attribute consistency (corvid, glossy black), and behavioral signature (morning, brief perch) — resolving to crow_1 and pooling evidence. Confidence under pooling rises sublinearly (0.87 $\rightarrow$ 0.93, not $\rightarrow$ 0.99): repeated observation strengthens identity but never launders it into certainty. The asymptote is deliberate; certainty is reserved for the log itself (what was observed is a fact; what it was remains an inference forever).
 
 BINDING ARITHMETIC: HOW 0.87 HAPPENS
 
-## Appendix P — "Lossless-Enough," Formally
+# Appendix P — "Lossless-Enough," Formally {-}
 
-The phrase carries the hypothesis, so it deserves a definition. Fix a question distribution Q — the questions a wearer's future self will ask, approximated by the adversarial batteries. For a day D, let O(D) be the answer set achievable by an oracle with the raw streams, and T(D) the answer set achievable by the same reasoner over SOMA's retained text. The retention is lossless-enough with respect to Q when: for questions drawn from Q: P[q answerable from T(D) | q answerable from O(D)] ≥ 1 − ε with ε the tolerated gap — and OAG is precisely the empirical estimate of that conditional miss rate (Chapter 13). Three consequences of writing it down. First, losslessness is relative to Q: no retention short of the stream itself is lossless against all possible questions, and the product claim never needs it to be — Q is human, finite, and skewed toward the memorable, which is what salience capture exploits. Second, ε is a product constant, not a research constant: the stranger-amazement bar sets it. Third, the definition cleanly separates the two failure terms the (A)/(B) instrument measures: capture loss shrinks T(D); reasoning loss fails to reach answers already inside it. The hypothesis of §1.3, restated: there exists an affordable channel set for which ε is small under the real question distribution. Everything else in this document is the machine for estimating ε fast.
+The phrase carries the hypothesis, so it deserves a definition. Fix a question distribution Q — the questions a wearer's future self will ask, approximated by the adversarial batteries. For a day D, let O(D) be the answer set achievable by an oracle with the raw streams, and T(D) the answer set achievable by the same reasoner over SOMA's retained text. The retention is lossless-enough with respect to Q when: for questions drawn from Q: P[q answerable from T(D) | q answerable from O(D)] $\geq$ 1 - $\varepsilon$ with $\varepsilon$ the tolerated gap — and OAG is precisely the empirical estimate of that conditional miss rate (Chapter 13). Three consequences of writing it down. First, losslessness is relative to Q: no retention short of the stream itself is lossless against all possible questions, and the product claim never needs it to be — Q is human, finite, and skewed toward the memorable, which is what salience capture exploits. Second, $\varepsilon$ is a product constant, not a research constant: the stranger-amazement bar sets it. Third, the definition cleanly separates the two failure terms the (A)/(B) instrument measures: capture loss shrinks T(D); reasoning loss fails to reach answers already inside it. The hypothesis of \S{}1.3, restated: there exists an affordable channel set for which $\varepsilon$ is small under the real question distribution. Everything else in this document is the machine for estimating $\varepsilon$ fast.
