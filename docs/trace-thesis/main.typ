@@ -1,10 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════
-// TRACE — the architecture thesis · v2.0
-// Built 2026-07-21. Successor to the SOMA v1.0 exposition (retired).
-// Sources of truth: the napkin (NAPKIN.md, verbatim in Appendix A),
-// the tracemem repository (~/Documents/trace), the legacy v0 stack
-// (~/Documents/VLM). All 40 external references verified against
-// live sources on 2026-07-21 (arXiv API, doi.org, cited URLs).
+// TRACE — the architecture thesis · v2.0 · July 2026
+// Sources of truth: the napkin (Appendix A), the tracemem repository,
+// the v0 stack. All 42 external references verified against live
+// sources (arXiv API, doi.org, CrossRef, publisher URLs) 2026-07-21.
 // Build: typst compile main.typ
 // ═══════════════════════════════════════════════════════════════════
 
@@ -77,7 +75,7 @@
     #v(1.4em)
     #text(size: 9.5pt, fill: inkgray)[
       Technical exposition · prepared for the founding team \
-      July 2026 · version 2.0 — supersedes the SOMA v1.0 exposition
+      July 2026 · version 2.0
     ]
     #v(2.2cm)
     #text(size: 8.5pt, fill: inkgray)[
@@ -102,29 +100,112 @@
 #heading(numbering: none, outlined: false)[Abstract]
 
 TRACE is a wearable memory system built on one uncompromising invariant: raw
-media never persists and never leaves the device; only typed text may cross the
-boundary. On-device perception converts the live world into coordinate-marked,
-provenance-bearing text at the moment of capture; the pixels and audio that
-produced it are discarded within milliseconds. A consolidation process —
-always running in the background, but better nightly — binds the day's
-observations into living nodes by spatial and temporal co-occurrence, derives
-what was never directly observed, and discards failed derivations without ever
-touching the raw record beneath them. A supplier answers unconstrained
-questions by handing an ordinary local language model _just enough context_ —
-three memories, not three thousand — every clause of every answer walking back
-to the exact reading that justifies it, and refusing honestly where no reading
-exists.
+media never persists and never leaves the device; only typed text may cross
+the boundary. On-device perception converts the live world into
+open-vocabulary, coordinate-marked, provenance-bearing text at the moment of
+capture; the raw pixels and audio that produced it are discarded within
+milliseconds. A consolidation process — deliberately modeled on biological
+sleep — binds the day's scattered observations into a typed evidence graph by
+spatial and temporal co-occurrence, attaching a calibrated confidence to every
+link and refusing weak ones outright. A recall engine answers unconstrained
+natural-language questions from this bound text alone, citing the exact
+observations that support each claim and refusing honestly when the answer was
+never perceived.
 
-This document is the complete argument for that architecture: its first
-principles (Chapters 1–2), its forty years of prior art (Chapter 3), the seven
-invariants that govern implementation (Chapter 4), the pipeline from photons
-to answers with one lived moment followed through every stage (Chapters 5–6),
-the machine itself (Chapters 7–11), and — separated with care, because the
-distinction is the difference between a claim and a hope — _what runs today,
-what runs on synthetic fakes, and what is not yet built_ (Chapters 12–17).
-The central hypothesis is stated as what it is: unvalidated, falsifiable, and
-instrumented. Every architectural decision in this document exists to test it
-faster.
+This document is the complete argument for that architecture. It derives the
+design from first principles (Chapters 1–2), situates it against forty years
+of lifelogging, egocentric-vision, and retrieval-augmented-generation research
+(Chapter 3), states the seven locked invariants that govern all implementation
+(Chapter 4), and walks the full pipeline from photons to answers (Chapter 5) —
+including a complete worked example followed end to end from a single reach
+toward a jar to a derived habit no sensor ever observed (Chapter 6). It then
+descends into the machine: the formal domain model (Chapter 7), the
+contract-first software architecture (Chapter 8), the salience-governed
+perception subsystem (Chapter 9), consolidation (Chapter 10), and grounded
+recall with calibrated refusal (Chapter 11). The remaining chapters treat the
+privacy architecture and its threat model (Chapter 12), the evaluation
+methodology that makes every failure diagnosable (Chapter 13), engineering
+governance (Chapter 14), the project's two stacks and the migration between
+them (Chapter 15), market position (Chapter 16), honest risks (Chapter 17),
+the strongest objections answered at full strength (Chapter 18), and the road
+ahead (Chapter 19).
+
+The central hypothesis — that perception can be decomposed into channels
+which reconstruct lossless-enough textual context for a tractable reasoner to
+answer arbitrary retroactive questions at near-zero hallucination — is stated
+throughout as what it is: falsifiable and instrumented. Every architectural
+decision in this document exists to test it faster.
+
+// ─────────────────── EXECUTIVE SUMMARY ───────────────────
+#heading(numbering: none)[Executive summary]
+
+_For the reader with ten minutes. Every claim below is developed, evidenced,
+and stress-tested in the body; section pointers are given throughout._
+
+*The product.* TRACE is a wearable memory you can question. It senses the day
+through always-on, cheap perception; turns everything into words the instant
+it happens — never keeping one frame of video or one second of audio; binds
+those words into understanding at night; and answers any question about the
+past with citations to what it actually perceived, or an honest "I don't
+know."
+
+*The insight.* The valuable artifact of a lived day was never the footage —
+it was the bound, queryable meaning. Storage-first wearables keep the toxic
+artifact (raw media: subpoenable, breachable, socially unacceptable) while
+deferring the valuable one (extracted, connected facts). TRACE extracts at
+the moment of capture and keeps only the value (Chapters 1–2).
+
+*The moat.* Surveillance is not forbidden by policy; it is impossible by
+architecture. The only object that can leave the device is typed text
+carrying the identifiers of the observations it came from; everything else
+dies at a guard short enough to audit in one breath. The store is encrypted
+under the user's own key. A competitor cannot copy this posture without
+abandoning the stored-media foundation its product is built on (Chapters 12,
+16).
+
+*The machine, in one breath.* Cheap senses run continuously (detection, OCR,
+speech, sound events, motion); an attention scheduler spends a hard hourly
+budget of deep vision-model looks only where dwell, novelty, and stability
+earn them; every emission is a typed, timestamped, provenance-bearing claim
+in an append-only log; consolidation fuses claims by co-occurrence into
+living nodes — refusing every weak link — and derives new facts no sensor
+observed; at question time, a supplier hands a local reasoner just enough
+cited evidence to answer or refuse (Chapters 5, 9–11). Chapter 6 walks one
+memory through every stage.
+
+*The discipline.* Seven locked invariants govern all code (Chapter 4): no raw
+persistence; text-only egress; append-only truth; provenance on everything;
+calibrated confidence with refusal over fabrication; unconstrained questions;
+and nothing built until a missed question demands it. Most are enforced by
+construction — an invalid memory object cannot exist.
+
+*The measurement.* Two instruments keep the system honest (Chapter 13). RAS
+scores answers with fabrication subtracted — a made-up answer costs what a
+correct one earns. OAG measures what verbalization lost: of the questions a
+raw-footage oracle can answer, the share the retained text cannot. Every
+miss is mechanically diagnosed as (A) never captured or (B) captured but
+unused, and the miss list is the backlog. The first measured baseline was
+poor and is reported anyway (RAS 40.0, hallucination 27.3% on the proving
+clip); the refusal-calibration research line — run with research
+collaborator Latheesh Roy — subsequently drove confident-wrong answers to
+*zero on the reproducible benchmark battery*, and holding that zero on cold
+captures is a standing gate, not a claim of final victory (§13.5, §13.8).
+On the perception side, extraction currently recovers 97.4% of what a
+frontier-model oracle reads from the same 111 real frames (§9.5).
+
+*The state of the build.* The full thinking machinery — binder,
+consolidation, supplier, grounded recall — is implemented and passes an
+end-to-end crown test on synthetic weeks; the hardware senses are still
+adapters-on-fakes; and a v0 stack has run live capture daily since June 2026
+while the greenfield rebuild strangles it organ by organ (Chapter 15). The
+ledger on the next page states exactly what runs, what runs on fakes, and
+what does not yet exist.
+
+*The hypothesis, stated as one.* That textual channels can carry
+lossless-enough context for near-zero-hallucination recall is falsifiable
+and instrumented rather than assumed. The method: prove sufficiency offline
+with unlimited compute first; discover the necessary channel set by ablation
+second; optimize for the live budget last (Chapter 13, Appendix K).
 
 // ─────────────────── WHAT IS REAL TODAY ───────────────────
 #heading(numbering: none)[What is real today]
@@ -142,15 +223,16 @@ the date above and demoted to hearsay a month later.
   table.header([*Component*], [*Status*], [*Evidence*]),
   [Domain model · claim log · rendering], REAL, [`tracemem` M0–M1, green tests],
   [Binder — reconcile, tombstones], REAL, [`tracemem` M3],
-  [Node creation & night shift — guardrails, selector, judge, pruner, remap], FAKES, [`tracemem` M4 — implemented against synthetic inputs],
+  [Consolidation — guardrails, selector, judge, pruner, remap], FAKES, [`tracemem` M4 — implemented against synthetic inputs],
   [Information supplier — cue, retrieve, pack, ground], REAL, [`tracemem` M5],
   [`.trace` container — format, keyring, sync, boundary], [#REAL / #STUB], [M6; libsodium crypto adapter stubbed],
   [Extraction cascade], [#FAKES / #STUB], [M7 — logic real, hardware adapters (OCR/ASR/eyes/tap) stubbed],
   [Crown test: shuffled synthetic week → episodes → entities → nightly patterns → cited answer → honest abstention], REAL, [`tests/test_crown.py`, passing],
   [Unit wall], REAL, [274 green · 1 xfail (the TODO ledger, each naming its spec section)],
-  [First measured extraction gap], REAL, [L1-verbatim recall 0.974 (gap 0.026) over 111 real frames; ceilings audited],
-  [Falsification gate on real captured weeks], NOTYET, [the REAL gate needs real captured weeks — the next milestone that matters],
-  [Legacy stack (v0): live capture, hub, nightly job, phone app], REAL, [running since June 2026; being strangled, not extended],
+  [Measured extraction gap], REAL, [L1-verbatim recall 0.974 (gap 0.026) over 111 real frames; ceilings audited],
+  [Confident-wrong answers on the benchmark battery], REAL, [0% — refusal-calibration line (with Latheesh Roy); cold-capture guard still open],
+  [Falsification gate on real captured weeks], NOTYET, [the gate needs real captured weeks — the next milestone that matters],
+  [v0 stack: live capture, hub, nightly job, phone app], REAL, [running since June 2026; being strangled, not extended],
 )
 
 *The number that matters most is one that is absent:* frames kept — zero, by
@@ -160,22 +242,24 @@ disk.
 // ─────────────────── HOW TO READ THIS ───────────────────
 #heading(numbering: none)[How to read this document]
 
-This document is written for six different kinds of reader. Do not read it
-linearly unless you want to.
+This document is written for six kinds of reader. Do not read it linearly
+unless you want to.
 
-- *In 10 minutes:* the Abstract, the table above, and Chapter 6 — one moment
-  followed end to end.
-- *ML / CV / data science:* Chapters 5, 9, and 13 — the pipeline, the
-  perception economics, and the evaluation instrument.
-- *Cognitive science:* Chapters 2 and 6 — the biological arguments are
-  load-bearing, not decorative, and you are the reader best placed to break
-  them.
-- *Backend / systems:* Chapters 7, 8, and 14 — the domain model, the
-  contract-first architecture, and the two-stack strangling plan.
-- *Product / frontend:* Chapters 1, 6, and 11 — the problem, the lived
-  example, and what answering actually feels like.
-- *Investors and diligence:* the table above, then Chapters 15–17 — honest
-  risks stated against ourselves, position, and the road.
+- *In 10 minutes:* the Executive Summary, the ledger above, and Chapter 6.
+- *The evaluator (an hour):* Chapter 1 (the claim) → Chapter 6 (the claim
+  made concrete) → Chapter 13 (how failure is measured) → Chapter 17 (what
+  could kill it) → Appendix C (the scorecard). This path contains every
+  number and every risk; nothing in the remaining chapters softens or
+  contradicts it.
+- *The engineer (an afternoon):* Chapters 4–5 → Chapters 7–11 → Appendix F
+  (the wire format) → then the repository itself.
+- *The skeptic (an evening):* Chapter 2 (why words) → Chapter 3 (who tried
+  before) → Chapter 18 (the objections, at full strength) → Appendix L (the
+  case against, from the literature) → Chapter 12 (the moat and its honest
+  residue) → Chapter 17 (the risk register).
+- *Cognitive science:* Chapters 2, 6, and 10 — the biological arguments are
+  load-bearing, and you are the reader best placed to break them.
+- *Investors and diligence:* the ledger above, then Chapters 15–19.
 
 #outline(depth: 2, indent: 1.2em)
 
@@ -188,13 +272,14 @@ linearly unless you want to.
 
 People forget most of their lives. Where the keys were left. What the doctor
 actually said, as opposed to what anxiety later reconstructed. Whether the
-door was locked. The name attached to a face met once at a dinner. What the
-contractor promised, verbally, in the hallway. The moments that matter are
-sparse, unpredictable in advance, and irretrievable by the time they are
-needed. Human episodic memory was never designed for retrieval on demand; it
-is a reconstructive process, optimized for gist over fidelity, and it degrades
-precisely along the dimensions — exact words, exact places, exact times —
-that everyday questions require [1][2].
+door was locked. The name attached to a face met once at a dinner. Which
+pharmacy the prescription went to. What the contractor promised, verbally, in
+the hallway. The moments that matter are sparse, unpredictable in advance,
+and irretrievable by the time they are needed. Human episodic memory was
+never designed for retrieval on demand; it is a reconstructive process,
+optimized for gist over fidelity, and it degrades precisely along the
+dimensions — exact words, exact places, exact times — that everyday questions
+require [1][2].
 
 The obvious remedy is to record everything. It fails twice, and both failures
 are fundamental rather than incidental.
@@ -202,87 +287,106 @@ are fundamental rather than incidental.
 The first failure is social and legal. A person wearing an always-on camera
 that stores video is a walking surveillance device. Every bystander is
 recorded without consent; every stored hour is subject to subpoena, theft,
-breach, and misuse; every intimate space the wearer enters becomes an archive.
-The history of wearable cameras is the history of this failure: from the
-earliest sousveillance experiments to the public rejection of camera glasses,
-storage-first capture has been socially unacceptable everywhere it has been
-tried at scale [10][34]. No privacy policy fixes this, because policies are
-promises, and promises about stored media are exactly what nobody believes.
+breach, and misuse; every intimate space the wearer enters becomes an
+archive. The history of wearable cameras is a history of this failure: from
+the earliest sousveillance experiments to the public rejection of camera
+glasses, storage-first capture has been socially unacceptable everywhere it
+has been tried at scale [10][34]. No privacy policy fixes this, because
+policies are promises, and promises about stored media are exactly what
+nobody believes.
 
 The second failure is functional. Raw footage is the wrong artifact. Nobody
 rewatches their life; a day of video is a day long. What people actually want
-from a memory is not playback but answers: to query the past the way one
-queries a database, in natural language, and get back a short, true, cited
-response. The valuable artifact of a lived day was never the footage — it was
-the bound, queryable meaning a mind would have extracted from it.
-Storage-first systems defer that extraction forever, and so never deliver it.
+from a memory is not playback but answers: they want to query the past the
+way they query a database, in natural language, and get back a short, true,
+cited response. The valuable artifact was never the footage — it was the
+bound, queryable meaning that a mind would have extracted from it.
+Storage-first systems defer that extraction forever and so never deliver it.
 
 == The problem statement
 
-Build a system that perceives a person's day through always-on, cheap senses;
-converts everything to words the instant it happens — never keeping one frame
-of video or one second of audio; consolidates those words, continuously and
-best nightly, into bound understanding; and later answers arbitrary questions
-from that understanding with citations, or refuses honestly.
+TRACE's problem statement follows directly:
 
-Three phrases in that statement carry the whole design. _"The instant it
-happens"_ is the privacy architecture (Chapter 12): ephemerality at the
-source, not deletion after the fact. _"Bound understanding"_ is the binder
-and the node layer (Chapters 5, 10): isolated observations are raw material,
-not memory — the napkin is explicit that the binder's output "is not a
-complete Node, it's raw material." _"Or refuses honestly"_ is the
-epistemology (Chapters 11, 13): a memory that fabricates is worse than no
-memory at all, so refusal is a first-class outcome and fabrication is priced
-into the headline metric at the cost of a correct answer.
+#block(inset: (left: 1.5em, right: 1.5em))[
+_Build a system that perceives a person's day through always-on, cheap
+senses; converts everything to words the instant it happens — never keeping
+one frame of video or one second of audio; consolidates those words,
+continuously and best nightly, into bound understanding; and later answers
+arbitrary questions from that understanding with citations, or refuses
+honestly._
+]
+
+Three phrases in that statement carry the whole design, and each is defended
+at length in this document. "The instant it happens" is the privacy
+architecture (Chapter 12): ephemerality at the source, not deletion after the
+fact. "Bound understanding" is the binder and the node layer (Chapters 5,
+10): isolated observations are raw material, not memory; memory is what
+emerges when the label, the spoken sentence, and the reach are fused into one
+moment. "Or refuses honestly" is the epistemology (Chapters 11 and 13): a
+memory that fabricates is worse than no memory at all, so refusal is a
+first-class outcome and fabrication is priced into the headline metric at the
+cost of a correct answer.
 
 == The central hypothesis
 
-Everything rests on one hypothesis: _perception can be decomposed into
-channels which reconstruct lossless-enough textual context for a tractable
-local reasoner to answer arbitrary retroactive questions at near-zero
-hallucination._ It is unvalidated. It is falsifiable. It is instrumented
-(Chapter 13), and the falsification gate that would kill or confirm it —
-scoring the system against real captured weeks rather than synthetic ones —
-is the project's named next milestone. Every architectural decision in this
-document exists to reach that gate faster.
+Everything rests on one hypothesis, repeated here because intellectual
+honesty about it is the whole game:
+
+#block(inset: (left: 1.5em, right: 1.5em))[
+_Perception can be decomposed into channels that reconstruct lossless-enough
+textual context for a tractable local reasoner to answer arbitrary
+retroactive questions at near-zero hallucination._
+]
+
+It is falsifiable — Appendix K states it formally, and the
+oracle-answerability gap of Chapter 13 is its direct empirical estimator. It
+is instrumented rather than assumed. And it is not yet proven on real
+captured weeks; the falsification gate that would confirm or kill it is the
+project's named next milestone.
 
 == What TRACE is not
 
 TRACE is not a lifelogger: it keeps no log of life, only text extracted from
 it. It is not a surveillance device: the artifact surveillance requires is
 never created. It is not a retrieval-augmented chatbot: retrieval here feeds
-a memory that was _built for_ retrieval, not a pile of documents that happen
-to exist. It is not a model company: the language model is the last and least
-special box in the machine, ordinary and swappable by design. And it is not
-finished: the table on page 3 is the honest boundary between the built and
-the intended.
+a memory that was built for retrieval under a privacy invariant, not a pile
+of documents that happen to exist. It is not a model company: the language
+model is the last and least special box in the machine, ordinary and
+swappable by design. And it is not finished: the ledger in the front matter
+is the boundary between the built and the intended, and this document never
+blurs it.
 
 == Contributions of this document
 
-(1) A first-principles derivation of an input-only memory architecture from
-the biology of human memory and the failure history of lifelogging. (2)
-Seven locked invariants, each with rationale, enforcement, and the failure it
-forecloses. (3) A complete pipeline exposition, from photons to a cited
-answer, with one moment walked through every stage. (4) An honest,
-mechanically-diagnosable evaluation method. (5) A candid account of the
-project's two stacks — the running v0 and the greenfield rebuild — and the
-strangling plan between them.
+First, a first-principles derivation of an input-only memory architecture
+from the biology of human memory and the failure history of lifelogging.
+Second, seven locked invariants, each with rationale, enforcement, and the
+failure mode it forecloses. Third, a complete pipeline exposition with one
+moment walked through every stage. Fourth, a formal domain model in which
+invalid memory is unrepresentable. Fifth, an evaluation method in which
+every miss mechanically names the work that fixes it. Sixth, a candid
+account of the project's two stacks and the strangling plan between them.
+Seventh, the strongest objections to all of the above, answered at full
+strength, including the counter-literature (Chapter 18, Appendix L).
 
 = Conceptual foundations
 
 == The standard model: a brain never touches the world
 
 The napkin's first drawing is not of the product; it is of every mind that
-has ever existed: `[World] → Eyes/Ears → [Brain]`, with the loop closing back
-into the world. The annotation beside it is the design's first principle:
-_"because we can't manufacture other senses, or most of the information is
-obtained through this."_ A brain never touches the world directly. It
-receives two narrow, lossy, sensory streams, extracts meaning at the moment
-of perception, and stores the meaning — never the stimulus. TRACE copies
-exactly this: video for eyes, audio for ears, extraction at the moment of
-capture, retention of meaning only. The architecture is not biomimicry for
-its own sake; it is the observation that the only working memory system we
-know of is input-only, and that its constraints are load-bearing.
+has ever existed: `[World] → Eyes/Ears → [Brain]`, with the loop closing
+back into the world, annotated: _"because we can't manufacture other senses,
+or most of the information is obtained through this."_ A brain never touches
+the world directly. It receives narrow, lossy sensory streams, extracts
+meaning at the moment of perception, and stores the meaning — never the
+stimulus. TRACE copies exactly this: video for eyes, audio for ears,
+extraction at the moment of capture, retention of meaning only. This is not
+biomimicry for its own sake; it is the observation that the only working
+memory system we know of is input-only, and that its constraints are
+load-bearing. Eyes and ears become camera and microphone; the napkin's
+"organs" become the sensor suite — pose, motion, place — the one sense a
+device can manufacture beyond sight and sound, and the one that answers
+spatial questions.
 
 == Episodic memory is reconstruction, not playback
 
@@ -290,214 +394,243 @@ Human recall does not replay footage, because there is none. Remembering is
 reconstruction from consolidated traces, schema-driven and confident even
 when wrong [2]. Tulving's episodic/semantic distinction [1] maps directly
 onto TRACE's two stores: the time-stamped claim log is episodic — events
-located in time and place, sparse and literal — while the bound node graph is
-semantic: consolidated, cross-referenced, queryable. The mapping is
+located in time and place, sparse and literal — while the bound evidence
+graph is semantic: consolidated, cross-referenced, queryable. The mapping is
 load-bearing, not decorative. It predicts the interface between the stores:
 consolidation runs episodic→semantic, never the reverse, exactly as the
-night shift reads the log and never writes it. And where human
-reconstruction silently invents congruent detail, TRACE's reconstruction is
-forbidden to assert anything that does not trace to a logged claim — it says
-"I don't know" where a human would confabulate. The machine is honest about
-reconstruction precisely because its biological original is not.
+night shift reads the log and never writes it. And the system's honesty
+about reconstruction exceeds the biological original: where human recall
+silently invents schema-consistent detail, TRACE's recall is forbidden to
+assert anything that does not trace to a logged claim, and says "I don't
+know" where a human would confabulate.
 
 == Sleep consolidation: why the binder runs at night
 
 The decision to concentrate deep binding in a nightly pass is likewise
-borrowed from biology. Systems-consolidation research shows the mammalian
-brain replays the day's hippocampal traces during slow-wave sleep, gradually
-binding them into neocortical structure [3] — an architecture forced by the
-same constraint TRACE faces: deep integration is expensive, and the organism
-cannot afford it while also perceiving. Night is when the device is charging,
-thermally unconstrained, and free to run the big model over the whole day at
-leisure. The napkin's phrase is exact: node creation is _"always running in
-the background, but better nightly."_ Incremental binding accelerates; the
-night shift perfects. Hebb supplies the mechanism transposed to text [35]:
-claims that co-occur in time and place, repeatedly, get bound into shared
-structure.
+borrowed from biology. Systems-consolidation research shows that the
+mammalian brain replays the day's hippocampal traces during slow-wave sleep,
+gradually binding them into neocortical structure [3] — an architecture
+forced by the same constraint TRACE faces: deep integration is expensive,
+and the organism cannot afford it while also perceiving. Night is when the
+device is charging, thermally unconstrained, and free to run the big model
+over the whole day at leisure. The napkin's phrase is exact: node creation
+is _"always running in the background, but better nightly."_ Incremental
+binding accelerates; the night shift perfects. The Hebbian slogan — cells
+that fire together, wire together [35] — is the binder's actual operating
+principle, transposed to text: claims that co-occur in time and place,
+repeatedly, get bound into shared structure.
 
 == Event segmentation: why capture is gated, not uniform
 
 Human perception does not sample the world uniformly; it carves experience
-into events at boundaries of change and encodes richly at those boundaries
-[4]. TRACE's capture follows the same economics: the cheap channels run
-continuously precisely because they are cheap, while the expensive channel —
-deep visual description by a vision-language model — fires only on attention,
-dwell, or change. Uniform deep capture would be both unaffordable and
-pointless: most moments do not matter, and the value of a memory is
-concentrated in the few that do. The scheduler that makes this call is not
-an optimization detail; it is the system's model of what deserves to be
-remembered well (Chapter 9).
+into events at boundaries of change, and encodes richly at those boundaries
+[4]. TRACE's capture follows the same economics (Chapter 9): the cheap
+channels run continuously precisely because they are cheap, while the
+expensive channel — deep visual description by a vision-language model —
+fires only on attention, dwell, or change. Uniform deep capture would be
+both unaffordable and pointless: most moments do not matter, and the value
+of a memory is concentrated in the few that do. The scheduler that makes
+this call is not an optimization detail; it is the system's model of what
+deserves to be remembered well, which is why the project treats it as part
+of the moat.
 
 == Text as the retention format: the four arguments
 
 The load-bearing decision — keep words, not media — rests on four arguments.
-_Privacy:_ text is the only format whose retention can be made socially and
-legally safe by construction; a sentence about a bystander is a fundamentally
-different object from their stored face (the residue this does _not_
-discharge is treated honestly in Chapter 12). _Sufficiency:_ the hypothesis
-under test is precisely that words carry enough; language is the interlingua
-in which modern machine reasoning is strongest [7], and retrieval-then-reason
-over text is the best-understood recall architecture we have [12].
-_Economy:_ text is thousands of times smaller than the media it replaces; a
-lifetime fits on a phone. _Auditability:_ a user can read every single thing
-the system knows about them, line by line, and delete none of it while
-trusting all of it — an impossible offer for embeddings or media.
+
+_Privacy._ Text is the only format whose retention can be made socially and
+legally safe by construction. A sentence about a bystander is a
+fundamentally different object from their stored face; the residue this does
+not discharge is treated honestly in §12.7.
+
+_Sufficiency._ The hypothesis under test is precisely that words carry
+enough. Language is the interlingua in which modern machine reasoning is
+strongest [7], and retrieval-then-reason over text is the best-understood
+recall architecture available [12]. The strongest evidence against — the
+verbal-overshadowing literature, in which describing a face degrades later
+recognition of it [42] — is engaged directly in Chapter 18 and Appendix L,
+because it is a critique of human verbalization under a recognition
+criterion, not of machine extraction under a question-answering criterion,
+and the distinction is measurable.
+
+_Economy._ Text is orders of magnitude smaller than the media it replaces —
+Appendix F's worked minute is roughly 2 KB against roughly 1.4 GB of 4K
+video for the same span — and a lifetime of it fits on a phone. "Never
+delete" (I3) is affordable only because of this ratio.
+
+_Auditability._ A user can read every single thing the system knows about
+them, line by line — an impossible offer for embeddings or media, and the
+foundation of the trust the product sells.
 
 == The resolution of the central tension
 
-"Remember everything" and "respect everyone" are only in tension while the
+"Remember everything" and "respect everyone" are in tension only while the
 retained artifact is media. Retain extracted meaning instead and the tension
-dissolves: recall quality becomes a function of extraction quality — which is
-measurable and improvable — while the surveillance artifact simply never
-exists. That is the whole company in two sentences.
+dissolves: recall quality becomes a function of extraction quality — which
+is measurable and improvable — while the surveillance artifact simply never
+exists.
 
 = Prior art and position
 
 == The memex lineage: total capture as an old dream
 
 Bush's 1945 memex [36] founded the genre and set its sixty-year trajectory:
-capture everything, organize later. The lesson of the lineage is that
-"later" never comes — capture without retrieval-of-meaning is a landfill.
+capture everything, organize later. The lineage's lesson is that "later"
+never comes — capture without retrieval-of-meaning is a landfill. Sellen and
+Whittaker's constructive critique of lifelogging [41] sharpened the lesson
+into design guidance a decade before this project: the value of a memory aid
+lies in retrieving the right cues and facts, not in total archives, and
+systems should be designed around the "five R's" of remembering rather than
+around storage. TRACE takes that critique as a requirement rather than an
+objection: it is a cues-and-facts system by construction, and the archive it
+refuses to keep is precisely the one the critique found worthless.
 
-== MyLifeBits and SenseCam: what storage-first taught
+== MyLifeBits and SenseCam: storage-first, and what it taught
 
 Gemmell, Bell and Lueder proved the landfill empirically at life scale [9]:
 MyLifeBits' bottleneck was never storage but structure. SenseCam [10] proved
-the opposite pole — even passive photo capture measurably aids real, clinical
+the opposite pole — even passive photo capture measurably aids clinical
 memory — while every deployment surfaced the social cost of visible storage.
 Hoyle et al. quantified that cost from the wearer's own side: lifeloggers
 themselves censor, delete, and manage bystander exposure [34]. Gurrin,
-Smeaton and Doherty's survey converges on cues-and-facts over archives [37].
-Together these justify TRACE's inversion: total capture, linguistic
-retention.
+Smeaton and Doherty's survey of the field converges on cues-and-facts over
+archives [37]. Together these justify TRACE's inversion: total capture,
+linguistic retention.
 
-== Ego4D: the demand curve, measured
+== Ego4D and egocentric vision: the demand curve, measured
 
 Ego4D [11] defines the benchmark tasks TRACE's question batteries descend
-from — and establishes that long-horizon egocentric retrieval is hard _even
-with the video retained_. That is the honest context for every recall number
-in this document: the ceiling is not 100%, even for an oracle with footage.
+from — episodic memory queries against first-person video — and establishes
+that long-horizon egocentric retrieval is hard even with the video retained.
+That is the honest context for reading every recall number in this document:
+the ceiling is not 100%, even for an oracle holding the footage.
 
 == Retrieval-augmented generation: the supplier's ancestry
 
 Lewis et al. [12] define the retrieve-then-generate shape the information
 supplier inherits. TRACE departs from RAG in what is retrieved from: not a
-corpus that happens to exist, but a memory _constructed for_ retrieval, with
-provenance and confidence as type obligations rather than metadata
-conventions. Attribution — answers that cite — is promoted from evaluation
-criterion [31] to construction rule; selective prediction [13] and
-calibration [20] supply the formal frame for refusal; the hallucination
-taxonomy of Ji et al. [32] is operationalized as the grounding gate's
-checklist.
+corpus that happens to exist, but a memory constructed for retrieval under a
+privacy invariant, with provenance and confidence as type obligations rather
+than metadata conventions. Attribution — answers that cite — is promoted
+from an evaluation criterion [31] to a construction rule; selective
+prediction [13] and calibration [20] supply the formal frame for refusal;
+the hallucination taxonomy of Ji et al. [32] is operationalized as the
+grounding gate's checklist.
 
 == The commercial field: an empty quadrant
 
-Plot the field on two axes — physical-world context versus digital-only, and
-zero retention versus raw-data retained — and the quadrant TRACE occupies is
-empty. Camera glasses and AI pins retain media; PKM tools and assistant
-platforms never touch the physical world. The two purpose-built recorders of
-this generation died at the privacy wall (Chapter 16). Physical context has
-always required retention; an architecture that supplies context without
-retention is the first way into that quadrant.
+Two axes organize the field: what persists (raw media versus derived text)
+and where reasoning happens (cloud versus device). Screen-recording memory
+tools, audio pendants, and camera glasses all sit in the raw-persistence
+half-plane, differing only in which medium they hoard. The text-only,
+device-perception quadrant is empty, and not by accident: occupying it
+requires giving up the raw stream, which storage-first architectures cannot
+do retroactively — their features, their indexes, and their user
+expectations are built on the archive. Chapter 16 develops the consequence.
 
 == Knowledge graphs and open vocabulary
 
-The node layer is a knowledge graph in the loose sense of Hogan et al. [14],
+The node layer is a knowledge graph in the broad sense of Hogan et al. [14],
 with one deliberate deviation: open vocabulary everywhere. There is no fixed
 ontology of entity types or predicates; the world names itself through the
-extractors' text, and structure emerges from co-occurrence, not from a
-schema. The cost of that choice is weaker global consistency; the payment
+extractors' text, and structure emerges from co-occurrence rather than from
+a schema. The cost of that choice is weaker global consistency; the payment
 comes at answer time, where evidence is quoted rather than inferred across
 long relational chains.
 
 = The seven invariants
 
 Architecture is what remains constant while everything else iterates. TRACE
-locks seven invariants. Each is stated with its rationale, its enforcement,
-and the failure mode it forecloses. Code that violates an invariant does not
-merge; several are enforced by construction, so violating them does not even
-compile against the domain model.
+locks seven invariants; each is stated with its rationale, its enforcement
+mechanism, and the failure mode it forecloses. Code that violates an
+invariant does not merge — several are enforced by construction, so
+violating them does not even compile against the domain model.
 
 == I1 — No raw persistence
 
 _Statement._ Raw pixels and audio are discarded the instant words are
-extracted from them. There is no record path, no cache, no "temporary" buffer
-that survives the perceptual moment.
+extracted from them. There is no record path, no cache, no "temporary"
+buffer that survives the perceptual moment.
 
-_Rationale._ Every stored frame is a liability with no compensating asset: it
-cannot be queried directly, and it is the artifact whose existence makes the
-system a surveillance device. Ephemerality at the source is the only privacy
-claim that survives an adversarial audit — deletion policies, retention
-windows, and encryption of stored media all reduce to promises.
+_Rationale._ Every stored frame is a liability with no compensating asset:
+it cannot be queried directly, and it is the artifact whose existence makes
+the system a surveillance device. Ephemerality at the source is the only
+privacy claim that survives an adversarial audit — deletion policies,
+retention windows, and encryption of stored media all reduce to promises.
 
-_Enforcement._ In `tracemem` the law is inherited from the blueprint in its
-hardest form: _raw is immutable and no update path exists; pixels never leave
-the device._ Capture converts and drops in one motion. Honesty note: gold
-frames used as evaluation oracles exist on the founder's development machine
-only — they are the measuring instrument, not the product path, and the
-phone build has never persisted a frame.
+_Enforcement._ Capture code converts and drops in one motion; the
+repository's ignore rules block media files as defense-in-depth; and in
+`tracemem` the law is inherited in its hardest form: _raw is immutable and
+no update path exists; pixels never leave the device._ Honesty note:
+evaluation gold frames exist on the founder's development machine as
+oracles — they are the measuring instrument (§13.2), not the product path,
+and the phone build has never persisted a frame.
 
 == I2 — Text-only egress
 
 _Statement._ The only payload type permitted to cross the device boundary is
 typed text carrying the identifiers of the source events it derives from.
 
-_Rationale._ Local models may hit a quality wall (Chapter 15); the
-architecture must allow routing _reasoning_ to a stronger model without ever
-routing _media_ anywhere. Typing the boundary makes the safe path the only
+_Rationale._ Local models may hit a quality wall (Chapter 17); the
+architecture must allow routing reasoning to a stronger model without ever
+routing media anywhere. Typing the boundary makes the safe path the only
 path.
 
-_Enforcement._ In the v0 stack this is an eleven-line guard that raises a
-privacy violation for any non-text payload — short enough to audit in one
-breath, which is the point. In `tracemem` the boundary lives in the
-container's boundary module, with the same contract.
+_Enforcement._ In the v0 stack, an eleven-line egress guard raises a privacy
+violation for any payload that is not typed text with non-empty provenance —
+short enough to audit in one breath, which is the point. In `tracemem` the
+same contract lives in the container's boundary module.
 
 == I3 — Append-only truth
 
 _Statement._ The claim log is immutable and append-only; it is the single
-source of truth. Everything derived from it — episodes, entities, patterns,
-every index — is a disposable, replayable projection.
+source of truth. Everything derived from it — the evidence graph, every
+index — is a disposable, replayable projection.
 
-_Rationale._ Consolidation is experimental and will be wrong often. If
-derived structure were the truth, every experiment would risk memory loss.
-With an immutable log, any projection can be discarded and rebuilt — the
-napkin's discarder rule verbatim: _"the marinated content that's not useful
-is discarded, NOT the raw material."_
+_Rationale._ Consolidation is experimental and will be wrong often;
+retrieval structures will be redesigned repeatedly. If derived structure
+were the truth, every such change would risk memory loss. With an immutable
+log, any projection can be thrown away and rebuilt — the napkin's discarder
+rule: marinated content that proves useless is dropped, never the raw
+material.
 
 _Enforcement._ The store exposes no update and no delete; corrections are
 expressed as new claims and tombstones (Chapter 7), never as mutation.
-Replays are deterministic, which the evaluation harness depends on.
+Replays are deterministic, which Chapter 13's evaluation depends on.
 
 == I4 — Provenance everywhere
 
-_Statement._ Every claim, binding, derivation, citation, and egress payload
-carries the identifiers of what it derives from. An unsourced assertion is a
-construction error.
+_Statement._ Every claim, binding, citation, and egress payload carries the
+event identifiers it derives from. An unsourced assertion is a construction
+error.
 
-_Rationale._ Citations are the product; diagnosis is the method (a wrong
-answer must be traceable to the claim that misled it); audit is the promise.
+_Rationale._ Citations are the product (answers must show their evidence),
+diagnosis is the method (a wrong answer must be traceable to the claim that
+misled it), and audit is the promise (the user can see where every
+remembered fact came from).
 
-_Enforcement._ Constructors reject empty evidence. Provenance is not a
-logging convention — it is a type obligation, in the value-object discipline
-of domain-driven design [19]: invalid memory is unrepresentable.
+_Enforcement._ Constructors: a binding rejects an empty evidence tuple; a
+claim rejects a timestamp that disagrees with its provenance; an egress
+payload rejects empty source lists. Provenance is not a logging convention —
+it is a type obligation [19].
 
 == I5 — Calibrated confidence; refusal over fabrication
 
-_Statement._ Every derived assertion carries a grade; the grade degrades with
-derivation depth; links below the floor are refused, not hardened; at answer
-time, insufficient evidence yields "I don't know."
+_Statement._ Every binding carries a confidence intended to be calibrated;
+links below the floor are refused, not hardened; at answer time,
+insufficient evidence yields "I don't know."
 
 _Rationale._ A memory's worth is its trustworthiness. One confident
-fabrication — "you locked the door" when you did not — costs more trust than
-a hundred honest refusals. The metric agrees: the scoring instrument
-subtracts fabrications from corrects, so the optimizer and the ethics point
-the same way. Modern networks are miscalibrated by default and calibration
-must be measured, not assumed [20].
+fabrication — "you locked the door" when you did not — costs more trust
+than a hundred honest refusals. The metric agrees: RAS subtracts
+fabrications from corrects, so the optimizer and the ethics point the same
+way.
 
-_Enforcement._ Grade is a domain type; _grade degrades with derivation
-depth_ is one of `tracemem`'s hard laws; refusal is the default disposition
-of weak evidence in the night shift's judge; abstention is a first-class
-answer in the crown test.
+_Enforcement._ Confidence is range-checked at construction; the refusal
+floor is the binder's default disposition of weak evidence (Chapter 10);
+calibration itself is a measured property (Chapter 13), per [20]; and in
+`tracemem`, _grade degrades with derivation depth_ is a hard law — deep
+derivations must be proportionally better-evidenced to be spoken.
 
 == I6 — Unconstrained questions
 
@@ -505,30 +638,33 @@ _Statement._ There is no fixed question taxonomy, no menu of supported query
 types. Users ask anything, natively.
 
 _Rationale._ A constrained question surface is a product decision
-masquerading as a safety decision: it hides hallucination by refusing to hear
-the questions that would expose it. The honest path is open vocabulary end to
-end, with calibrated refusal as the safety mechanism instead of a menu.
+masquerading as a safety decision: it hides hallucination by refusing to
+hear the questions that would expose it. The honest path is open vocabulary
+end to end — open observation kinds, open predicates, open questions — with
+calibrated refusal as the safety mechanism instead of a menu.
 
 _Enforcement._ The query type is a bare text string by design, and the
-founder's decision to keep it so is recorded.
+founder's locked decision to keep it so is recorded in the decision log
+(Appendix D).
 
 == I7 — Nothing is built until a missed question demands it
 
-_Statement._ Every helper, sensor, channel, and feature must be authorized by
-a diagnosed failure on a real question from a real capture.
+_Statement._ Every helper, sensor, channel, and feature must be authorized
+by a diagnosed failure on a real question from a real capture.
 
-_Rationale._ Perception systems invite infinite plausible work, and intuition
+_Rationale._ Perception systems invite infinite plausible work; intuition
 about which channel matters is reliably wrong. The project's own history
 supplies the cautionary tale: a 3D world renderer was built on intuition,
 answered nothing, and was killed. The discovery loop — ask, miss, diagnose,
-build exactly the missing channel — replaces guessing with evidence.
+build exactly the missing channel — replaces guessing with evidence, and the
+overnight self-play harness automates the asking.
 
-_Enforcement._ Governance: a build starts by naming the missed question it
-answers. The miss-diagnosis log (Chapter 13) supplies those questions
-mechanically. Even the two modules in `tracemem` that exceed the napkin
-(a prediction spine and the falsification harness) are explicitly flagged
-_beyond-napkin_ in the constitution file, awaiting a founder ruling — the
-invariant applied to the repository itself.
+_Enforcement._ Governance (Chapter 14): the plan-gate requires naming the
+missed question before any build starts. The (A)/(B) diagnosis log supplies
+missed questions mechanically. Even the two `tracemem` modules that exceed
+the napkin — a prediction spine and the falsification harness — are flagged
+_beyond-napkin_ in the constitution file, awaiting an explicit founder
+ruling: the invariant applied to the repository itself.
 
 == The invariants as a system
 
@@ -545,111 +681,116 @@ roadmap reverts to guessing.
 
 = The pipeline: from photons to answers
 
-This chapter is the napkin's EXECUTION line, expanded stage by stage. The
-interactive walkthrough (`interactive/architecture-live.html`) renders it
-live; this is its paper form. The pipeline in one line:
+This chapter is the napkin's EXECUTION line, expanded stage by stage.
+Appendix A maps every napkin phrase to its production counterpart; the
+interactive companion (`interactive/metamorphosis.html`) renders the same
+pipeline as one continuous transformation. The pipeline in one line:
 
 #align(center)[
   #text(size: 9.5pt)[`[World] → Extraction ⬛ → TEXT → Binder → Node Creation ⬛ → Supplier ⬛ → LLM`]
 ]
 
-== The world: two channels, no recording
+== Stage 1 — Senses
 
-Two streams open onto every second: video for eyes, audio for ears — the
-napkin's justification annotated on the drawing itself: we cannot manufacture
-other senses, and most information arrives through these two. Neither stream
-is a recording. Frames and samples exist transiently in memory, are read, and
-die; what survives is only what was read from them.
+Two streams open onto every second: video for eyes, audio for ears, plus the
+device's manufactured sense — pose, motion, place — standing in for the
+napkin's "organs." Neither audiovisual stream is a recording. Frames and
+samples exist transiently in working memory, are read, and die; what
+survives is only what was read from them. The cheap stratum (Chapter 9)
+watches continuously; nothing else is awake.
 
-== Extraction: the first black box
+== Stage 2 — Extraction
 
-Extraction turns raw light and sound into addressed text. Inside the box,
-four mechanisms:
+Extraction turns raw light and sound into addressed text, through four
+mechanisms. The _blur gate_ triages every frame before anything else sees
+it: a frame whose content cannot be read — motion smear, defocus — is
+discarded immediately, and a frame that cannot be read is never written. The
+_spend dial_ sets resolution and framerate by what the world is doing, not
+by a clock: a still room is sampled almost for free, a fast reach is frozen
+with a burst, a settled scene earns one expensive deep look. The _address
+stamp_ fixes normalized coordinates and a timestamp on every reading before
+meaning is attached: nothing is remembered without its address, and any
+later claim can be walked back to the pixel and second that produced it.
+The _signal–noise decipherer_ of the napkin is the composite of gate and
+dial: what remains after both is signal, stamped and contextualized.
 
-_The blur gate._ Every frame is triaged before anything else sees it. A frame
-whose content cannot be read — motion smear, defocus — is discarded
-immediately: _"blurry frames discarded"_ is on the napkin. A frame that
-cannot be read is never written; there is nothing to store, leak, or
-subpoena.
+== Stage 3 — The macro picture
 
-_The spend dial._ Resolution and framerate follow the world, not a clock
-(Chapter 9). A still room is sampled almost for free; a fast reach is frozen
-with a burst; a settled scene earns one expensive deep look. Spend follows
-salience — the signal/noise decipherer of the napkin.
+A vision-language model produces the napkin's _"macro picture of what's
+happening"_: a scene-level gist — a morning kitchen, someone reaching for a
+jar — that supplies context in both directions. Downward, it tells the
+scheduler what matters in this scene; upward, it rides with every emission
+so that later binding and answering know the setting a claim was born in.
 
-_The address stamp._ Every reading is stamped with normalized coordinates and
-a timestamp before meaning is attached. Nothing is remembered without its
-address; x·y·second is the primary key of the whole machine, and any later
-claim can be walked back to the pixel and the second that produced it.
+== Stage 4 — The helpers
 
-_The macro eye and the helpers._ A vision-language model produces the macro
-picture — _"a macro picture of what's happening ⇒ VLM"_ — which supplies
-context: what matters in this scene and which specialists to summon. Helpers
-are then called for the job: a reader for the label, a state extractor for
-the jar, a listener for the voice. Each is the best available understanding
-of its one slice of the world; each writes text; none knows the others exist.
-No helper is architecture — remove any one and the rest carry on.
+With context established, specialists are called for the job: an OCR reader
+for the label, a state extractor for the jar, a detector for objects, ASR
+for the voice, a sound tagger for the room. Each is the best available
+understanding of its one slice of the world; each writes text; none knows
+the others exist. No helper is architecture — remove any one and the rest
+carry on — and the helper set is open-ended by design, discovered by
+ablation rather than capped by a guess (§13.4).
 
-== TEXT: the only thing kept
+== Stage 5 — TEXT
 
-The output of extraction is the napkin's boxed word: TEXT. Text from various
-helpers, marked by coordinates, appended to an immutable log. Every line
-carries where, when, which helper, and how sure. This is the entire output of
-perception: text you could read aloud.
+The output of extraction is the napkin's boxed word: TEXT. Text from all
+helpers, marked by coordinates, appended to the immutable log. Every line
+carries where, when, which helper, and how sure. This is the entire output
+of perception: text the owner could read aloud.
 
-== The binder: physicality and temporal, together
+== Stage 6 — The binder
 
 The binder makes many readings into one moment. It does not understand the
 kitchen; it observes that several lines share a where and a when — _"binding
 the coordinates, physicality & temporal together"_ — and fuses them on that
 evidence alone. Binding is evidence-driven, not semantic, which is why a
-wrong binding can be reconciled later (tombstones, Chapter 7) without
-touching what was read. The output is the napkin's _first thought_: raw
-material that can be marinated on. The napkin's own note is the design's
-humility: _"this is not a complete Node, it's raw material."_
+wrong binding can be reconciled later without touching what was read. The
+output is the napkin's _first thought_: raw material that can be marinated
+on. The napkin's own note is the design's humility: _"this is not a complete
+Node, it's raw material."_
 
-== Node creation: the second black box
+== Stage 7 — Node creation
 
 Raw material becomes living cells — _"a physical living breathing cell that
 can combine with fellow nodes to derive new things — 1+1 = 4, ≠ 2."_ A node
-is a persistent thing (a jar, a person, a shelf) that thickens every time the
-world confirms it. Nodes combine: co-firing histories derive facts no sensor
-observed. The box also carries the napkin's two governance rules: encryption
-— only the person using the app can decipher (the container, Chapter 12) —
-and the discarder of meta: derived content that proves useless is deleted;
-the raw beneath it, never.
+is a persistent thing (a jar, a person, a shelf) that thickens every time
+the world confirms it. Nodes combine: co-firing histories derive facts no
+sensor observed. The box carries the napkin's two governance rules:
+encryption — only the person using the app can decipher (Chapter 12) — and
+the discarder of meta: derived content that proves useless is deleted; the
+raw beneath it, never.
 
-== The information supplier: the third black box
+== Stage 8 — The information supplier
 
 A question does not go to the archive; it goes to the supplier, whose
-contract is the napkin's phrase _just enough context_. The supplier walks the
-nodes, selects the few claims that bear on the question — three memories, not
-three thousand — and packs them with their citations for the reasoner. The
-supplier is the product decision; retrieval quality, not model quality, is
-where answers are won.
+contract is the napkin's phrase _just enough context_. The supplier walks
+the graph, selects the few claims that bear on the question — three
+memories, not three thousand — and packs them with their citations for the
+reasoner. Retrieval quality, not model quality, is where answers are won,
+which is why the supplier is a named black box and the model is not.
 
-== The LLM does what an LLM does
+== Stage 9 — The LLM does what an LLM does
 
-The last box is the least special. An ordinary local model receives the
-packed context and writes the sentence. It is swappable by design; the memory
-that feeds it is not. Grounding is enforced as a contract: a clause without
-supporting evidence is not emitted, and the system abstains rather than
-guesses.
+The last box is the least special. An ordinary local model [29] receives the
+packed context and writes the sentence, under a grounding gate that admits
+only clauses the packet supports. The model is swappable by design; the
+memory that feeds it is not.
 
 == What flows between stages
 
 One direction, one format. World→Extraction: transient media, dead in
-milliseconds. Extraction→TEXT: addressed claims. TEXT→Binder: claims;
-Binder→Nodes: bound moments (raw material). Nodes→Supplier: evidence with
-provenance. Supplier→LLM: a small cited packet. LLM→user: a sentence whose
-every clause walks back to a claim — or a refusal. Nothing flows backward;
-nothing mutates upstream.
+milliseconds. Extraction→TEXT: addressed claims. TEXT→Binder: claims.
+Binder→Nodes: bound moments. Nodes→Supplier: evidence with provenance.
+Supplier→LLM: a small cited packet. LLM→user: a sentence whose every clause
+walks back to a claim, or a refusal. Nothing flows backward; nothing mutates
+upstream.
 
 = One moment, end to end
 
-The worked example is the napkin's own scene, the same one the interactive
-walkthrough renders. Times are illustrative; the mechanics are the shipped
-ones.
+The worked example is the napkin's own scene. Times are illustrative; the
+mechanics are the shipped ones, and Appendix F shows the same machinery as
+raw wire-format records from a real v0 capture.
 
 == 09:14:07, Tuesday, the kitchen
 
@@ -660,8 +801,10 @@ happen; everything after is about keeping it.
 == The same second, inside extraction
 
 The blur gate discards the smeared frames of the reach and keeps one legible
-frame. The spend dial, which had been idling on a still kitchen, spikes for
-the motion and settles into one deep look. Three helpers write four lines:
+frame. The spend dial, idling on a still kitchen, spikes for the motion and
+settles into one deep look. The macro eye reads the scene — a morning
+kitchen, a reach toward a shelf — and calls the specialists. Three helpers
+write four lines:
 
 #block(inset: (left: 1.2em))[
 #raw("09:14:07  x .44 y .48   label reads \"NUSSGOLD\"        verbatim 1.00
@@ -678,102 +821,122 @@ lived roughly a hundred milliseconds. Frames kept: zero.
 
 == The binder, that evening
 
-Same x/y region, same second: the label line, the jar-state line, and the
-spoken line fuse into one bound moment — _09:14, kitchen: the jar is nearly
-empty, and it was said aloud._ Raw material; not yet a node.
+Same spatial region, same seconds: the label line, the jar-state line, and
+the spoken line fuse into one bound moment — _09:14, kitchen: the jar is
+nearly empty, and it was said aloud._ The chime from the neighbor's balcony,
+seven seconds and one wall away, is scored against the same arithmetic and
+refused (Appendix J shows the numbers). Raw material; not yet a node.
 
 == The night
 
-The moment is absorbed into cells. The JAR node thickens (seen 7 times since
-12 May; ¼ full today); the PERSON node records that it was said aloud; the
-PANTRY shelf carries its 41 sightings. Nodes fire together, and the night
-shift derives a third thing no sensor observed: _you run out roughly every
-six weeks_ — graded as derived, citing the three readings that earned it. A
-second candidate — "prefers the 400 g size" — finds no rent-paying evidence
-and is deleted. The raw beneath is untouched, so a better idea tomorrow gets
-the same evidence.
+The moment is absorbed into cells. The JAR node thickens — seen seven times
+since 12 May, a quarter full today. The PERSON node records that it was
+said aloud. The PANTRY shelf carries its forty-one sightings. Nodes fire
+together, and the night shift derives a third thing no sensor observed:
+_you run out roughly every six weeks_ — graded as derived, citing the three
+readings that earned it. A second candidate, "prefers the 400 g size,"
+finds no rent-paying evidence and is deleted. The raw beneath is untouched,
+so a better idea tomorrow gets the same evidence.
 
 == Weeks later: the question
 
 _"Do we need more of that spread?"_ The supplier walks the nodes and packs
-three memories: the ¼-full sighting with its date, the spoken sentence, the
-derived six-week cycle. The model writes: _"Almost certainly. It was a
-quarter full on 12 June, you said so yourself — and it's been about six
-weeks."_ Each clause carries its citation. Ask instead "which brand does my
-sister buy?" and the answer is _"I have never observed that"_ — the refusal
-is the feature.
+three memories: the quarter-full sighting with its date, the spoken
+sentence, the derived six-week cycle. The model writes: _"Almost certainly.
+It was a quarter full on 12 June, you said so yourself — and it's been about
+six weeks."_ Each clause carries its citation. Ask instead "which brand does
+my sister buy?" and the answer is _"I have never observed that."_
 
 == What the example proves
 
 That the pipeline composes: address-stamped extraction makes binding
 possible; binding makes nodes possible; nodes make derivation possible;
-provenance makes the final sentence auditable and the refusal principled. And
-what it does not prove: that extraction is rich enough on real, messy weeks —
-which is exactly what the falsification gate (Chapter 13) exists to test.
+provenance makes the final sentence auditable and the refusal principled.
+And what it does not prove: that extraction is rich enough on real, messy
+weeks — which is exactly what the falsification gate exists to test.
 
 = The domain model
 
-The vocabulary below is the live system's (`tracemem`), not its
-predecessor's. The unit of memory is the _claim_.
+The vocabulary below is the live system's. The unit of memory is the
+_claim_; the v0 stack's equivalent object is the observation, and Appendix F
+shows its wire format.
 
 == Claim — the atom
 
 A claim is one line of extracted text with its address and its provenance:
-what was read, where in the frame (normalized coordinates), when (timestamp),
-by which helper, and how it is graded. Claims are immutable and append-only
-(I3). The claim log renders back to a human-readable transcript — the memory
-can be _read_, in order, line by line.
+what was read, where in the frame (normalized coordinates), when
+(timestamp), by which helper, and how it is graded. Claims are immutable and
+append-only (I3). The claim log renders back to a human-readable
+transcript — the memory can be read, in order, line by line. One field
+deserves special note, inherited from the v0 observation record: the
+_refutation cue_, in which a claim announces at birth what future evidence
+would disprove it. A shadow misread as a bird is expected to lose its track
+within a second; when the track instead persists and earns a deep look, the
+cue's condition fails and the claim's standing strengthens. Falsifiability
+is a field, not a philosophy.
 
-== Grade — witnessed, then downhill
+== Provenance — the birth certificate
 
-Grades order trust. A claim read directly off the world (a verbatim label, a
-transcribed sentence) is _witnessed_; everything built above it — bindings,
-patterns, derived facts — carries a grade that _degrades with derivation
-depth_, one of the repository's hard laws. The grade is not a float
-decoration; it is the input to the refusal gate. Deep derivations must be
-proportionally better-evidenced to be spoken at answer time.
+Event identifier, source channel, capture time. Every structure above the
+log — episodes, entities, patterns, citations, egress payloads — carries the
+provenance of everything it was built from (I4). A wrong answer is
+therefore traceable, mechanically, to the claim that misled it.
+
+== Grade and confidence — the currency of trust
+
+Confidence is a probability, range-checked at construction and intended
+calibrated [20]; grade orders trust across derivation depth. A claim read
+directly off the world — a verbatim label, a transcribed sentence — is
+witnessed; everything built above it carries a grade that degrades with
+derivation depth, a hard law of the repository. The refusal gate consumes
+grades: deep derivations must be proportionally better-evidenced to be
+spoken at answer time.
 
 == Episode — the bound moment
 
-The binder's output: claims fused by co-occurrence in space and time into one
-event. Episodes are projections (rebuildable from the log), carry the
-evidence tuple that formed them, and are subject to _reconcile_: when later
-evidence shows a binding was wrong, a tombstone retires it and a corrected
-episode replaces it — correction as new information, never as mutation.
+The binder's output: claims fused by co-occurrence in space and time into
+one event, carrying the evidence tuple that formed it. Episodes are
+projections — rebuildable from the log — and subject to _reconcile_: when
+later evidence shows a binding was wrong, a tombstone retires it and a
+corrected episode replaces it. Correction is new information, never
+mutation.
 
 == Entity and pattern — the living cells
 
 An entity is a node with a history: the jar, the person, the shelf — each a
-list of dated confirmations. A pattern is a nightly derivation over entities:
-the six-week cycle, the morning routine. Patterns are the napkin's 1+1=4 and
-they are the most disposable layer in the system: the pruner deletes any that
-stop paying rent, and the raw claims beneath guarantee they can be re-derived
-or replaced.
+list of dated confirmations, resolved across days by identity scoring
+(Appendix J.1). A pattern is a nightly derivation over entities: the
+six-week cycle, the morning routine. Patterns are the napkin's 1+1=4, and
+they are deliberately the most disposable layer in the system: the pruner
+deletes any that stop paying rent, and the raw claims beneath guarantee
+they can be re-derived or replaced.
 
-== The ask contract
+== Query, citation, and the answer contract
 
-Answering is a typed pipeline: _cue_ (read the question), _retrieve_ (walk
-entities and episodes for bearing claims), _pack_ (assemble just-enough
-context, every item citable), _ground_ (emit only clauses supported by the
-packet; abstain otherwise). The contract's output is either a cited answer or
-an honest abstention — there is no third shape.
+Answering is a typed pipeline: cue (read the question), retrieve (walk
+entities and episodes for bearing claims), pack (assemble just-enough
+context, every item citable), ground (emit only clauses the packet
+supports; abstain otherwise). The contract's output is either a cited
+answer or an honest abstention; there is no third shape. The query type
+itself is a bare text string (I6).
 
 == Constructors, not validators
 
 Throughout, invalid states are unrepresentable rather than checked-for:
 claims without provenance, confidences outside range, bindings without
-evidence do not pass construction [19][22]. The domain does not trust its
-callers, including us.
+evidence do not pass construction [19][22]. A malformed memory is not a bug
+to find later — it is an object that never existed.
 
 = Software architecture
 
 == The order of authority
 
-`tracemem`'s constitution file states a precedence unusual enough to quote:
-the napkin outranks the code; the code outranks the tests; the tests outrank
-the campaign documents; the campaign documents outrank the specs. Prose lost
-its authority in this project once already (Chapter 14); the ordering makes
-sure the running system, not the latest document, is what wins arguments.
+The `tracemem` constitution file states a precedence unusual enough to
+quote: the napkin outranks the code; the code outranks the tests; the tests
+outrank the campaign documents; the campaign documents outrank the specs.
+Prose lost its authority in this project once already (Chapter 15), and the
+ordering makes sure the running system, not the latest document, wins
+arguments.
 
 == Contract-first modules
 
@@ -782,89 +945,103 @@ TEST, and its spec reference. The module tree maps one-to-one onto the
 napkin's boxes — `extraction/`, `text/`, `binder/`, `nodes/`, `container/`,
 `supplier/`, `llm/` — so a reader can hold the drawing in one hand and the
 repository in the other. Implemented logic is tested green; unimplemented
-bodies raise `NotImplementedError`, and their acceptance oracles exist ahead
-of them as xfail-marked tests.
+bodies raise `NotImplementedError`, and their acceptance oracles exist
+ahead of them as xfail-marked tests.
 
 == The test suite as ledger
 
-The test run is the project's status report, by design: _green_ is the
-regression wall (implemented and guaranteed); _xfail_ is the TODO ledger,
-each entry naming the spec section it awaits; _FAILED_ means a real bug that
-outranks all other work. As of 2026-07-21: 274 green, 1 xfail. The remaining
-stubs are exactly the hardware/model adapter set — the boundary between the
-thinking machinery (real) and the senses (fakes), stated plainly.
+The test run is the project's status report, by design: green is the
+regression wall (implemented and guaranteed); xfail is the TODO ledger,
+each entry naming the spec section it awaits; a failure is a real bug that
+outranks all other work. As of 2026-07-21: 274 green, 1 xfail, and the
+remaining stubs are exactly the hardware/model adapter set — the boundary
+between the thinking machinery (real) and the senses (fakes), stated
+plainly.
 
-== Ports, adapters, and fakes
+== Hexagonal: ports and adapters
 
-The v0 stack is hexagonal in the classical sense [21][22] — domain,
-application, ports, adapters — and `tracemem` keeps the discipline where it
-matters: every hardware and model dependency (OCR, ASR, camera eyes, the
-sodium cipher, the local LLM) sits behind a port with a deterministic fake.
-The crown test exercises the entire pipeline on fakes; making an adapter real
-changes no domain code. Event-sourcing and disposable projections [23][24]
-are the storage discipline; the strangler fig [25][40] is the migration
-discipline (Chapter 14).
+The v0 stack is hexagonal in the classical sense [21][22] — a pure domain,
+an application layer of use-cases, ports outward, adapters inward — and
+`tracemem` keeps the discipline where it matters most: every hardware and
+model dependency (OCR, ASR, camera eyes, the cipher, the local LLM) sits
+behind a port with a deterministic fake. The crown test exercises the
+entire pipeline on fakes; making an adapter real changes no domain code.
+
+== Event sourcing and disposable projections
+
+The append-only log as truth and everything else as replayable projection
+is event sourcing [23] with CQRS-flavored read models [24], chosen for
+exactly the property Chapter 10 needs: consolidation can be wrong, thrown
+away, and re-run over history without loss. Replays are deterministic;
+evaluation depends on it.
 
 == The hard laws
 
-Five laws inherited from the blueprint bind all of it: raw is immutable — no
-update path exists; pixels never leave the device; one model on the GPU at a
-time (a thermal and correctness constraint learned the hard way on v0);
-grade degrades with derivation depth; every capture gap is witnessed — if
-the senses were dark, the memory must say so rather than paper over it.
+Five laws inherited from v0's operational history bind all of it: raw is
+immutable — no update path exists; pixels never leave the device; one model
+on the GPU at a time (a thermal and correctness constraint learned when
+live capture went dark, silently, under a shared GPU); grade degrades with
+derivation depth; and every capture gap is witnessed — if the senses were
+dark, the memory must say so rather than paper over it.
 
 == The crown test
 
-One test stands above the suite: a shuffled synthetic week is fed through the
-whole machine — episodes form, entities accrete, nightly patterns derive, a
-question is asked, a cited answer comes back, and an unanswerable question is
-honestly abstained from. It passes. It is the executable form of this
-document's Chapters 5–7, and it is what "the thinking machinery exists" means
-when this document says it.
+One test stands above the suite: a shuffled synthetic week is fed through
+the whole machine — episodes form, entities accrete, nightly patterns
+derive, a question is asked, a cited answer comes back, and an unanswerable
+question is honestly abstained from. It passes. It is the executable form
+of Chapters 5–7, and it is what "the thinking machinery exists" means when
+this document says it.
 
 = The perception subsystem
 
-== The cheap stratum and the expensive eye
+== The cheap stratum: always-on helpers
 
-Perception is two economies. The cheap stratum — detection, OCR, speech,
-sound events, motion — runs always, because it can. The expensive eye — deep
-VLM description — runs rarely, because it must. The architecture's job is to
-spend the expensive looks exactly where the day's value is.
+Perception is two economies. The cheap stratum — detection [26], OCR,
+speech recognition [30], sound-event tagging against the AudioSet ontology
+[39], motion and pose [15] — runs continuously because it can: these models
+are small, neural-engine-friendly, and power-light. Open-vocabulary naming
+rides on MobileCLIP [27], chosen by audit for exactly the properties the
+substrate demands: fast on the neural engine, words rather than prose,
+vocabulary growth without retraining. The expensive eye — deep description
+by a vision-language model [17][18][38] — runs rarely, because it must.
 
-== Salience: the spend dial
+== Salience: deciding what deserves the expensive eye
 
-The dial moves by itself, many times a second, on dwell, novelty, and
-stability [8]: a still room earns almost nothing; an entering hand spikes the
-framerate; a settled new scene earns the one deep look. This is event
-segmentation (Chapter 2) turned into a scheduler, and it is why all-day
-capture is affordable at all.
+The scheduler prices every track by dwell, novelty, and stability — a
+wearable-economics translation of the computational-attention literature
+[8]. A still room earns almost nothing; an entering hand spikes the
+framerate; a settled new object earns the deep look. This is event
+segmentation (Chapter 2) turned into a scheduler.
 
-== The budget: no overdraft
+== The budget: a token bucket with no overdraft
 
 Deep looks are governed by a token bucket [28]: a hard hourly budget,
-refilled steadily, spent by salience, with no overdraft path. Attention is a
-budget, not a vibe — the system can always account for why it looked hard at
-one moment and not another.
+refilled at a measured rate, spent by salience, with no overdraft path.
+Attention is a budget, not a vibe; the system can always account for why it
+looked hard at one moment and not another, and the budget's refill rate is
+an empirical property of the device, not a config guess.
 
-== The enrichment ladder
+== The progressive enrichment ladder
 
-Attention deepens in rungs — glance (a jar), read (the label), state (¾
-empty, lid ajar), context (a German promo sleeve, therefore probably a German
-kitchen) — and each rung emits _only the delta_: what the previous rung did
-not already know. The same fact is never stored twice; storage grows with new
-knowledge, not with time spent looking.
+Attention deepens in rungs — glance (a jar), read (the label), state
+(three-quarters empty, lid ajar), context (a German promo sleeve, and
+therefore probably a German kitchen) — and each rung emits only the delta:
+what the previous rung did not already know. The same fact is never stored
+twice; storage grows with new knowledge, not with time spent looking.
 
 == The measured frontier
 
-The first real number exists, and it is encouraging without being sufficient:
-over 111 real captured frames, mechanically scored against frontier-model
-ceilings, L1-verbatim recall is *0.974* — a 2.6% gap between what the
-extraction stack reads and what the best available oracle reads. The audit
-also produced a diagnosed lesson (a cropping law confirmed on meal scenes:
-2/4 versus 0/4 on full frames) — the miss-diagnose-fix loop of I7 operating
-on perception itself. The honest caveat: L1-verbatim is the _mechanical_
-tier of the claim-match instrument, not the full score, and 111 frames are
-frames, not weeks.
+The first real number exists, and it is encouraging without being
+sufficient: over 111 real captured frames, mechanically scored against
+pinned frontier-model ceilings (§13.2), L1-verbatim recall is *0.974* — a
+2.6% gap between what the extraction stack reads and what the best
+available oracle reads from the same frames. The audit also produced a
+diagnosed lesson — a cropping law confirmed on meal scenes (2/4 recovered
+on crops versus 0/4 on full frames) — the miss-diagnose-fix loop of I7
+operating on perception itself. The honest caveats: L1-verbatim is the
+mechanical tier of the claim-match instrument, not the full score; and 111
+frames are frames, not weeks.
 
 = Consolidation: the night shift
 
@@ -874,33 +1051,40 @@ Read the day's claim log; bind by co-occurrence; thicken entities; derive
 patterns; refuse weak links; discard failed meta; touch nothing raw. The
 napkin's underlined words — _always running in the background, but better
 nightly_ — set the schedule: incremental passes keep the memory current;
-the night pass, on a charging and thermally free device, does the deep work.
+the night pass, on a charging and thermally free device, does the deep
+work. Congregate, dedupe, bind; resolve identities (today's jar is the same
+jar, thickened, not a fourth jar); run the derivation pass; rebuild the
+projections; toward dawn, let the discarder drop what the night's better
+judgment replaced.
 
 == The anatomy
 
-The consolidation heart (M4) is built as guarded stages: _guardrails_ (what
-may never be derived, e.g. assertions that would outrun their evidence);
-four _derivation kinds_ (the taxonomy of what 1+1 may legitimately make);
+The consolidation heart is built as guarded stages: _guardrails_ (classes
+of assertion that may never be derived, because they would outrun any
+evidence); four _derivation kinds_ (the legitimate shapes of 1+1);
 a _selector_ (which co-firing histories deserve the model's attention
 tonight); a _judge_ (does the candidate cite enough to survive — refusal is
-the default); the _night_ runner; the _pruner_ (rent collection on old
-patterns); and _remap_ (re-pointing structure when reconcile retires an
-episode). All of it runs today — against synthetic weeks; its inputs become
-real when the extraction adapters do.
+the default disposition); the _night_ runner; the _pruner_ (rent collection
+on old patterns); and _remap_ (re-pointing structure when reconcile retires
+an episode). All of it runs today against synthetic weeks; its inputs
+become real when the extraction adapters do.
 
 == Accelerator, not gatekeeper
 
 Consolidation makes answers better and faster; it must never become the
 condition for answering at all. The supplier can serve from episodes alone —
-unconsolidated memory is slower and flatter, not absent. A memory that only
-works after a good night's sleep is a demo, not an organ.
+unconsolidated memory is slower and flatter, not absent. Chapter 6's
+pharmacy-bag class of question — asked the same evening, before any night
+shift — is answered from the raw scaffold with a single citation. A memory
+that only works after a good night's sleep is a demo, not an organ.
 
 == The devil's advocate, kept in the room
 
-Derivation is where a memory system starts lying to itself, which is why the
-judge prices skepticism in: every candidate pattern must survive an explicit
-attempt to refute it from the same evidence, and the system deletes its own
-failed thoughts without sentiment. The napkin's discarder is not cleanup —
+Derivation is where a memory system starts lying to itself, which is why
+the judge prices skepticism in: every candidate pattern must survive an
+explicit attempt to refute it from the same evidence, weak links are
+refused at write time rather than hardened, and the system deletes its own
+failed thoughts without sentiment. The napkin's discarder is not cleanup;
 it is epistemic hygiene.
 
 = Recall: grounded answering with calibrated refusal
@@ -908,426 +1092,670 @@ it is epistemic hygiene.
 == The loop
 
 Cue → retrieve → pack → ground. The question is read for its entities, time
-hints, and kind; the supplier walks the graph; the packet is assembled small
-— just enough context, every item citable; and the grounding gate lets a
-clause through only if the packet supports it. The reasoner is local [29],
-ordinary, and swappable; on v0 the heuristic fallback refuses everything,
-which is the correct degenerate behavior for a memory: no reasoner, no
-guessing.
+hints, and kind; the supplier walks the graph; the packet is assembled
+small — just enough context, every item citable; and the grounding gate
+lets a clause through only if the packet supports it. The reasoner is local
+[29] and ordinary; on v0 the heuristic fallback refuses everything, which
+is the correct degenerate behavior for a memory: no reasoner, no guessing.
+
+== The grounding gate
+
+The gate's checklist is the hallucination taxonomy [32] operationalized,
+inherited clause by clause from the legacy engine's scar tissue (Appendix
+E of the strangling plan): binary-state discipline — occupancy, open/closed,
+on/off asserted only on direct literal support; phantom-class defenses on
+existence questions, where prior plausibility most strongly tempts
+invention; absence and negation handled from positive contrary cues, the
+hardest honest answer for a generative system; and over-specificity
+suppressed — the answer may not be more precise than its evidence.
 
 == Refusal as calibration
 
-Refusal is not a failure mode; it is the mechanism that makes open questions
-(I6) safe. The formal frame is selective prediction [13]: answer only above a
-confidence bar, and measure the risk–coverage trade rather than assert it.
-Attribution is the other half [31]: an answer's citations are checkable
-objects, so a wrong answer is a diagnosable event, not a shrug.
+Refusal is not a failure mode; it is the mechanism that makes open
+questions (I6) safe. The formal frame is selective prediction [13]: answer
+only above a confidence bar, and measure the risk–coverage trade rather
+than assert it. Attribution completes it [31]: citations are checkable
+objects, so a wrong answer is a diagnosable event. The refusal-calibration
+line (§13.8) is where this chapter's theory earned its first zero.
 
 == What answering feels like
 
-Short, cited, and honest. _"Almost certainly — ¼ full on 12 June, you said so
-aloud, and it's been six weeks."_ Or: _"I have never observed that."_ The
-product bet is that users forgive a memory that sometimes says "I don't
-know" and never forgive one that lies once.
+Short, cited, and honest. _"Almost certainly — a quarter full on 12 June,
+you said so aloud, and it's been about six weeks."_ Or: _"I have never
+observed that."_ The product bet, stated in Chapter 18.12: users forgive a
+memory that sometimes says "I don't know" and never forgive one that lies
+once.
 
 // ═══════════════════ PART III ═══════════════════
 #partpage[Part III · Reality]
 
-= The privacy architecture and its threat model
+= The privacy architecture
 
-== Structural, not procedural
+== Layer 1 — Ephemerality at the source
 
-The privacy claims rest on the two structural invariants: no raw persistence
-(I1) and text-only egress (I2). What does not exist cannot be stolen,
-subpoenaed, or leaked; what cannot cross the boundary cannot be exfiltrated
-by a bug in a feature. This is privacy by design in Cavoukian's strict sense
-[5] — embedded in architecture, not policy — and it is the strongest
-available reading of GDPR's data-minimisation principle [6]: retain meaning,
-not medium.
+Raw media is converted and dropped in one motion (I1). There is no
+retention window to configure, no deletion policy to trust, no archive to
+breach. The privacy property is not that stored media is protected; it is
+that stored media does not exist.
 
-== The container
+== Layer 2 — The typed boundary
 
-Retained text lives in the `.trace` container: a specified format anyone can
-implement and only the user can open. Three layers with deliberately
+Only typed text with provenance may leave the device (I2). The guard is
+deliberately tiny — eleven lines in the v0 stack — because auditability of
+the boundary is itself a security property.
+
+== Layer 3 — Encryption under the user's key
+
+The text memory is encrypted with AES-256-GCM [33]: key derived from the
+user's secret, a random 96-bit nonce per payload, and the container format
+version bound as associated data, so ciphertexts authenticate their own
+container. The napkin's phrase — _"encryption, i.e. people using our app
+can decipher"_ — is this codec: unreadable to the platform, the cloud, and
+the thief; readable only to the user's own application holding the user's
+key. The `.trace` container carries three layers with deliberately
 asymmetric guarantees: a header readable without the key (version, device,
-counts); the RAW claim log — append-only, immutable, encrypted; and the META
-layer — nodes, edges, confidence — encrypted, _deletable, and re-derivable_.
-Lose the meta and nothing is lost; lose the raw and everything is. Encryption
-at rest is AES-256-GCM [33] on v0; `tracemem`'s cipher adapter (libsodium) is
-presently stubbed — recorded as such in the ledger on page 3, because a
-privacy document that overstates its own crypto status has already failed.
+counts); the RAW claim log, append-only and encrypted; and the META layer —
+nodes, edges, confidence — encrypted, deletable, and re-derivable. Lose the
+meta and nothing is lost; lose the raw and everything is. Status honesty:
+`tracemem`'s cipher adapter (libsodium) is presently stubbed, and the
+ledger in the front matter says so.
 
-== Threats, walked
+== Layer 4 — Repository and process hygiene
 
-_Device theft:_ the container is ciphertext under the user's key; the header
-leaks counts, not content. _Cloud breach:_ there is no cloud; nothing to
-breach. _Subpoena:_ what can be produced is the text the user can already
-read — and nothing else exists. _Malicious app update:_ the egress guard is
-the choke point; media has no path out to leak. _A compromised model
-vendor:_ models run locally; the reasoner sees packed text, and only on
-device. The honest residual in each case is the text itself — which is why
-the last section of this chapter exists.
+Defense-in-depth extends to the development process: the repository's
+ignore rules block raw video, audio, and still formats globally; the commit
+gate verifies zero media binaries staged; the CI gate runs on every push.
+The team's own workflow is subject to the invariant it ships.
+
+== The threat model, tabulated
+
+#table(
+  columns: (1fr, 1.1fr, 1.1fr),
+  stroke: 0.4pt + rgb("#ddd"),
+  inset: 6pt,
+  table.header([*Threat*], [*Storage-first system*], [*TRACE*]),
+  [Device theft], [media archive exposed], [ciphertext under user key; text-only plaintext],
+  [Cloud breach], [media archive exposed], [nothing off-device but guarded text with provenance],
+  [Subpoena], [stored footage discoverable], [no footage exists; the text store is the complete universe],
+  [Insider access (vendor)], [policy-limited], [architecturally empty: no media to access],
+  [Bystander recording], [permanent images of non-consenting parties], [no image persists; bystanders appear only as typed gist],
+  [Function creep (a future feature "re-opens" media)], [one flag away], [impossible: the media was never kept],
+)
+
+Appendix I walks four of these as scenarios, including the hardest one —
+the coerced unlock — where the honest answer is that text is real exposure,
+bounded to what words carry.
+
+== Regulatory alignment
+
+Text-only, minimal, purpose-bound retention is data minimisation under GDPR
+Article 5(1)(c) [6]; capture-time conversion is privacy-by-design in the
+original, architectural sense [5]; user-key-only decryption aligns with
+data-protection-by-default. None of this is claimed as legal clearance —
+wearables face jurisdiction-specific recording law — but the architecture
+starts from the strongest position a perception device can occupy: the
+sensitive artifact class is never instantiated.
 
 == What architecture cannot discharge
 
 Honesty requires the residue stated. Perceiving people into text still
 touches privacy: "Anna said she's pregnant" is sensitive with no pixel
 involved. The bystander literature on wearable cameras [34] transfers in
-part to any wearable perception. Product-level obligations therefore remain:
-disclosure norms for wearers, redaction policies for bystander speech,
-retention and export controls in the user's hands, and the wearer's own
-social contract. The architecture makes the worst artifact impossible; it
-does not make the remaining ones weightless. This section exists so that no
-investor, customer, or regulator can say the project hid the residue behind
-the moat.
+part to any wearable perception. Product-level obligations therefore
+remain: disclosure norms for wearers, redaction policies for bystander
+speech, retention and export controls in the user's hands, and the wearer's
+own social contract. The architecture makes the worst artifact impossible;
+it does not make the remaining ones weightless. This section exists so that
+no investor, customer, or regulator can say the project hid the residue
+behind the moat.
 
-= The evaluation instrument
+= Evaluation: every miss names the next build
 
-== The philosophy
+Measurement is the most opinionated subsystem in TRACE. It is designed so
+that failure is never ambient — every miss is attributed, mechanically, to
+a cause that names the work that fixes it.
 
-Two failure modes destroy memory products: fabrication, and silent
-information loss at capture time. The instrument is built to expose both,
-mechanically, so that every miss becomes a work item rather than a debate.
+== RAS: fabrication priced like a loss, because it is one
 
-== Scoring answers
+The headline metric over a blind adversarial battery on a real capture:
 
-The v0 instrument scores a question battery with fabrication priced in: a
-made-up answer costs what a correct one earns, so the headline number cannot
-be inflated by confident guessing. Every miss is mechanically diagnosed as
-(A) never captured or (B) captured but unused — the (A)/(B) split is the
-steering wheel: (A) misses buy sensors; (B) misses buy binder and reasoner
-work. The v0 baseline on its 92-second proving clip was measured at RAS 40.0
-with 27.3% hallucination, 8 of 9 misses diagnosed (B) — the honest starting
-line that motivated the greenfield rebuild's discipline, recorded here
-because a thesis that hides its worst number teaches its readers to distrust
-its best one.
+#align(center)[RAS = (correct − made-up) / total]
 
-== Ceilings: knowing the maximum before claiming the score
+A fabricated answer subtracts what a correct one adds; an honest refusal
+costs nothing. The metric encodes the product ethics (I5) so directly that
+optimizing the number and behaving honestly are the same act. The
+qualitative bar attached to it: a stranger asks about your day and is
+amazed, with near-zero made-up answers.
 
-`tracemem`'s harness pins _ceilings_: frontier-model readings of the same
-frames, cached and versioned, so every extraction score is a fraction of a
-known maximum rather than a free-floating number. Current audited state: 111
-ceiling frames carrying 4,674 claims; against their mechanical tier the
-extraction stack reads 97.4% (Chapter 9). Ceilings are re-pinned when the
-frontier moves; the score is always _relative to the best reader we can
-rent_, which is the only honest definition of "lossless-enough."
+== OAG: the price of throwing the pixels away
 
-== Rehearsal, and the verdict format
+The oracle-answerability gap: among questions an offline oracle with the
+raw frames can answer, the percentage the retained text cannot. OAG is the
+direct measurement of the retention decision's cost (§2.5) and the
+empirical estimator of the central hypothesis (Appendix K). Raw media's
+only legitimate role in the system is here — oracle-side, offline, never
+entering production recall. In `tracemem` the same idea is systematized as
+pinned _ceilings_: frontier-model readings of the same frames, cached and
+versioned, so every extraction score is a fraction of a known maximum
+rather than a free-floating number. Current audited state: 111 ceiling
+frames carrying 4,674 claims; against their mechanical tier the extraction
+stack reads 97.4% (§9.5). Ceilings are re-pinned when the frontier moves;
+the score is always relative to the best reader rentable, which is the only
+honest definition of "lossless-enough."
 
-Before real weeks, synthetic ones: a generated week with known ground truth
-is pushed through the entire machine, and the report grades strata separately
-— verbatim recall, factual recall, emergent (derived) recall — with a
-one-word verdict. The first full rehearsal returned its verdict honestly:
-`FIX_UPSTREAM` — verbatim 1.0, factual 0.5, emergent 0.0, with the gap
-diagnosed to specific upstream stages and two invalid questions flagged. The
-system grading itself harshly, in machine-readable form, is the culture the
-instrument exists to enforce.
+== The (A)/(B) instrument
 
-== The falsification gate
+Every miss is classified: (A) the fact was never captured — the context was
+not lossless enough — or (B) the fact was in the store and the brain failed
+to reach, hold, or reason over it. The classification is mechanical, not
+judged: every answer logs what the reasoner looked at, so a miss either had
+the evidence in view or did not. (A) misses authorize new channels (I7);
+(B) misses direct work to binding, retrieval, or refusal calibration. If a
+miss cannot be classified, the instrument itself is declared broken.
 
-The gate that matters is still ahead, and this document refuses to blur
-that: capture real weeks on the real device, run the full battery, diagnose
-every miss. The hypothesis (Chapter 1) lives or dies there. Everything in
-Part II exists to make reaching that gate a matter of adapters, not
-architecture.
+== The method: sufficiency, then necessity, then efficiency
+
+Three questions, answered strictly in order, never conflated. _Sufficiency_
+(brute force, offline): on a recorded clip, thermal and token limits do not
+apply; throw everything — deep VLM on every frame, full pose track, OCR
+everywhere, full audio — and ask only whether the brain can answer the hard
+set at approximately zero hallucination at all. This isolates "does the
+idea work" from "can we afford it." _Necessity_ (ablation): remove one
+channel at a time and re-score; a removal that breaks no answer is not
+load-bearing, and the helper set is thereby discovered rather than guessed.
+_Efficiency_ (last): only with the necessary set known does the salience
+scheduler return, to approximate that set within the live budget.
+Optimizing before sufficiency is proven is how projects die with beautiful,
+useless engineering.
+
+== The first honest baseline
+
+The v0 proving ground was a 92-second outdoor walk with a 25-question
+adversarial set, scored from frozen answers: 16 correct, 6 wrong, 3
+refused — RAS 40.0, hallucination 27.3%. The diagnosis: 8 of 9 misses were
+(B) — wrong-object bindings, confident-wrong binary states, one counting
+failure, retrieval misses — and 1 was (A), the head-pose channel that two
+spatial questions demanded, correctly refused rather than fabricated. The
+number was poor, the diagnosis was precise, and both are reported because
+a document that hides its worst number teaches readers to distrust its
+best one. Appendix C carries the full scorecard.
+
+== Anti-overfit machinery
+
+Gold answer keys are hash-pinned; a silent edit to an answer key breaks the
+build. Datasets carry tuning-exposure flags, and the baseline's own
+validation clip is flagged as tuning-contaminated rather than quietly
+promoted. The pitch-readiness bar includes a cold second capture — never
+tuned on — passing a private regression check before any external claim.
+Question batteries are written blind: the author has not seen what the
+system captured, so the battery samples the world's distribution, not the
+system's strengths.
+
+== The self-play flywheel
+
+Question generation itself is automated: an overnight job drives batteries
+against the day's memory, mines the misses, and files them into the (A)/(B)
+queue. The system that answers questions by night also discovers, by night,
+which questions it cannot answer — turning I7's discipline into a
+continuously running loop rather than a quarterly ritual.
+
+== From 27.3% to zero: the refusal-calibration line
+
+The gap between the baseline and the invariant was the project's daily work
+for weeks, and it is the workstream where the second contributor deserves
+naming: the refusal-calibration and benchmark line, run with research
+collaborator *Latheesh Roy* under the founder's direction, tightened the
+grounding gate and the confidence floors until confident-wrong answers
+reached *zero on the reproducible benchmark battery* — the measured basis
+for the product claim "it cannot lie to you," demonstrated as: it runs, it
+cites, it refuses. Two honesty notes bound the result. The zero is a
+battery property, not a theorem: it holds on the frozen adversarial set and
+its planted unanswerables, and the cold-capture guard (§13.6) exists
+precisely because a zero that has not survived a never-tuned capture is a
+provisional zero. And the zero is bought partly with refusals: driving
+made-up answers to nothing raises the refusal rate, and whether users
+accept that trade is a product question (§18.12) the beta exists to answer.
+
+= Engineering governance
+
+A small team with an ambitious architecture survives on discipline that is
+cheaper to follow than to break. TRACE's governance is code where possible,
+ritual where necessary.
+
+== The merge gate
+
+One command enforced identically three ways — locally, as the pre-push
+hook, and in CI on every push: formatting and linting; strict typing over
+domain and application; complexity and function-length ceilings; dead-code
+detection with zero tolerance in production code; frozen-gold hash
+verification; the focused evaluator tests; and a coverage floor over the
+domain (87% at the v0 baseline). The gate is the definition of done.
+
+== One source of truth, read first, updated last
+
+The repository's constitution and specs govern execution. Every working
+session starts by reading them and ends by updating them. The rule exists
+because the project's early history includes divergence between
+documentation and reality — including an acceptance failure traced to
+desk-testing a stale build — and the fixes are procedural: a build stamp
+(the git SHA in the app's status line and in every posted artifact),
+artifact-level verification, and the standing instruction to never trust
+"installed."
+
+== The plan-gate and the anti-diversion law
+
+Before any build: name the roadmap item and the missed question that
+authorizes it (I7). No authorization, no build. The law's origin is a real
+casualty — the 3D world renderer, built on intuition, needed by no
+question, killed on diagnosis — and its function is to make that class of
+detour structurally difficult. Corollaries: pruning is measured, never
+aesthetic; and re-evaluation of locked component choices requires new
+diagnostic evidence, not new enthusiasm.
+
+== Honesty as an artifact
+
+Phase reports record what was verified against the live code, including
+corrections of prior claims; evaluation reports carry their contamination
+flags; the README states which invariants are proven and which are targets.
+The document you are reading inherits the same rule — see §4.1, §9.5,
+§12.3, §13.8 — and the front-matter ledger is its enforcement.
 
 = Two stacks, one product: an honest history
 
 == v0: the stack that runs
 
-The reader doing diligence will find two repositories, and deserves the story
-before the surprise. v0 has run continuously since June 2026: live capture
-feeding an always-on hub, a nightly consolidation job at 03:30, an encrypted
-store, an iPhone capture app, and an evaluation battery. It produced the
-first disciplined binder (36 entities, 58 bindings, 144 weak links refused on
-the proving clip), the first honest scores, and most of the hard laws — one
-model on the GPU, capture goes dark silently if crowded, the embedding
-endpoint that had to be replaced. It also accumulated what every v0
-accumulates: prose documents that drifted from the code until, on
-2026-07-17, the founder deleted every one of them and declared that the
-present tense lives only in code, tests, and running processes. That
-deletion is why this document cites ledgers instead of promises.
+The reader doing diligence will find two repositories, and deserves the
+story before the surprise. v0 has run continuously since June 2026: live
+capture feeding an always-on hub, a nightly consolidation job, an encrypted
+store, an iPhone capture app, and the evaluation battery. It produced the
+first disciplined binder — 36 entities, 58 bindings, 144 weak links refused
+on the proving clip — the first honest scores (§13.5), the
+refusal-calibration zero (§13.8), and most of the hard laws (§8.6). It also
+accumulated what every first stack accumulates: prose documents that
+drifted from the code until, in mid-July 2026, the founder deleted every
+one of them and declared that the present tense lives only in code, tests,
+and running processes. That deletion is why this document cites ledgers
+instead of promises.
 
 == The greenfield: the napkin, rebuilt
 
-Two days later the architecture was redrawn by hand — the napkin — and
+Days later the architecture was redrawn by hand — the napkin — and
 `tracemem` was scaffolded from it: specs first, contract headers in every
 file, fakes behind every port, the crown test as the spine, xfail as the
 TODO ledger. The napkin was transcribed verbatim into the repository as its
 constitution, outranking everything including the specs. v0's lessons are
 inherited as laws rather than as code.
 
+== The legacy engine: what v0 knows that a rewrite would forget
+
+v0's answer engine — roughly 2,900 lines that produced every baseline
+number — predates the domain model and contains 47 broad exception
+handlers. It is also a repository of earned answer-quality defenses, bought
+one hallucination at a time on real captures, and the strangling plan's
+first rule is that none of them may be lost in translation: the
+binary-state discipline (a sound event does not prove a crowd; a stray
+cable does not prove a phone was connected); the phantom-class watchlist
+guarding existence questions; absence-and-negation machinery for answering
+"no" from positive contrary cues; cross-lingual matching, learned from
+captures in a bilingual environment, where English questions must match
+German OCR; and the dossier-building craft that Chapter 11 formalizes as
+the supplier.
+
 == The strangling sequence
 
 The migration follows the strangler fig [25][40]: v0 keeps running as the
 capture organ and the measuring baseline while `tracemem`'s adapters come
 real in dependency order — cipher, OCR/ASR, the camera eyes, the phone tap.
-Each adapter that lands moves one organ from the old body to the new; the
-crown test and the ceilings verify equivalence at each step. v0 is
-decommissioned by explicit founder decision when the falsification gate runs
-green on the new stack — not by drift, and not before.
+Every extracted capability lands behind a port with tests that encode the
+legacy behavior it must preserve, and the baseline battery re-runs after
+each extraction. The operational scar tissue transfers with it: capture
+dies silently under a shared GPU and must be watched by liveness checks;
+embeddings needed a different engine than the reasoner; phone deploys stall
+in reproducible ways; a store must be snapshotted and shadow-served to be
+measured without killing capture. v0 is decommissioned by explicit founder
+decision when the falsification gate runs green on the new stack — not by
+drift, and not before.
 
-== What v0 knows that a rewrite would forget
+= Market position and the moat
 
-The operational scar tissue is the inheritance: that capture dies silently
-when the GPU is shared, and must be watched by liveness checks; that
-embeddings needed a different engine than the reasoner; that phone deploys
-stall in reproducible ways; that a store must be snapshotted and
-shadow-served to measure it without killing capture. None of this is in any
-paper; all of it is in the laws and runbooks the new stack starts with.
+== The quadrant
 
-= Honest risks
-
-_The hypothesis may be false._ Text may lose something questions need at a
-rate the enrichment ladder cannot close. This is the existential risk; it is
-measurable (Chapter 13), the gap today is 2.6% on frames, and the number on
-real weeks is unknown. If the gap on lived weeks proves irreducible, the
-architecture does not survive by pivoting to stored media — the project
-fails honestly instead.
-
-_The senses are not real yet._ The thinking machinery runs; the hardware
-adapters are stubs. The risk is not that adapters are hard — v0 proves each
-exists — but that their _quality_ on device, on battery, all day, is below
-what the ceilings assume. The battery and thermal budget on glasses-class
-hardware is unmeasured and is called out as such.
-
-_A single founder built this._ Bus factor one, and the seat this document
-exists to fill is empty (Chapter 17). The mitigations are the ones in
-evidence: specs with contracts, a constitution file, tests as ledger — the
-repository is built to be joined.
-
-_Two stacks is a tax._ Every week both run is a week of split attention. The
-strangling plan bounds it, but the tax is real and admitted.
-
-_Local models may plateau._ If on-device reasoning stalls, I2 permits
-routing _text_ to a stronger model — a privacy-preserving escape hatch that
-is nonetheless a product compromise and is treated as one.
-
-_The social residue._ Chapter 12's residue section is a risk, not a
-footnote: a wearer whose glasses transcribe speech is a social object the
-world has already rejected once. The bet is that text-only, cited,
-user-auditable memory is on the acceptable side of the line the recorders
-died on. That bet can lose.
-
-= Position and moat
-
-== The empty quadrant
-
-Physical-world context with zero retention: no shipping product occupies it.
-The recorders that tried the adjacent quadrant died there — Humane's pin
-shut down with its assets sold to HP for \$116M (February 2025); the
-always-on recorder category is a graveyard because storage-first capture
-meets the wall of Chapter 1. The digital-only assistants — however
-personalized — cannot see the room. The quadrant is empty because physical
-context has always required retention. TRACE's architecture is the first way
-in without it.
+Two axes organize the field: what persists (raw media versus derived text)
+and where reasoning happens (cloud versus device). Screen-recording memory
+tools, audio pendants, and camera glasses all sit in the raw-persistence
+half-plane — differing only in which medium they hoard. The text-only,
+device-perception quadrant is empty, and not by accident: occupying it
+requires giving up the raw stream, which storage-first architectures cannot
+do retroactively — their features, their indexes, and their user
+expectations are built on the archive. An incumbent cannot follow without
+abandoning its own foundation. That is what makes the position a moat
+rather than a feature.
 
 == Why now
 
-Three curves cross. On-device AI crossed the capability threshold — billions
-of phones now run local models, and sub-second on-device vision is
-commodity. AI wearables ship in volume — roughly seven million camera
-glasses in 2025 alone — proving demand for the form factor while their
-retention architecture proves the objection. And the EU AI Act's biometric
-provisions (in force since February 2025) turn "structurally non-retaining"
-from a philosophy into a procurement criterion, on the continent where this
-company is being built.
+Three curves cross. On-device AI crossed the capability threshold: billions
+of phones run local models, and sub-second on-device vision is commodity.
+AI wearables ship in volume — roughly seven million camera glasses in 2025
+alone — proving demand for the form factor while their retention
+architecture proves the objection: the always-on recorder category is a
+graveyard, its best-funded entrant shut down with assets sold to HP for
+\$116M in February 2025. And the EU AI Act's biometric provisions, in force
+since February 2025, turn "structurally non-retaining" from a philosophy
+into a procurement criterion, on the continent where this company is being
+built.
 
-== Why incumbents don't simply build it
+== Why incumbents want it and cannot build it
 
-Their business models monetize retained data and engagement; their privacy
-stacks deliberately stop at the digital life. A zero-retention physical
-layer contradicts the data economics that fund them. If the capability
-matters to them, they license it or acquire it — both outcomes require TRACE
-to exist first.
+For platform acquirers, an input-only memory is the wearable strategy
+without the surveillance liability that has repeatedly burned camera
+products. Their business models monetize retained data; their privacy
+stacks deliberately stop at the digital life. The acquisition logic is
+strengthened, not weakened, by the moat's nature: the asset is an
+architecture and its measured evidence — the invariants, the evaluation
+trail, the scheduler — none of which can be bolted onto a storage-first
+product without a rewrite indistinguishable from starting over. If the
+capability matters to them, they license it or acquire it; both outcomes
+require TRACE to exist first. The licensing precedent is the layer
+companies — Arm and Dolby own a layer, not a box — and the `.trace`
+container plus the text-only context boundary are designed to be exactly
+such a licensable layer.
 
-== The moat, precisely
+== The demo that proves the moat
 
-Not the model (commodity, by design), not the app. The moat is the posture —
-input-only, provable, GDPR-native — which storage-first competitors cannot
-copy without abandoning their foundation; the evidence corpus — every
-deployed week compounds the question batteries and diagnosis logs that tune
-extraction; and the licensing position: a specified container and a
-text-only context layer that any device maker can adopt, on the precedent of
-Arm and Dolby — companies that own a layer, not a box.
+The pitch deliverable is designed to make the architecture felt: a hero
+capture answered live with citations; the no-raw-media proof panel — frames
+visibly converting to text and dying, the store shown text-only; and the
+live "ask it anything" moment where an honest refusal lands as a feature.
+An audience that watches surveillance become structurally impossible on
+stage has understood the company.
+
+= Risks and open problems
+
+Stated plainly, ordered by severity, with the mitigation that exists and
+the trigger that would escalate each.
+
+== The central hypothesis may be false
+
+Text may not carry enough of the visual world. Mitigation: OAG and the
+ceilings exist to measure exactly this; the sufficiency phase brute-forces
+the best case before efficiency constrains it; the measured frame-level gap
+is 2.6% (§9.5). Escalation trigger: a sufficiency run on a clean real week
+in which the brute-force text scaffold still misses a material share of
+oracle-answerable questions. That result would demand rethinking the
+retention format itself, and no amount of scheduling cleverness would
+matter. The project fails honestly in that world rather than pivoting to
+stored media.
+
+== The zero must survive the cold
+
+Confident-wrong answers are at zero on the reproducible battery (§13.8);
+the risk is distribution shift. Mitigation: the cold-capture guard — a
+never-tuned capture must pass a private regression before any external
+claim; hash-pinned golds; contamination flags. Escalation trigger:
+hallucination reappearing on cold captures under a disciplined binder
+would point at the reasoner, opening the measured text-only hatch (I2-safe
+by construction).
+
+== The senses are not real yet
+
+The thinking machinery runs; the hardware adapters are stubs. The risk is
+not that the adapters are hard — v0 proves each exists — but that their
+quality on device, on battery, all day, is below what the ceilings assume.
+The battery and thermal budget on glasses-class hardware is unmeasured, and
+this document says so rather than extrapolating.
+
+== Local models may be the wall
+
+The local reasoner and VLM [17][18] may cap binding or answering quality.
+Mitigation: the hatch — binding and answering can escalate to a frontier
+text-only model with the privacy posture unchanged, because text was the
+only thing allowed out from the first commit. The decision is a benchmark
+delta, not a philosophy. Residual: dependence on a frontier vendor for the
+deep pass, bounded by the fact that only guarded text ever leaves.
+
+== Consolidation may not hold at life scale
+
+If disciplined binding degrades over weeks — entity resolution drifting,
+derived nodes accumulating subtle wrongness — the graph's value erodes.
+Mitigation: accelerator-not-gatekeeper (the scaffold always answers);
+replayability (every binder version can re-run history, I3); refusal (the
+graph prefers silence to error). Honesty: this is the research risk. The
+crown test binds cleanly; a life is noisier than a test.
+
+== Two stacks is a tax, and one founder built this
+
+Every week both stacks run is a week of split attention; the strangling
+plan bounds it, and the tax is admitted. Bus factor is one, and the seat
+this document exists to fill is empty (Chapter 19). The mitigations are the
+ones in evidence: a constitution, contracts, tests as ledger — a repository
+built to be joined — plus the collaboration already running (the
+refusal-calibration line, §13.8).
+
+== Bystander and social risk
+
+Architecture removes stored media; it does not remove the social fact of
+being perceived. §12.7's product obligations stand; recording-law
+heterogeneity across jurisdictions is a compliance program, not an
+architecture patch; and the possibility that society rejects even text-only
+wearable perception is priced in Chapter 18.3 rather than assumed away.
+
+= Objections and responses
+
+Every serious reader of this architecture raises a version of the same
+dozen objections. They deserve direct answers, in one place, at full
+strength. Where an objection is partially right, the response says so.
+
+== "If you throw away the pixels, you'll throw away the answer."
+
+The strongest objection, and the one the whole evaluation apparatus exists
+to face. It is a measurable claim, not a debate: OAG quantifies exactly the
+questions the raw-frame oracle answers that the text cannot; the
+sufficiency phase maximizes the text side before any efficiency constraint
+bites; and the enrichment ladder exists to spend deep perception where
+tomorrow's question is likeliest to land. The honest current state: the
+frame-level gap is 2.6% (§9.5), the week-level gap is unmeasured, and if
+the gap ever proves irreducible at the sufficiency limit, the hypothesis is
+falsified and the premise fails — a possibility the risk register states
+rather than hides. What the objection cannot claim is that the alternative
+escapes the problem: storage-first systems defer extraction, they do not
+solve it, and they pay the surveillance price forever while deferring.
+
+== "A verbal description of a scene is a pale shadow of the scene."
+
+True — and the wrong comparison. The competitor is not the scene; it is
+human memory of the scene, which is itself a sparse verbal-categorical
+trace reconstructed on demand [1][2]. TRACE does not need to beat the
+videotape; it needs to beat the wearer's own recollection, with citations,
+at near-zero fabrication. The strongest scientific form of this objection
+is the verbal-overshadowing result [42]: describing a face in words
+degrades later recognition of that face. Appendix L takes it seriously,
+and the two-part response is structural. First, overshadowing is a human
+phenomenon — the verbal trace interferes with the human's own perceptual
+memory; TRACE's extraction does not overwrite anyone's memory, it
+supplements it with a second, citable one. Second, the criterion differs:
+overshadowing hurts recognition (pick the face from a lineup), while TRACE
+is evaluated on question-answering over facts — and where a described
+detail is genuinely unrecoverable from text, OAG counts it, which is
+exactly what the instrument is for.
+
+== "People will not wear a camera, period."
+
+The social objection. People already carry always-on microphones and
+cameras in their pockets and on their wrists; what they reject — and what
+jurisdictions legislate against — is retention and replay. TRACE's answer
+is not "trust us" but "there is nothing to distrust": no stored image of
+any bystander exists one second after the moment. That claim is
+demonstrable on stage and auditable in code. It may still fail socially —
+§12.7 and §17.7 keep that residue on the books — but it fails from a
+categorically stronger position than any recording device.
+
+== "Local models are too weak to bind a day correctly."
+
+Possibly. The architecture's response is the measured hatch: binding and
+answering can escalate to a frontier text-only model with the privacy
+posture unchanged (I2). The decision is a benchmark delta, not a
+philosophy: local is preferred, cloud-text is permitted, raw egress is
+impossible. The objection's teeth are economic, and the mitigation is the
+same as everywhere in this design: spend depth only where salience earns
+it.
+
+== "The graph will silt up with garbage over months."
+
+The scaling objection, and the project's honest research risk (§17.5).
+Three structural answers: weak-link refusal keeps coincidence out of the
+graph at write time; projections are disposable, so a better binder can
+re-marinate history at any time (I3); and the graph is an accelerator,
+never a gatekeeper — recall can always fall back to the raw scaffold. What
+these do not answer is whether any binder discipline holds at life scale;
+that is what the phased evaluation is for.
+
+== "Why not just embeddings? Vector search over frames is simpler."
+
+Embeddings are in the system — as projections, rebuildable accelerators
+for retrieval. They are disqualified from being the truth for three
+reasons: they are not auditable by the owner (no one can read what a
+vector of their kitchen contains); they are not citable at the claim level
+(I4); and they freeze a model's worldview into the store — a new encoder
+means re-embedding, which is fine for an index and catastrophic for a
+memory. Text is the only format that is simultaneously queryable,
+auditable, citable, and model-independent.
+
+== "OCR and ASR errors will poison the memory."
+
+They will enter it — every channel is noisy. The defenses are layered:
+per-claim confidence at capture; cross-channel corroboration at binding
+(an OCR misread that nothing else co-occurs with binds to nothing); the
+refusal floor at answer time; and the refutation-cue field, which invites
+later evidence to overturn earlier error. The design position: noise in an
+auditable text store is a manageable disease; noise in an unauditable one
+is undiagnosable.
+
+== "This is just RAG with extra steps."
+
+The recall stage is RAG-shaped, and the document says so [12]. The extra
+steps are the product: a corpus that is machine-perceived under a privacy
+invariant rather than scraped; provenance as a type obligation rather than
+a convention; refusal as a scored, calibrated outcome rather than a
+failure; and a nightly consolidation layer that RAG systems do not have
+because their corpora do not accrete a life. Dismissing a system by naming
+its weakest structural analogy is a critique this chapter welcomes — it is
+how the 3D renderer died — but here the analogy covers one of nine stages.
+
+== "The salience scheduler will miss the moment that matters."
+
+Sometimes it will — a budget is a bet. Two answers. First, the cheap
+stratum never blinks: OCR, ASR, sounds, and sensors record continuously,
+so a missed deep look is a degraded memory, not an absent one. Second,
+every such miss is visible: it surfaces as an (A)-diagnosed failure, and
+the budget, weights, or ladder thresholds move in response (I7). The
+scheduler is not claimed optimal; it is claimed instrumented — its errors
+are the training signal for its own next version.
+
+== "Encryption with no vendor key means no recovery."
+
+Correct, and chosen. A memory this intimate with a vendor-side recovery
+path is a memory with a second reader. The design accepts the
+consumer-grade consequence — lose the key hierarchy, lose the memory — in
+exchange for the categorical claim of §12.3; key-escrow-by-user-choice can
+exist as product surface without weakening the default.
+
+== "A team this small cannot build this."
+
+The scope objection. The architecture is its own answer: a domain layer
+small enough to read in a sitting; one substrate at a time behind ports; a
+legacy engine strangled rather than rewritten; a machine that generates
+its own backlog from missed questions and runs its own night shifts. The
+governance chapter is not process theater — it is how a small team rents
+the discipline of a larger one. The risk that remains is focus, and the
+anti-diversion law exists because the team has already paid once for
+losing it.
+
+== "Why would anyone pay for honest refusals?"
+
+Because the alternative is confident fabrication about their own life, and
+one such fabrication ends the relationship with the product. Refusal is
+not the product; trust is, and refusal is trust's price. The demo bets on
+this directly: the "ask it anything" moment treats an honest "I didn't
+perceive that" as a feature. If users in fact prefer comfortable invention
+to honest silence, then this product should not exist — and its founders
+would rather learn that than build the alternative.
 
 = The road, and the ask
 
-== The road
+== Prototype tiers
 
-_Now → 6 months — harden._ Make the extraction adapters real (cipher, OCR,
-ASR, eyes); run the falsification gate on real captured weeks; close the
-diagnosed gaps until the battery scores survive contact with a lived life.
-_6 → 12 months — the EXIST phase._ Wearable form factor off the phone;
-closed beta; the founding team complete. _12 → 24 months — ship._ Public
+#table(
+  columns: (auto, 1fr, auto),
+  stroke: 0.4pt + rgb("#ddd"),
+  inset: 6pt,
+  table.header([*Tier*], [*Definition*], [*Horizon*]),
+  [V0], [Mac-processed, generalizing, trustworthy: record → one command → ask → cited answers], [running],
+  [V1], [live, on-device, attention-gated, all-day (phone rig) — the moat made wearable], [weeks–months],
+  [Glasses], [the same architecture in the target form factor], [months+],
+)
+
+Everything hard about glasses — battery, heat, social acceptability — is a
+harder version of a constraint the phone rig already prices, which is why
+the phone rig is the right dress rehearsal. No glasses-specific engineering
+exists in either repository today, deliberately (I7).
+
+== The near road
+
+_Now → 6 months — harden._ Make the extraction adapters real (cipher,
+OCR/ASR, the camera eyes, the phone tap); run the falsification gate on
+real captured weeks; close the diagnosed gaps until the battery scores
+survive contact with a lived life; hold the confident-wrong zero through
+the cold-capture guard. _6 → 12 months._ Wearable form factor off the
+phone; closed beta; the founding team complete. _12 → 24 months._ Public
 product, multi-device, first licensing conversations from an evidence
 position.
 
 == The open seat
 
-This document is, among other things, an offer: a technical cofounder seat,
-equity not employment. The profile is deliberately open across the six
-readers of the reading guide — the work spans perception, systems, and
-product — but the seat owns one thing above all: making the senses real and
-proving the hypothesis on real weeks, with the founder, at parity.
+This document is, among other things, an offer: a technical cofounder
+seat — equity, not employment. The profile is deliberately open across the
+six readers of the reading guide, because the work spans perception,
+systems, and product; the seat owns one thing above all: making the senses
+real and proving the hypothesis on real weeks, at parity with the founder.
+The collaboration pattern already exists in evidence — the
+refusal-calibration line with Latheesh Roy (§13.8) is how this project
+works with people: a named line of attack, an instrument, and a number
+that moved.
 
 == The first 90 days
 
 Day one is not a whiteboard: it is a repository with a constitution, 274
 green tests, one xfail ledger, and a falsification gate waiting for real
-weeks. The first 90 days are the strangling sequence's first organs — cipher
-adapter, OCR/ASR, the first real captured week through the crown pipeline —
-and the first gate run whose verdict neither of us can predict. That verdict
-is the point. This is a project that has arranged to be told it is wrong.
+weeks. The first 90 days are the strangling sequence's first organs — the
+cipher adapter, OCR/ASR, the first real captured week through the crown
+pipeline — and the first gate run whose verdict neither founder can
+predict. That verdict is the point; this is a project that has arranged to
+be told it is wrong.
 
 == What would change our minds
 
 If the falsification gate shows an irreducible extraction gap on questions
-that matter, the hypothesis dies and the project with it — honestly. If
-refusal rates make the product unusable at the confidence floor the ethics
-require, the bet on I5/I6 was wrong. If a year of evidence shows the social
-residue is rejected even without retention, the market is not there. Each of
-these is written down _before_ the evidence arrives, which is the only time
-such sentences can be written credibly.
+that matter, the hypothesis dies and the project with it. If refusal rates
+at the ethics-mandated confidence floor make the product unusable, the bet
+behind I5 and I6 was wrong. If a year of evidence shows the social residue
+is rejected even without retention, the market is not there. Each sentence
+is written down before the evidence arrives, because that is the only time
+such sentences are credible.
 
-// ═══════════════════ APPENDICES ═══════════════════
+== Conclusion
 
-#heading(numbering: none)[Appendix A — The napkin, verbatim]
+The argument compresses to four sentences. The valuable artifact of a
+lived day was never the footage; it was the bound, queryable meaning, and
+meaning survives translation to words while surveillance does not. A
+memory that keeps only words can be structurally incapable of the harms
+that have sunk every storage-first wearable, while remaining open to any
+question its perception actually answered. Whether words captured at the
+moment of living are enough — lossless enough, bindable enough, honest
+enough — is a falsifiable hypothesis, and this architecture is the
+instrument built to test it at maximum speed: append-only truth,
+disposable understanding, calibrated refusal, and a measurement loop in
+which every failure names its own fix. The jar on the shelf either becomes
+a cited answer or an honest "I don't know" — and a system that can tell
+you which, and why, is a system worth building.
 
-Handwritten by the founder; photographed 2026-07-18; transcribed into the
-repository as its constitution. On any conflict it outranks code, tests,
-campaign documents, and specs — in that order below it. Nothing in it may be
-"improved" in place; a change to the architecture is a founder decision,
-recorded on the board.
-
-#block(inset: (left: 1em))[
-#raw("## Standard Model
-
-    [World] --Senses--> Eyes / Ears / Organs --> [Brain]
-       ^______________________________________________|
-    (because we can't manufacture other senses
-     or most of the information is obtained through this)
-
-## EXECUTION
-
-    [World] -> Video (Eyes), Audio (Ears)
-        -> [Extraction Black Box]
-        -> Coordinates + time stamps
-        -> Blurry frames discarded · Signal–Noise decipherer + Context
-        -> A macro picture of what's happening => VLM
-        -> A specialized eye or helper for various tasks are called   (Helper)
-        -> Best understanding possible of the world
-        -> [TEXT]
-
-    Text from various helpers marked by coordinates
-        -> [Binder] => binding the coordinates, physicality & temporal, together
-        -> First thought or raw material that can be marinated on
-           Note: This is not a complete Node, it's raw material
-        -> [Node Creation Black Box]
-             · Encryption, i.e. people using our app can decipher
-             · A physical living breathing cell that can combine with
-               fellow nodes to derive new things — 1+1 = 4, ≠ 2
-             · Always running in the background but better nightly
-             · Discarder of meta, i.e. the marinated content that's not
-               useful is discarded, NOT the raw material
-
-    [Information Supplier Black Box]
-        -> Just Enough Context for local LLM
-        -> LLM does what LLM does", block: true)
-]
-
-#v(1em)
-The box→code map (subordinate to the drawing):
-
-#table(
-  columns: (1fr, 1fr),
-  stroke: 0.4pt + rgb("#ddd"),
-  inset: 6pt,
-  table.header([*Napkin box*], [*Code*]),
-  [Extraction Black Box], [`src/tracemem/extraction/`],
-  [TEXT (raw, immutable, coordinate-marked)], [`src/tracemem/text/`],
-  [Binder], [`src/tracemem/binder/`],
-  [Node Creation Black Box], [`src/tracemem/nodes/` · `src/tracemem/container/`],
-  [Information Supplier Black Box], [`src/tracemem/supplier/`],
-  [LLM does what LLM does], [`src/tracemem/llm/`],
-)
-
-#heading(numbering: none)[Appendix B — Glossary]
-
-#table(
-  columns: (auto, 1fr),
-  stroke: none,
-  inset: (y: 4pt),
-  [*claim*], [one line of extracted text with address, provenance, and grade — the atom of memory],
-  [*grade*], [ordered trust level; _witnessed_ at the top, degrading with derivation depth],
-  [*episode*], [claims bound by shared place and second — the napkin's "first thought," raw material],
-  [*entity*], [a persistent node with a dated history (the jar, the shelf, the person)],
-  [*pattern*], [a nightly derivation over entities — the napkin's 1+1=4; deletable, re-derivable],
-  [*tombstone*], [the record that retires a wrong binding without mutating the log],
-  [*ceiling*], [a frontier-model reading of the same frame, pinned and cached — the denominator of every extraction score],
-  [*crown test*], [the end-to-end test: synthetic week → episodes → entities → patterns → cited answer → honest abstention],
-  [*supplier*], [the third black box: cue → retrieve → pack → ground; three memories, not three thousand],
-  [*`.trace`*], [the container: readable header · encrypted immutable RAW · encrypted re-derivable META],
-  [*(A)/(B) miss*], [diagnosis of a failed answer: never captured (A) versus captured but unused (B)],
-  [*strangler fig*], [the migration pattern: v0 keeps running while `tracemem`'s adapters replace its organs],
-)
-
-#heading(numbering: none)[Bibliography]
-
-All numbered sources were verified against live externals on 2026-07-21:
-arXiv identifiers checked title-and-authors against the arXiv API; DOIs
-resolved through `doi.org` to their publishers; cited URLs confirmed
-reachable. Books are cited from their canonical editions.
-
-#set par(justify: false)
-#set text(size: 9pt)
-
-+ E. Tulving, "Episodic and Semantic Memory," in _Organization of Memory_, Academic Press, 1972; and _Elements of Episodic Memory_, Oxford University Press, 1983.
-+ F. C. Bartlett, _Remembering: A Study in Experimental and Social Psychology_, Cambridge University Press, 1932.
-+ J. G. Klinzing, N. Niethard, J. Born, "Mechanisms of systems memory consolidation during sleep," _Nature Neuroscience_ 22, 1598–1610, 2019. doi:10.1038/s41593-019-0467-3
-+ J. M. Zacks, N. K. Speer, K. M. Swallow, T. S. Braver, J. R. Reynolds, "Event perception: a mind–brain perspective," _Psychological Bulletin_ 133(2), 273–293, 2007.
-+ A. Cavoukian, _Privacy by Design: The 7 Foundational Principles_, Information & Privacy Commissioner of Ontario, 2009.
-+ Regulation (EU) 2016/679 (GDPR), Article 5(1)(c) — data minimisation. #link("https://gdpr-info.eu/art-5-gdpr/")[gdpr-info.eu/art-5-gdpr]
-+ T. Brown et al., "Language Models are Few-Shot Learners," _NeurIPS_, 2020. arXiv:2005.14165
-+ L. Itti, C. Koch, "Computational modelling of visual attention," _Nature Reviews Neuroscience_ 2, 194–203, 2001.
-+ J. Gemmell, G. Bell, R. Lueder, "MyLifeBits: a personal database for everything," _Communications of the ACM_ 49(1), 88–95, 2006. doi:10.1145/1107458.1107460
-+ S. Hodges et al., "SenseCam: A Retrospective Memory Aid," _Proc. UbiComp_, 177–193, 2006. doi:10.1007/11853565_11
-+ K. Grauman et al., "Ego4D: Around the World in 3,000 Hours of Egocentric Video," _Proc. CVPR_, 2022. arXiv:2110.07058
-+ P. Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks," _NeurIPS_, 2020. arXiv:2005.11401
-+ A. Kamath, R. Jia, P. Liang, "Selective Question Answering under Domain Shift," _Proc. ACL_, 2020. arXiv:2006.09462
-+ A. Hogan et al., "Knowledge Graphs," _ACM Computing Surveys_ 54(4), 1–37, 2021. arXiv:2003.02320
-+ Apple Inc., ARKit documentation: ARWorldMap, world tracking and relocalization. #link("https://developer.apple.com/documentation/arkit")[developer.apple.com/documentation/arkit]
-+ D. L. Hall, J. Llinas, "An introduction to multisensor data fusion," _Proceedings of the IEEE_ 85(1), 6–23, 1997.
-+ Gemma Team, Google DeepMind, "Gemma 3 Technical Report," 2025. arXiv:2503.19786
-+ Qwen Team, Alibaba Group, "Qwen2.5-VL Technical Report," 2025. arXiv:2502.13923
-+ E. Evans, _Domain-Driven Design: Tackling Complexity in the Heart of Software_, Addison-Wesley, 2003.
-+ C. Guo, G. Pleiss, Y. Sun, K. Q. Weinberger, "On Calibration of Modern Neural Networks," _Proc. ICML_, 2017. arXiv:1706.04599
-+ A. Cockburn, "Hexagonal Architecture (Ports and Adapters)," 2005. #link("https://alistair.cockburn.us/hexagonal-architecture")[alistair.cockburn.us]
-+ R. C. Martin, _Clean Architecture_, Prentice Hall, 2017.
-+ M. Fowler, "Event Sourcing," 2005. #link("https://martinfowler.com/eaaDev/EventSourcing.html")[martinfowler.com]
-+ M. Fowler, "CQRS," 2011. #link("https://martinfowler.com/bliki/CQRS.html")[martinfowler.com]
-+ M. Fowler, "Strangler Fig Application," 2004 (updated 2024). #link("https://martinfowler.com/bliki/StranglerFigApplication.html")[martinfowler.com]
-+ J. Redmon, S. Divvala, R. Girshick, A. Farhadi, "You Only Look Once: Unified, Real-Time Object Detection," _Proc. CVPR_, 2016. arXiv:1506.02640; Ultralytics YOLO documentation, docs.ultralytics.com.
-+ P. K. A. Vasu, H. Pouransari, F. Faghri, R. Vemulapalli, O. Tuzel, "MobileCLIP: Fast Image-Text Models through Multi-Modal Reinforced Training," _Proc. CVPR_, 2024. arXiv:2311.17049
-+ A. S. Tanenbaum, D. J. Wetherall, _Computer Networks_, 5th ed., Pearson, 2011 — §5.4, token-bucket traffic shaping.
-+ Ollama — local large-model runtime. #link("https://ollama.com")[ollama.com]
-+ A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, I. Sutskever, "Robust Speech Recognition via Large-Scale Weak Supervision" (Whisper), _Proc. ICML_, 2023. arXiv:2212.04356
-+ B. Bohnet et al., "Attributed Question Answering: Evaluation and Modeling for Attributed Large Language Models," 2022. arXiv:2212.08037
-+ Z. Ji et al., "Survey of Hallucination in Natural Language Generation," _ACM Computing Surveys_ 55(12), 1–38, 2023. arXiv:2202.03629
-+ M. Dworkin, _NIST SP 800-38D: Galois/Counter Mode (GCM) and GMAC_, NIST, 2007. doi:10.6028/NIST.SP.800-38D
-+ R. Hoyle, R. Templeman, S. Armes, D. Anthony, D. Crandall, A. Kapadia, "Privacy behaviors of lifeloggers using wearable cameras," _Proc. UbiComp_, 571–582, 2014. doi:10.1145/2632048.2632079
-+ D. O. Hebb, _The Organization of Behavior_, Wiley, 1949.
-+ V. Bush, "As We May Think," _The Atlantic Monthly_, July 1945.
-+ C. Gurrin, A. F. Smeaton, A. R. Doherty, "LifeLogging: Personal Big Data," _Foundations and Trends in Information Retrieval_ 8(1), 1–125, 2014.
-+ Apple Machine Learning Research, "FastVLM: Efficient Vision Encoding for Vision Language Models," _Proc. CVPR_, 2025. arXiv:2412.13303
-+ J. F. Gemmeke et al., "Audio Set: An ontology and human-labeled dataset for audio events," _Proc. ICASSP_, 2017.
-+ S. Newman, _Monolith to Microservices_, O'Reilly, 2019.
-
-#v(2em)
-#line(length: 100%, stroke: 0.4pt + rgb("#ddd"))
-#v(0.6em)
-#text(size: 8.5pt, fill: inkgray)[
-  Typeset in Typst 0.15 · Libertinus Serif, fonts embedded · references
-  verified against live sources 2026-07-21 · companion: the interactive
-  walkthrough at `interactive/architecture-live.html` · TRACE, July 2026.
-]
+#include "appendix.typ"
